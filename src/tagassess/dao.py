@@ -5,7 +5,7 @@ Contains base classes for accessing annotation stored on PyTables files.
 
 from __future__ import print_function, division
 
-from tables import IsDescription
+from tables import *
 
 class Annotation(object):
     '''
@@ -32,6 +32,13 @@ class Annotation(object):
     
     def get_tag(self):
         return self._tag
+    
+    def get_desc(self):
+        return {'DATE':self.get_date(),
+                'USER':self.get_user(),
+                'TAG':self.get_tag(),
+                'ITEM':self.get_time()
+                }
 
 class AnnotationDesc(IsDescription):
     
