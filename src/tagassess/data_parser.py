@@ -97,7 +97,19 @@ class Parser(object):
     generates Annotations.
     '''
     
-    def __init__(self):
+    def __init__(self, share_ids=False):
+        '''
+        Creates a new Parser
+        
+        Arguments:
+        ----------
+        share_ids: bool
+            Determines if tags, items and user will share the same id space
+        '''
+        self.share_ids = share_ids
+        self.tag_ids = None
+        self.item_ids = None
+        self.user_ids = None
         self._reset()
         
     def iparse(self, inf, parse_func):
@@ -113,9 +125,19 @@ class Parser(object):
         '''
         for line in inf:
             user, item, tag, date = parse_func(line)
-            yield Annotation(self.user_ids[user], self.tag_ids[tag], self.item_ids[item], date)
+            #We make use of tuple (1 to 3, X) in order to differentiate
+            #user, tags and items with same names. 
+            yield Annotation(self.user_ids[(1, user)], 
+                             self.item_ids[(2, item)], 
+                             self.tag_ids[(3, tag)], date)
     
     def _reset(self):
-        self.tag_ids = ContiguousID()
-        self.item_ids = ContiguousID()
-        self.user_ids = ContiguousID()
+        if not self.share_ids:
+            self.tag_ids = ContiguousID()
+            self.item_ids = ContiguousID()
+            self.user_ids = ContiguousID()
+        else:
+            ids = ContiguousID()
+            self.tag_ids = ids
+            self.item_ids = ids
+            self.user_ids = ids

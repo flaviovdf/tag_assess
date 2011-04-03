@@ -13,6 +13,8 @@ DELICIOUS_LINE2 = '2011-02-17 11:10:20     2384    674518  hardware'
 DELICIOUS_LINE3 = '2003-01-01 01:00:00     1       674518  hardware pc'
 DELICIOUS_LINE4 = '2003-01-01 01:00:00     3       674518  tinker'
 DELICIOUS_LINE5 = '2005-03-03 01:00:00     8718    111111  bala'
+DELICIOUS_LINE6 = '2005-03-03 01:00:00     125497    2384  bala'
+DELICIOUS_LINE7 = '2005-03-03 01:00:00     4    2384  125497'
 
 CONNOTEA_LINE1 = '286ebecbce9fe3d99432c349fb2851c3|timo|2004-12-09T18:37:12Z|review'
 CONNOTEA_LINE2 = '1234555asd122d432c349fb285aas1c3|sand|2004-12-09T18:37:12Z|long-term potentiation'
@@ -99,7 +101,8 @@ class TestIParse(unittest.TestCase):
                           DELICIOUS_LINE5])
         fakef.seek(0)
         
-        annots = [a for a in data_parser.iparse(fakef, data_parser.delicious_flickr_parser)]
+        p = data_parser.Parser()
+        annots = [a for a in p.iparse(fakef, data_parser.delicious_flickr_parser)]
         
         self.assertEqual(0, annots[0].get_user())
         self.assertEqual(0, annots[0].get_item())
@@ -122,3 +125,50 @@ class TestIParse(unittest.TestCase):
         self.assertEqual(3, annots[4].get_user())
         self.assertEqual(2, annots[4].get_item())
         self.assertEqual(3, annots[4].get_tag())
+
+    def test_iparse_idshare(self):
+        fakef = StringIO.StringIO()
+        fakef.writelines([DELICIOUS_LINE1 + '\n', 
+                          DELICIOUS_LINE2 + '\n',
+                          DELICIOUS_LINE3])
+        fakef.seek(0)
+        
+        p = data_parser.Parser(True)
+        annots = [a for a in p.iparse(fakef, data_parser.delicious_flickr_parser)]
+        
+        self.assertEqual(0, annots[0].get_user())
+        self.assertEqual(1, annots[0].get_item())
+        self.assertEqual(2, annots[0].get_tag())
+
+        self.assertEqual(0, annots[1].get_user())
+        self.assertEqual(3, annots[1].get_item())
+        self.assertEqual(4, annots[1].get_tag())
+        
+        self.assertEqual(5, annots[2].get_user())
+        self.assertEqual(3, annots[2].get_item())
+        self.assertEqual(6, annots[2].get_tag())
+    
+    def test_iparse_idshare_sametext(self):
+        fakef = StringIO.StringIO()
+        fakef.writelines([DELICIOUS_LINE1 + '\n', 
+                          DELICIOUS_LINE6 + '\n',
+                          DELICIOUS_LINE7])
+        fakef.seek(0)
+        
+        p = data_parser.Parser(True)
+        annots = [a for a in p.iparse(fakef, data_parser.delicious_flickr_parser)]
+        
+        self.assertEqual(0, annots[0].get_user())
+        self.assertEqual(1, annots[0].get_item())
+        self.assertEqual(2, annots[0].get_tag())
+
+        self.assertEqual(3, annots[1].get_user())
+        self.assertEqual(4, annots[1].get_item())
+        self.assertEqual(5, annots[1].get_tag())
+        
+        self.assertEqual(6, annots[2].get_user())
+        self.assertEqual(4, annots[2].get_item())
+        self.assertEqual(7, annots[2].get_tag())
+        
+if __name__ == "__main__":
+    unittest.main()

@@ -22,11 +22,10 @@ class ContiguousID(Mapping):
     accessed.
     '''
 
-    def __init__(self):
+    def __init__(self, buffer_mem=None):
         '''
         Creates a new empty mapping.
         '''
-        
         self.mem = {}
         self.curr_id = -1
     

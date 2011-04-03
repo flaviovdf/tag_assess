@@ -12,10 +12,10 @@ class Annotation(object):
     Base object for an annotation
     '''
     
-    def __init__(self, user, tag, item, date):
+    def __init__(self, user, item, tag, date):
         self._user = user
-        self._tag = tag
         self._item = item
+        self._tag = tag
         self._date = date
     
     def get_date(self):
