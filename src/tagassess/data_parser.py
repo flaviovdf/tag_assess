@@ -5,8 +5,8 @@ Module used for parsing annotation files and creating PyTables.
 
 from __future__ import print_function, division
 
-from .common import ContiguousID
-from .dao import Annotation
+from tagassess.common import ContiguousID
+from tagassess.dao import Annotation
 
 import time
 
@@ -110,7 +110,7 @@ class Parser(object):
         self.tag_ids = None
         self.item_ids = None
         self.user_ids = None
-        self._reset()
+        self.__reset()
         
     def iparse(self, inf, parse_func):
         '''
@@ -131,7 +131,7 @@ class Parser(object):
                              self.item_ids[(2, item)], 
                              self.tag_ids[(3, tag)], date)
     
-    def _reset(self):
+    def __reset(self):
         if not self.share_ids:
             self.tag_ids = ContiguousID()
             self.item_ids = ContiguousID()

@@ -2,7 +2,7 @@
 
 from __future__ import print_function, division
 
-from .. import data_parser
+from tagassess import data_parser
 
 import StringIO
 import time

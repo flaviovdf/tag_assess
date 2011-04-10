@@ -5,6 +5,7 @@ Contains base classes for accessing annotation stored on PyTables files.
 
 from __future__ import print_function, division
 
+#We generally don't like wild cards, but this is needed because of pytables.
 from tables import *
 
 class Annotation(object):
@@ -19,9 +20,6 @@ class Annotation(object):
         self._date = date
     
     def get_date(self):
-        return self._date
-    
-    def get_time(self):
         return self._date
     
     def get_user(self):
