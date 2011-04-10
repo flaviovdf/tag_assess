@@ -34,6 +34,7 @@ class Annotation(object):
         return self._tag
     
     def get_desc(self):
+        #Basic test
         return {'DATE':self.get_date(),
                 'USER':self.get_user(),
                 'TAG':self.get_tag(),
