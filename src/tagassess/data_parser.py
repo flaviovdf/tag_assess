@@ -5,8 +5,8 @@ Module used for parsing annotation files and creating PyTables.
 
 from __future__ import print_function, division
 
-from tagassess.common import ContiguousID
-from tagassess.dao import Annotation
+from .common import ContiguousID
+from .dao import Annotation
 
 import time
 
