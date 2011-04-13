@@ -3,7 +3,6 @@
 PYTHON ?= python
 PYLINT_WRAPPER ?= ./py_lintw.sh
 NOSETESTS ?= nosetests
-CTAGS ?= ctags
 
 all: clean test
 

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash 
 #Script that configures the PYTHONPATH variable so that the interpreter can find our code.
 
 findself() {

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash 
 # Simple script to submit Rietveld code reviews.
 
 findself() {
@@ -11,4 +11,4 @@ cd $SELF
 make clean
 cd -
 
-python $SELF/upload.py --reviewers=flaviovdf@gmail.com,elsantosneto@gmail.com --do --send_mail --private --download_base --rev=HEAD --base_url=https://github.com/flaviovdf/tag_assess.git -s http://codereview-netsyslab.appspot.com $*
+python $SELF/upload.py --reviewers=elsantosneto@gmail.com --do --send_mail --private --rev=HEAD -s http://codereview-netsyslab.appspot.com $*

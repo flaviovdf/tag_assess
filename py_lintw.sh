@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash 
 #Script that configures the PYTHONPATH variable so that we can run pylint.
 
 findself() {
