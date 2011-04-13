@@ -24,20 +24,21 @@ def __assert_good_probs(prob_array):
     psum = np.sum(prob_array)
     return len(geq) == len(leq) == len(prob_array) and psum == 1.0
 
-def entropy(probabilities):
+def entropy(x_probabilities):
     '''
-    Calculates the entropy (H) of the input vector.
+    Calculates the entropy (H) of the input vector which
+    represents some random variable X.
 
     Arguments
     ---------
-    probabilities: numpy array or any iterable
-        Array with the individual probabilities. Values must be 0 <= x <=1
+    x_probabilities: numpy array or any iterable
+        Array with the individual x_probabilities. Values must be 0 <= x <=1
     '''
 
-    probs = np.asarray(probabilities)
+    probs = np.asarray(x_probabilities)
     assert __assert_good_probs(probs)
 
-    return -np.add.reduce(probabilities * np.log2(probs))
+    return -np.add.reduce(x_probabilities * np.log2(probs))
 
 def norm_mutual_information(probabilities_x, probabilities_xy):
     '''

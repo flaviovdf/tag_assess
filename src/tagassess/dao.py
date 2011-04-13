@@ -9,7 +9,7 @@ Contains base classes for accessing annotation stored on PyTables files.
 from __future__ import print_function, division
 
 from collections import Iterable
-#We discourage this king of imports, but it is necessary for PyTables.
+#Wildcard necessary for PyTables.
 from tables import * 
 
 import itertools

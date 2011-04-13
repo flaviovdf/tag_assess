@@ -14,7 +14,7 @@ import tempfile
 import unittest
 
 class TestAnnotWriterReader(unittest.TestCase):
-    '''Tests for basic reading and writting from h5 files'''
+    '''Tests for basic reading and writing from h5 files'''
 
     def setUp(self):
         self.h5_file = tempfile.mktemp('testw.h5')
