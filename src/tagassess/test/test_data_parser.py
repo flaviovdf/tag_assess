@@ -34,7 +34,7 @@ def convert_time(t):
 
 class TestParseFuncs(unittest.TestCase):
     '''
-    Basic tests for parser functions
+    Basic tests for line parser functions
     '''
 
     def test_delicious_flickr(self):

@@ -3,8 +3,6 @@
 #pylint: disable-msg=C0111
 #pylint: disable-msg=C0103
 
-'''Tests for the dao module'''
-
 from __future__ import print_function, division
 
 from tagassess import dao

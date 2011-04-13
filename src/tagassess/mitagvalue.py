@@ -3,7 +3,7 @@
 MUTUAL INFORMATION TAG VALUE
 ============================
 
-Implementation of the tag assessment method described on:
+Implementation of the tag assessment method described on the paper:
 http://dx.doi.org/10.1109/SocialCom.2010.69
 '''
 from __future__ import print_function, division

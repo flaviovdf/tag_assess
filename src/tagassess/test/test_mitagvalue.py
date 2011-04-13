@@ -12,8 +12,10 @@ import unittest
 class TestEntropyMI(unittest.TestCase):
 
     def test_entropy(self):
-        '''Tests entropy by comparing the return
-        with an iterative calculation'''
+        '''
+        Tests entropy by comparing the return
+        with an iterative calculation
+        '''
         probs = [0.1, 0.5, 0.01, 0.07, 0.02, 0.3]
 
         #Doing a iterative Calculation of entropy.
