@@ -1,8 +1,8 @@
 # Simple makefile
 
-SOURCEDIR = src/
 PYTHON ?= python
-NOSETESTS ?= nosetests --exe
+PYLINT_WRAPPER ?= ./py_lintw.sh
+NOSETESTS ?= nosetests
 CTAGS ?= ctags
 
 all: clean test
@@ -12,6 +12,13 @@ clean:
 
 test:
 	$(NOSETESTS)
+
+lint:
+	$(PYLINT_WRAPPER) tagassess
+
+detlint:
+	$(PYLINT_WRAPPER) -r y tagassess
 	
 trailing-spaces:
-	find -name "*.py" |xargs sed -i 's/[ \t]*$$//'
+	find -name "*.py" | xargs sed 's/^M$$//'
+	find -name "*.py" | xargs sed -i 's/[ \t]*$$//'

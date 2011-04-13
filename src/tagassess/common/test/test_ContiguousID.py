@@ -1,4 +1,8 @@
 # -*- coding: utf8
+#pylint: disable-msg=C0301
+#pylint: disable-msg=C0111
+#pylint: disable-msg=C0103
+
 from __future__ import print_function, division
 
 import unittest
@@ -9,24 +13,24 @@ from tagassess.common import ContiguousID
 class TestContiguousID(unittest.TestCase):
 
     def test_all(self):
-        x = ContiguousID()
-        self.assertEquals(x['a'], 0)
-        self.assertEquals(x['b'], 1)
-        self.assertEquals(x[0], 2)
+        cont_id = ContiguousID()
+        self.assertEquals(cont_id['a'], 0)
+        self.assertEquals(cont_id['b'], 1)
+        self.assertEquals(cont_id[0], 2)
 
-        self.assertEquals(x['a'], 0)
-        self.assertEquals(x[int], 3)
-        
+        self.assertEquals(cont_id['a'], 0)
+        self.assertEquals(cont_id[int], 3)
+
         new_keys = range(1, 200)
         random.shuffle(new_keys)
         iter_vals = iter(range(4, 204))
         for i in new_keys:
-            self.assertEquals(x[i], next(iter_vals))
-        
-        for i, d in enumerate(sorted(x.itervalues())):
+            self.assertEquals(cont_id[i], next(iter_vals))
+
+        for i, d in enumerate(sorted(cont_id.itervalues())):
             self.assertEqual(i, d)
-        
-        self.assertEquals(203, len(x))
+
+        self.assertEquals(203, len(cont_id))
 
 if __name__ == "__main__":
     unittest.main()
