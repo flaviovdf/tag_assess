@@ -1,5 +1,5 @@
-/cover
-.settings/
-.coverage
-.project
-.pydevproject
+/.pydevproject
+/.project
+/.coverage
+/.gitignore
+/.settings
