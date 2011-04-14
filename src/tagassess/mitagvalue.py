@@ -13,16 +13,18 @@ import numpy as np
 def __assert_good_probs(prob_array):
     '''
     Utility function to guarantee that arrays: sum to 1 and have all
-    values x : 0 <= x <= 1
+    values x in prob_array : 0 <= x <= 1
 
     Arguments
     ---------
     prob_array: a numpy one dimensional array
     '''
-    geq = prob_array[prob_array >= 0] #Filter elements which are >= 0
-    leq = prob_array[prob_array <= 1] #Filter <= 1
+    #Filter elements which are 0 <= x <= 1
+    good_elements = prob_array[(prob_array >= 0) & (prob_array <= 1)]
     psum = np.sum(prob_array)
-    return len(geq) == len(leq) == len(prob_array) and psum == 1.0
+    
+    eq_length = len(good_elements) == len(prob_array)
+    return psum == 1.0 and eq_length
 
 def entropy(x_probabilities):
     '''
@@ -57,7 +59,8 @@ def norm_mutual_information(probabilities_x, probabilities_xy):
     h_x = entropy(probabilities_x)
     h_xy = entropy(probabilities_xy)
 
-    if h_x > 0:
-        return 1 - (h_x - h_xy) / h_x
-    else:
-        return 0
+    normalized_mi = 0
+    if h_x > 0 and h_xy > 0:
+        normalized_mi = 1 - (h_x - h_xy) / h_x
+        
+    return normalized_mi

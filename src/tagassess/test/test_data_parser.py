@@ -181,7 +181,7 @@ class TestIParse(unittest.TestCase):
         self.assertEqual(7, annots[2].get_tag())
 
     def test_with_file(self):
-        p = data_parser.Parser(False)
+        p = data_parser.Parser()
         with open(test.BIBSONOMY_FILE) as f:
             annots = [a for a in p.iparse(f, data_parser.bibsonomy_parser)]
             self.assertEquals(10000, len(annots))

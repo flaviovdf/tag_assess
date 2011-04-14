@@ -6,18 +6,17 @@ NOSETESTS ?= nosetests
 
 all: clean test
 
-clean:
+clean: 
 	find . -name "*.pyc" | xargs rm -f
 
-test:
+test: 
 	$(NOSETESTS)
 
-lint:
+lint: 
 	$(PYLINT_WRAPPER) tagassess
 
-detlint:
+detlint: 
 	$(PYLINT_WRAPPER) -r y tagassess
 	
-trailing-spaces:
+trailing-spaces: 
 	find -name "*.py" | xargs sed 's/^M$$//'
-	find -name "*.py" | xargs sed -i 's/[ \t]*$$//'

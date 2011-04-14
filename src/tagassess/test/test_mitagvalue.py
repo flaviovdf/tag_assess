@@ -9,7 +9,7 @@ from tagassess import mitagvalue
 import math
 import unittest
 
-#Doing a iterative Calculation of entropy.
+#Calculates the entropy iteratively.
 def it_entropy(probs):
     entropy = 0.0
     for prob in probs:
@@ -44,6 +44,12 @@ class TestEntropyMI(unittest.TestCase):
         except AssertionError:
             pass
 
+        try:
+            mitagvalue.entropy([])
+            self.fail()
+        except AssertionError:
+            pass
+
     def test_norm_mi(self):
         x_probs = [0.04, 0.16] * 5
         xy_probs = [0.02, 0.18] * 5
@@ -51,7 +57,8 @@ class TestEntropyMI(unittest.TestCase):
         h_x = it_entropy(x_probs)
         h_y = it_entropy(xy_probs)
 
-        self.assertEqual(mitagvalue.norm_mutual_information(x_probs, xy_probs), 1 - (h_x - h_y)/h_x)
+        mi = 1 - (h_x - h_y)/h_x
+        self.assertEqual(mitagvalue.norm_mutual_information(x_probs, xy_probs), mi)
 
         x_probs = [1]
         self.assertEqual(mitagvalue.norm_mutual_information(x_probs, xy_probs), 0)

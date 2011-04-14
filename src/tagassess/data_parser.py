@@ -107,7 +107,7 @@ class Parser(object):
 
         Arguments:
         ----------
-        share_ids: bool
+        share_ids: boolean
             Determines if tags, items and user will share the same id space
         '''
         self.share_ids = share_ids

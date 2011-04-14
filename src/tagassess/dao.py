@@ -9,14 +9,9 @@ Contains base classes for accessing annotation stored on PyTables files.
 from __future__ import print_function, division
 
 from collections import Iterable
-#Wildcard necessary for PyTables.
-from tables import * 
+from tables import * #Wildcard necessary for PyTables.
 
 import itertools
-
-class FileNotOpenException(Exception):
-    '''Used to notify of file not open errors'''
-    pass
 
 class AnnotReader(Iterable):
     '''A AnnotReader is used to read PyTables H5 files.'''
@@ -28,40 +23,27 @@ class AnnotReader(Iterable):
         self.table = None
         self.tablefile = None
 
-    def __chk_opened(self):
-        '''
-        Checks if the file is opened and raises an exception if not.
-        '''
-        if not self.opened:
-            raise FileNotOpenException(
-                    'File %s has not been open. Use AnnotWriter.openfile()')
-
-    def openfile(self):
+    def open_file(self):
         '''Opens the file given in the constructor.'''
-        self.tablefile = openFile(self.fpath, 'r')
-        self.table = self.tablefile.getNode('/', self.table_name)
-        self.opened = True
+        if not self.opened:
+            self.tablefile = openFile(self.fpath, 'r')
+            self.table = self.tablefile.getNode('/', self.table_name)
+            self.opened = True
 
-    def closefile(self):
-        '''
-        Closes the file.
-
-        Raises
-        ------
-            `FileNotOpenException` if the file has not been opened
-        '''
-        self.__chk_opened()
-        self.tablefile.close()
-        self.opened = False
-        self.table = None
+    def close_file(self):
+        '''Closes the file. If the file is already closed, does nothing.'''
+        if self.opened:
+            self.tablefile.close()
+            self.opened = False
+            self.table = None
 
     def __enter__(self):
-        self.openfile()
+        self.open_file()
         return self
 
     def __exit__(self, type, value, traceback):
-        '''Closes the file return `True` if no exeception was caught'''
-        self.closefile()
+        '''Closes the file return `True` if no exception was caught'''
+        self.close_file()
         return not value #Value is an exception in case with fails.
 
     def __iter__(self):
@@ -85,48 +67,34 @@ class AnnotWriter(object):
         self.tablefile = None
         self.table = None
 
-    def __chk_opened(self):
-        '''
-        Checks if the file is opened and raises an exception if not.
-        '''
-        if not self.opened:
-            raise FileNotOpenException(
-                    'File %s has not been open. Use AnnotWriter.openfile()')
-
     def create_table(self, tname):
         '''
-        Creates a new table in the annotation H5 file.
+        Creates a new table in the annotation H5 file. Returns
+        `True` if creation was successful, `False` otherwise.
 
         Arguments
         ---------
         tname: str
             The name of the new table
-
-        Raises
-        ------
-            `FileNotOpenException` if the file has not been opened
         '''
-        self.__chk_opened()
-        self.table = self.tablefile.createTable(self.tablefile.root,
-                                                tname, AnnotationDesc)
+        if self.opened:
+            self.table = self.tablefile.createTable(self.tablefile.root,
+                                                    tname, AnnotationDesc)
+            return self.table is not None
+        else:
+            return False
 
-    def openfile(self):
+    def open_file(self):
         '''Opens the file given in the constructor.'''
         self.tablefile = openFile(self.fpath, self.mode)
         self.opened = True
 
-    def closefile(self):
-        '''
-        Closes the file.
-
-        Raises
-        ------
-            `FileNotOpenException` if the file has not been opened
-        '''
-        self.__chk_opened()
-        self.tablefile.close()
-        self.opened = False
-        self.table = None
+    def close_file(self):
+        '''Closes the file. If the file is already closed, does nothing.'''
+        if self.opened:
+            self.tablefile.close()
+            self.opened = False
+            self.table = None
 
     def write(self, annotation):
         '''
@@ -137,8 +105,6 @@ class AnnotWriter(object):
         ---------
         annotation: an `Annotation`
         '''
-        self.__chk_opened()
-
         self.table.row['DATE'] =  annotation.get_date()
         self.table.row['USER'] =  annotation.get_user()
         self.table.row['TAG'] =  annotation.get_tag()
@@ -146,12 +112,12 @@ class AnnotWriter(object):
         self.table.row.append()
 
     def __enter__(self):
-        self.openfile()
+        self.open_file()
         return self
 
     def __exit__(self, type, value, traceback):
-        '''Closes the file return `True` if no exeception was caught'''
-        self.closefile()
+        '''Closes the file return `True` if no exception was caught'''
+        self.close_file()
         return not value #Value is an exception in case with fails.
 
 class Annotation(object):
@@ -189,9 +155,6 @@ class Annotation(object):
         '''Return tuple which represents annotation'''
         return self.__tuple
 
-    def __str__(self):
-        return str(self.get_tuple())
-
     def __eq__(self, other):
         if isinstance(other, Annotation):
             return self.get_tuple() == other.get_tuple()
@@ -203,7 +166,6 @@ class Annotation(object):
 
 
 class AnnotationDesc(IsDescription):
-
     '''
     Defines an annotation description to be saved on file.
     '''
