@@ -26,6 +26,32 @@ def __assert_good_probs(prob_array):
     eq_length = len(good_elements) == len(prob_array)
     return psum == 1.0 and eq_length
 
+def estimate_prob_item_for_user_tag(item, tag, user, annotation_it):
+    '''
+    Given an item a user and a tag, this method computes the probability
+    of the item being relevant given the user and tag : p(i|t,u). The 
+    `annotation_it` is a iterator which should yield `Annotation` objects.
+    The `item` parameter is an item id which should exist in the iterator, 
+    the same holds for the `tag` id. Although we call the argument `user`
+    this can be any set of tag ids.
+    
+    Arguments
+    ---------
+    item: int
+        A item id
+    tag: int
+        A user id
+    user: set
+        A set of tag ids which represents the user past tags
+    annotation_it:
+        The iterator for annotations to consider in the calculation
+    
+    See also
+    --------
+    tagassess.dao.AnnotReader, tagassess.dao.Annotation
+    '''
+    pass
+
 def entropy(x_probabilities):
     '''
     Calculates the entropy (H) of the input vector which
@@ -40,7 +66,7 @@ def entropy(x_probabilities):
     probs = np.asarray(x_probabilities)
     assert __assert_good_probs(probs)
 
-    return -np.add.reduce(x_probabilities * np.log2(probs))
+    return -1 * np.add.reduce(x_probabilities * np.log2(probs))
 
 def norm_mutual_information(probabilities_x, probabilities_xy):
     '''

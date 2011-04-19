@@ -1,4 +1,6 @@
 # -*- coding: utf8
+#pylint: disable-msg=C0111
+
 from __future__ import print_function, division
 
 from collections import Mapping

@@ -57,8 +57,8 @@ class TestEntropyMI(unittest.TestCase):
         h_x = it_entropy(x_probs)
         h_y = it_entropy(xy_probs)
 
-        mi = 1 - (h_x - h_y)/h_x
-        self.assertEqual(mitagvalue.norm_mutual_information(x_probs, xy_probs), mi)
+        mutual_inf = 1 - (h_x - h_y)/h_x
+        self.assertEqual(mitagvalue.norm_mutual_information(x_probs, xy_probs), mutual_inf)
 
         x_probs = [1]
         self.assertEqual(mitagvalue.norm_mutual_information(x_probs, xy_probs), 0)

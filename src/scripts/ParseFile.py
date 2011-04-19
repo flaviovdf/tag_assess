@@ -9,7 +9,7 @@ Script which parsers annotation files
 from __future__ import print_function, division
 
 from tagassess import data_parser
-from tagassess.dao import AnnotWriter
+from tagassess.dao.annotations import AnnotWriter
 
 import os
 import sys

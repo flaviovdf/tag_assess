@@ -1,12 +1,17 @@
-#Tue Apr 12 22:04:56 PDT 2011
+#Sun Apr 17 23:02:18 PDT 2011
 eclipse.preferences.version=1
 encoding//src/scripts/ParseFile.py=utf8
 encoding//src/tagassess/common/ContiguousID.py=utf8
 encoding//src/tagassess/common/test/test_ContiguousID.py=utf8
-encoding//src/tagassess/dao.py=utf8
+encoding//src/tagassess/dao/annotations.py=utf8
+encoding//src/tagassess/dao/base.py=utf8
+encoding//src/tagassess/dao/index.py=utf8
+encoding//src/tagassess/dao/test/test_annotations.py=utf8
+encoding//src/tagassess/dao/test/test_index.py=utf8
 encoding//src/tagassess/data_parser.py=utf8
+encoding//src/tagassess/index_creator.py=utf8
 encoding//src/tagassess/mitagvalue.py=utf8
-encoding//src/tagassess/test/test_dao.py=utf8
 encoding//src/tagassess/test/test_data_parser.py=utf8
+encoding//src/tagassess/test/test_index_creator.py=utf8
 encoding//src/tagassess/test/test_mitagvalue.py=utf8
 encoding//test/tagassess/common/test_ContiguousID.py=utf8

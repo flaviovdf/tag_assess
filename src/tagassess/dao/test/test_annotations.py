@@ -5,7 +5,7 @@
 
 from __future__ import print_function, division
 
-from tagassess import dao
+from tagassess.dao import annotations
 from tagassess import data_parser
 from tagassess import test
 
@@ -33,7 +33,7 @@ class TestAnnotWriterReader(unittest.TestCase):
         written_set = set()
         n_lines = 0
         with open(fpath) as in_f:
-            with dao.AnnotWriter(self.h5_file) as writer:
+            with annotations.AnnotWriter(self.h5_file) as writer:
                 writer.create_table('bibs')
                 for annot in parser.iparse(in_f, parse_func):
                     written_list.append(annot)
@@ -41,8 +41,8 @@ class TestAnnotWriterReader(unittest.TestCase):
                     writer.write(annot)
                     n_lines += 1
 
-        with dao.AnnotReader(self.h5_file, 'bibs') as reader:
-            read_list = [annot for annot in reader]
+        with annotations.AnnotReader(self.h5_file) as reader:
+            read_list = [annot for annot in reader.iterate('bibs')]
             self.assertEquals(read_list, written_list)
             self.assertEquals(set(read_list), written_set)
             self.assertEquals(n_lines, len(written_list))
