@@ -4,7 +4,7 @@ Experiments
 First sketch
 ------------
 
-The main idea of the experiment is to create a social search similar to the work in [1]. In this model,
+The main idea of the experiment is to create a social search similar to the work in [1]_. In this model,
 users browse a tag graph (defined by co-occurrence of tags in items or users) in order to reach a 
 topic of interest. When browsing a tag, a user has only the knowledge of neighbors of that tag. 
 A good 'user intent model' will guide users to the topic of interest. In the work they use different taxonomies 
@@ -80,7 +80,7 @@ Questions
 1. How can we model AND search? The sketch above is based on the assumption that a user only
 uses one term per query at a time. 
 
-There is this one interesting paper by Yahoo! Research which models query reformulation [2].
+There is this one interesting paper by Yahoo! Research which models query reformulation [2]_.
 Basically, for a given query a user can:
 
 1. Change some terms with the same intent (Correction, C)
@@ -94,12 +94,12 @@ We would the measure the amount of changes (CSG) from a initial query which lead
 she wants. This may be interesting because we can model multi-term queries under the **and** model. 
 The **or** model can also be modeled (or even complex queries), but we can leave this out because:
 
-1. **AND** is more common on the web [3]
+1. **AND** is more common on the web [3]_
 2. **AND** is the default by Delicious, MrTaggy and Flickr
   
 References
 ----------
     
-- [1] Pragmatic Evaluation of Folksonomies. Helic et al. WWW 2011
-- [2] Query reformulation mining: Models and patterns. Boldi et al. Web mining for search - Springer. Also Web intelligence 2010.
-- [3] Modern information retrieval. Yates and Berthier. 2nd edition (the chapter on indexing)
+.. [1] Pragmatic Evaluation of Folksonomies. Helic et al. WWW 2011
+.. [2] Query reformulation mining: Models and patterns. Boldi et al. Web mining for search - Springer. Also Web intelligence 2010.
+.. [3] Modern information retrieval. Yates and Berthier. 2nd edition (the chapter on indexing)
