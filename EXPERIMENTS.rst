@@ -5,13 +5,11 @@ First sketch
 ------------
 
 The main idea of the experiment is to create a social search similar to the work in [1]_. In this model,
-users browse a tag graph (defined by co-occurrence of tags in items or users) in order to reach a 
-topic of interest. When browsing a tag, a user has only the knowledge of neighbors of that tag. 
-A good 'user intent model' will guide users to the topic of interest. In the work they use different taxonomies 
-build from tags, we can user our assessment of value. On each step, the user will chose the tag with the 
-most value to continue. As the goal (last vertex to reach), we will define one item from the relevant set. 
-We want to be as close to the shortest path as possible (which we know for the whole graph) from the initial
-tag to the goal.
+users browse a tag graph (defined by co-occurrence of tags in items, users or both) in order to reach a 
+topic of interest (another tag). When browsing a tag, a user has only the knowledge of neighbors of that tag. 
+A good 'user intent model' will guide users to the topic of interest. 
+
+We can change this idea slightly in order to perform our assessment of value. Firstly, the goal vertex will be an item annotated by some tag. On each step, the user will chose the tag with the most value to continue. We want to be as close to the shortest path as possible (which we know for the whole graph) from the initial tag to the goal.
 
 ::
 
@@ -80,6 +78,10 @@ Questions
 1. How can we model AND search? The sketch above is based on the assumption that a user only
 uses one term per query at a time. 
 
+(Idea 1: Simple and easy)
+Elizeu suggested we create super-vertexes, which correspond to more than one tag. Edges between these nodes and items exist only if the item is annotated by all edges.
+
+(Idea 2: Complex)
 There is this one interesting paper by Yahoo! Research which models query reformulation [2]_.
 Basically, for a given query a user can:
 
