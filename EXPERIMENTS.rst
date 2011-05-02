@@ -70,7 +70,8 @@ Things to consider:
    (irrelevant items) associated with the tag. A correct assessment of value should:
    
     * Minimize the effort (steps)
-    * Minimize the garbage returned (uncertainty)  
+    * Minimize the garbage returned (uncertainty)
+    * Maximize the average relevance
 
 Questions
 ---------
