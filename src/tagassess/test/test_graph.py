@@ -42,7 +42,7 @@ class TestGraph(unittest.TestCase):
     def test_edge_list(self):
         base_index, tag_to_item = \
             graph.extract_indexes_from_file(self.h5_file, 'deli')
-        edges = graph.edge_list(base_index, tag_to_item, False)
+        edges = graph.edge_list(base_index, tag_to_item, False)[1]
 
         outgo_edges = [(0, 1),
                        (0, 3),

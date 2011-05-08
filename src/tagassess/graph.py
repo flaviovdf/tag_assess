@@ -52,16 +52,16 @@ def edge_list(index_for_tag_edges, tag_to_items_index, uniq=True):
         Indicates if ids in indices are already unique, that is no 
         tag, item and user shares the same id.
     '''
-    edges = []
+    edge_set = set()
     for key in index_for_tag_edges:
-        edges.extend(permutations(index_for_tag_edges[key], 2))
+        edge_set.update(permutations(index_for_tag_edges[key], 2))
     
     max_tag = 0
     if not uniq:
         #We need to find the max tag in order to add items.
         #Tag and items are ints with overlaps, this will mess up the graph
         max_tag = 0
-        for vertex1, vertex2 in edges:
+        for vertex1, vertex2 in edge_set:
             aux = max(vertex1, vertex2)
             if aux >= max_tag:
                 max_tag = aux
@@ -72,11 +72,18 @@ def edge_list(index_for_tag_edges, tag_to_items_index, uniq=True):
     for tag in tag_to_items_index:
         for item in tag_to_items_index[tag]:
             new_item_id = max_tag + item
-            edges.append((tag, new_item_id))
+            edge_set.add((tag, new_item_id))
     
-    return edges
+    edges = []
+    nodes = set()
+    for source, dest in sorted(edge_set):
+        nodes.add(source)
+        nodes.add(dest)
+        edges.append((source, dest))
+    
+    return nodes, edges
 
 def create_igraph(index_for_tag_edges, tag_to_items_index, uniq=True):
     '''Creates a graph object from iGraphs library'''
-    edges = edge_list(index_for_tag_edges, tag_to_items_index, uniq)
-    return Graph(edges, directed=True)
+    nodes, edges = edge_list(index_for_tag_edges, tag_to_items_index, uniq)
+    return Graph(n=len(nodes), edges=edges, directed=True)
