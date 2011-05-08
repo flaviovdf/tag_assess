@@ -20,6 +20,7 @@ class BasePyTablesWrapper(object):
     class is to be extended by others so that table rows can be converted
     to and from dao objects.
     '''
+    __metaclass__ = abc.ABCMeta
     
     def __init__(self, fpath, mode):
         self.fpath = fpath

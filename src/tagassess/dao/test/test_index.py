@@ -2,7 +2,7 @@
 #pylint: disable-msg=C0301
 #pylint: disable-msg=C0111
 #pylint: disable-msg=C0103
-
+#pylint: disable-msg=W0612
 from __future__ import print_function, division
 
 from tagassess import data_parser
@@ -31,12 +31,13 @@ class TestIndexWriterReader(unittest.TestCase):
             for annot in parser.iparse(in_f, data_parser.bibsonomy_parser):
                 annotations.append(annot)
         
-        
         written_list = []
         written_set = set()
         with IndexWriter(self.h5_file) as index_writer:
             index_writer.create_table('i')
-            for i in index_creator.create_metrics_index(annotations):
+            local_freq, aux, col_freq = \
+                index_creator.create_metrics_index(annotations, 'item', 'tag')
+            for i in index_creator.metric_index_to_dao(local_freq, col_freq):
                 index_writer.write(i)
                 written_list.append(i)
                 written_set.add(i)
