@@ -136,7 +136,7 @@ class Parser(object):
                              self.tag_ids[(3, tag)], date)
 
     def __reset(self):
-        '''Resets the parser ids to new ones. Usefull for reusing
+        '''Resets the parser ids to new ones. Useful for reusing
         the same parser object'''
         if not self.share_ids:
             self.tag_ids = ContiguousID()
