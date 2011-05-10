@@ -42,7 +42,7 @@ def main(args=None):
         graph.extract_indexes_from_file(annotation_file, table, use)
 
     nodes, edge_list = \
-        graph.edge_list(base_index, tag_to_item_index, uniq=True)
+        graph.edge_list(base_index, tag_to_item_index, uniq=False)
     print('#Nodes:  %d'%len(nodes))
     print('#Edges:  %d'%len(edge_list))
     print('#Directed')
