@@ -10,8 +10,8 @@ Classes that compute:
 '''
 from __future__ import division, print_function
 
-from tagassess.dao.annotations import AnnotReader
 from tagassess import index_creator
+from tagassess.dao.annotations import AnnotReader
 
 import abc
 
