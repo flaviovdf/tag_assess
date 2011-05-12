@@ -46,7 +46,7 @@ def main(args=[]):
         with open(infpath) as annotf, AnnotWriter(outh5f, 'a') as writer:
             writer.create_table(func_name)
             
-            for annotation in parser.iparse(annotf, parse_func):
+            for annotation in parser.iparse(annotf, parse_func, sys.stderr):
                 writer.write(annotation)
 
         #Saving IDs to text files
