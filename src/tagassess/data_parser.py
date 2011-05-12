@@ -116,7 +116,7 @@ class Parser(object):
         self.user_ids = None
         self.__reset()
 
-    def iparse(self, inf, parse_func):
+    def iparse(self, inf, parse_func, logf=None):
         '''
         Parses input file
 
@@ -127,13 +127,17 @@ class Parser(object):
         parse_func: callable
             Method or callable which will parse each line from the file
         '''
-        for line in inf:
-            user, item, tag, date = parse_func(line)
-            #We make use of tuple (1 to 3, X) in order to differentiate
-            #user, tags and items with same names.
-            yield Annotation(self.user_ids[(1, user)],
-                             self.item_ids[(2, item)],
-                             self.tag_ids[(3, tag)], date)
+        for i, line in enumerate(inf):
+            try:
+                user, item, tag, date = parse_func(line)
+                #We make use of tuple (1 to 3, X) in order to differentiate
+                #user, tags and items with same names.
+                yield Annotation(self.user_ids[(1, user)],
+                                 self.item_ids[(2, item)],
+                                 self.tag_ids[(3, tag)], date)
+            except Exception as exc:
+                if logf:
+                    print('Error at line %d:\n\t%s\nEx=%s'%(i, line, str(exc)))
 
     def __reset(self):
         '''Resets the parser ids to new ones. Useful for reusing
