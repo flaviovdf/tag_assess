@@ -2,12 +2,14 @@
 #pylint: disable-msg=C0103
 #pylint: disable-msg=C0301
 #pylint: disable-msg=C0111
+#pylint: disable-msg=W0404
 
 from __future__ import print_function, division
 
 from tagassess import entropy
 
 import math
+import numpy as np
 import unittest
 
 #Calculates the entropy iteratively.
@@ -63,6 +65,24 @@ class TestEntropy(unittest.TestCase):
 
         x_probs = [1]
         self.assertEqual(entropy.norm_mutual_information(x_probs, xy_probs), 0)
+
+    def test_ig_estimate(self):
+        from random import random
+        
+        prob_tag = random()
+        prob_user = random()
+        prob_items = np.random.rand(10)
+        prob_tag_items = np.random.rand(10)
+        prob_user_items = np.random.rand(10)
+        
+        result = 0
+        for i in xrange(10):
+            result += prob_user_items[i] * prob_tag_items[i] * prob_items[i] * \
+                      (math.log(prob_tag_items[i], 2) - math.log(prob_tag, 2))
+        
+        result /= prob_tag * prob_user
+        self.assertAlmostEquals(result, entropy.information_gain_estimate(prob_items, prob_tag_items, prob_user_items, prob_tag, prob_user))  
+        
 
 if __name__ == "__main__":
     unittest.main()

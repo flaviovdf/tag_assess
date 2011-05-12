@@ -1,6 +1,6 @@
 # -*- coding: utf8
 '''
-Simple scripts which prints the value of an item for a given user.
+Simple scripts which prints the value of tags for a given user.
 '''
 
 from __future__ import division, print_function
@@ -12,7 +12,7 @@ import sys
 
 def usage(prog_name, msg = None):
     '''Prints helps, msg if given and exits'''
-    help_msg = 'Usage: %s <user> <smoothing type (jm | bayes)> <lambda> <annotation_file> <table>'
+    help_msg = 'Usage: %s <user> <smoothing type (jm | bayes)> <lambda> <num_relevant> <annotation_file> <table>'
     
     if msg:
         print(msg, file=sys.stderr)
@@ -23,7 +23,7 @@ def usage(prog_name, msg = None):
 def main(args=None):
     if not args: args = []
     
-    if len(args) < 6:
+    if len(args) < 7:
         return usage(args[0])
         
     user = int(args[1])
@@ -42,15 +42,16 @@ def main(args=None):
     if (lambda_ <= 0 or lambda_ >= 1):
         return usage(args[0], 'Lambda should be in [0, 1]')
     
-    annotation_file = args[4]
-    table = args[5]
+    num_relevant = int(args[4])
+    annotation_file = args[5]
+    table = args[6]
     
-    iitem_value = value_calculator.iitem_value(annotation_file, table, 
-                                               user, smooth_func, lambda_, 
-                                               False)
+    itag_value = value_calculator.itag_value(annotation_file, table, 
+                                             user, smooth_func, lambda_, 
+                                             num_relevant)
     
-    for rel, item, used in sorted(iitem_value, reverse=True):
-        print(item, rel, used)
-                            
+    for tag_val, tag, used in sorted(itag_value, reverse=True):
+        print(tag, tag_val, used)
+                         
 if __name__ == '__main__':
     sys.exit(main(sys.argv))

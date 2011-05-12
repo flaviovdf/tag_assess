@@ -41,9 +41,11 @@ def main(args=None):
     base_index, tag_to_item_index = \
         graph.extract_indexes_from_file(annotation_file, table, use)
 
-    nodes, edge_list = \
-        graph.edge_list(base_index, tag_to_item_index, uniq=False)
-    print('#Nodes:  %d'%len(nodes))
+    tag_nodes, sink_nodes, edge_list = \
+     graph.edge_list(base_index, tag_to_item_index, uniq=False)
+    n_nodes = len(tag_nodes) + len(sink_nodes)
+    
+    print('#Nodes:  %d'%n_nodes)
     print('#Edges:  %d'%len(edge_list))
     print('#Directed')
     for source, dest in edge_list:

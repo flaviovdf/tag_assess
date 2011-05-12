@@ -53,6 +53,7 @@ def edge_list(index_for_tag_edges, tag_to_items_index, uniq=True):
         tag, item and user shares the same id.
     '''
     edge_set = set()
+    tag_nodes = [tag for tag in tag_to_items_index.keys()]
     for key in index_for_tag_edges:
         edge_set.update(permutations(index_for_tag_edges[key], 2))
     
@@ -68,22 +69,27 @@ def edge_list(index_for_tag_edges, tag_to_items_index, uniq=True):
             
         #This will prevent overlaps        
         max_tag += 1
-        
+    
+    sink_nodes = {}
     for tag in tag_to_items_index:
         for item in tag_to_items_index[tag]:
             new_item_id = max_tag + item
+            sink_nodes[new_item_id] = item
             edge_set.add((tag, new_item_id))
     
     edges = []
-    nodes = set()
     for source, dest in sorted(edge_set):
-        nodes.add(source)
-        nodes.add(dest)
         edges.append((source, dest))
     
-    return nodes, edges
+    return tag_nodes, sink_nodes, edges
 
 def create_igraph(index_for_tag_edges, tag_to_items_index, uniq=True):
     '''Creates a graph object from iGraphs library'''
-    nodes, edges = edge_list(index_for_tag_edges, tag_to_items_index, uniq)
-    return Graph(n=len(nodes), edges=edges, directed=True)
+    tag_nodes, sink_nodes, edges = \
+     edge_list(index_for_tag_edges, tag_to_items_index, uniq)
+    return tag_nodes, sink_nodes, _create_igraph(tag_nodes, sink_nodes, edges)
+    
+def _create_igraph(tag_nodes, sink_nodes, edges):
+    '''Creates a graph object from iGraphs library'''
+    num_nodes = len(tag_nodes) + len(sink_nodes)
+    return Graph(n=num_nodes, edges=edges, directed=True)

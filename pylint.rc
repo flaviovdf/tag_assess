@@ -81,8 +81,7 @@ indent-string='    '
 [MISCELLANEOUS]
 
 # List of note tags to take in consideration, separated by a comma.
-notes=FIXME,XXX,TODO
-
+notes=FIXME
 
 [VARIABLES]
 
@@ -196,7 +195,7 @@ max-args=10
 ignored-argument-names=_.*
 
 # Maximum number of locals for function / method body
-max-locals=20
+max-locals=25
 
 # Maximum number of return / yield for function / method body
 max-returns=3

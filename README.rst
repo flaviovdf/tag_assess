@@ -10,10 +10,11 @@ Dependencies
 
 * numpy
 * scipy
+* igraph
+* pytables
 * nosetests
 
 How to use
 ==========
 
 Todo
-

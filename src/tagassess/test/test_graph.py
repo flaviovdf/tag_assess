@@ -42,7 +42,7 @@ class TestGraph(unittest.TestCase):
     def test_edge_list(self):
         base_index, tag_to_item = \
             graph.extract_indexes_from_file(self.h5_file, 'deli')
-        edges = graph.edge_list(base_index, tag_to_item, False)[1]
+        edges = graph.edge_list(base_index, tag_to_item, False)[2]
 
         outgo_edges = [(0, 1),
                        (0, 3),
@@ -71,9 +71,9 @@ class TestGraph(unittest.TestCase):
     def test_graph(self):
         base_index, tag_to_item = \
             graph.extract_indexes_from_file(self.h5_file, 'deli')
-        g = graph.create_igraph(base_index, tag_to_item, False)
+        g = graph.create_igraph(base_index, tag_to_item, False)[2]
         
-        paths = g.shortest_paths([0])
+        paths = g.shortest_paths_dijkstra([0])
         inf = float('inf')
         self.assertEquals(paths, [[0, 1, inf, 1, 1, 1, 1, inf, 1, 2, 2]])
         

@@ -1,6 +1,11 @@
-#Sun Apr 17 23:02:18 PDT 2011
+#Wed May 11 20:26:18 PDT 2011
 eclipse.preferences.version=1
+encoding//src/scripts/Baseline.py=utf8
+encoding//src/scripts/Baseline2.py=utf8
+encoding//src/scripts/CreateGraph.py=utf8
 encoding//src/scripts/ParseFile.py=utf8
+encoding//src/scripts/Recommendations.py=utf8
+encoding//src/scripts/TagValues.py=utf8
 encoding//src/tagassess/common/ContiguousID.py=utf8
 encoding//src/tagassess/common/test/test_ContiguousID.py=utf8
 encoding//src/tagassess/dao/annotations.py=utf8
@@ -9,9 +14,19 @@ encoding//src/tagassess/dao/index.py=utf8
 encoding//src/tagassess/dao/test/test_annotations.py=utf8
 encoding//src/tagassess/dao/test/test_index.py=utf8
 encoding//src/tagassess/data_parser.py=utf8
+encoding//src/tagassess/entropy.py=utf8
+encoding//src/tagassess/graph.py=utf8
 encoding//src/tagassess/index_creator.py=utf8
-encoding//src/tagassess/mitagvalue.py=utf8
+encoding//src/tagassess/probability_estimates.py=utf8
+encoding//src/tagassess/recommenders.py=utf8
+encoding//src/tagassess/smooth.py=utf8
 encoding//src/tagassess/test/test_data_parser.py=utf8
+encoding//src/tagassess/test/test_entropy.py=utf8
+encoding//src/tagassess/test/test_graph.py=utf8
 encoding//src/tagassess/test/test_index_creator.py=utf8
-encoding//src/tagassess/test/test_mitagvalue.py=utf8
+encoding//src/tagassess/test/test_probability_estimates.py=utf8
+encoding//src/tagassess/test/test_recommenders.py=utf8
+encoding//src/tagassess/test/test_smooth.py=utf8
+encoding//src/tagassess/test/test_value_calculator.py=utf8
+encoding//src/tagassess/value_calculator.py=utf8
 encoding//test/tagassess/common/test_ContiguousID.py=utf8

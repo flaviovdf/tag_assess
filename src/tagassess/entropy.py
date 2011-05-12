@@ -59,3 +59,44 @@ def norm_mutual_information(probabilities_x, probabilities_xy):
         normalized_mi = 1 - (h_x - h_xy) / h_x
         
     return normalized_mi
+
+def information_gain_estimate(prob_items, prob_tag_given_items, 
+                              prob_user_given_items, prob_tag, prob_user=1):
+    
+    '''
+    Estimates how much information gain a tag adds to a user seeking relevant
+    items. In formula:
+    $$D_{kl}( P(\dot | u, t) || P(\dot | u))
+    
+    Arguments
+    ---------
+    prob_items: numpy array or any iterable
+        The probabilities of seeing individual items P(i)
+
+    prob_tag_given_items: numpy array or any iterable
+        For each item, the probability of the tag given the item P(t|i)
+    
+    prob_user_given_items: numpy array or any iterable
+        For each item, the probability of the user given the item P(u|i)
+        
+    prob_tag: float
+        The probability of the individual tag under consideration
+    
+    prob_user: float (optional)
+        The probability of the user under consideration. This parameter is
+        optional since it does not affect the ranking of the estimate.
+    '''
+    
+    np_prob_items = np.asarray(prob_items)
+    np_tag_items = np.asarray(prob_tag_given_items)
+    np_user_items = np.asarray(prob_user_given_items)
+    
+    assert len(np_prob_items) == len(np_tag_items) == len(np_user_items)
+    
+    np_log_diff = np.log2(np_tag_items / prob_tag)
+    np_multi = np_user_items * np_tag_items * np_prob_items
+    
+    alpha = 1 / (prob_tag * prob_user)
+    summation_part = np_multi.dot(np_log_diff)
+    
+    return alpha * summation_part
