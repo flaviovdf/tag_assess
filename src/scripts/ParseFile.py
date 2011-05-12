@@ -45,11 +45,13 @@ def main(args=[]):
         parser = data_parser.Parser(share_ids=False)
         with open(infpath) as annotf, AnnotWriter(outh5f, 'a') as writer:
             writer.create_table(func_name)
-            for i, annotation in enumerate(parser.iparse(annotf, parse_func)):
-                try:
+            i = 0
+            try:
+                for annotation in parser.iparse(annotf, parse_func):
+                    i += 1
                     writer.write(annotation)
-                except Exception as e:
-                    print('Error %s in line %d'%(str(e), i), file=sys.stderr)
+            except Exception as e:
+                print('Error %s in line %d'%(str(e), i), file=sys.stderr)
 
         #Saving IDs to text files
         user_ids = parser.user_ids
