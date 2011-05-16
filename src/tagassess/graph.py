@@ -32,7 +32,7 @@ def extract_indexes_from_file(fpath, table, use=2):
                                                       create_for, 'tag')
     return index
 
-def edge_list(index_for_tag_edges, uniq=True):
+def edge_list(index_for_tag_edges, uniq=False):
     '''
     Returns the edge list for the navigational graph.
     
@@ -70,7 +70,7 @@ def edge_list(index_for_tag_edges, uniq=True):
     
     return tag_nodes, sink_nodes, edges
 
-def create_igraph(index_for_tag_edges, uniq=True):
+def create_igraph(index_for_tag_edges, uniq=False):
     '''Creates a graph object from iGraphs library'''
     tag_nodes, sink_nodes, edges = \
      edge_list(index_for_tag_edges, uniq)
