@@ -38,11 +38,11 @@ def main(args=None):
         usage(args[0], 'Unknown option %s'%collapse_on)
         return 1
     
-    base_index, tag_to_item_index = \
-        graph.extract_indexes_from_file(annotation_file, table, use)
+    base_index = \
+     graph.extract_indexes_from_file(annotation_file, table, use)
 
     tag_nodes, sink_nodes, edge_list = \
-     graph.edge_list(base_index, tag_to_item_index, uniq=False)
+     graph.edge_list(base_index, uniq=False)
     n_nodes = len(tag_nodes) + len(sink_nodes)
     
     print('#Nodes:  %d'%n_nodes)

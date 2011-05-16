@@ -31,7 +31,7 @@ class TestGraph(unittest.TestCase):
         os.remove(self.h5_file)
         
     def test_extract_index(self):
-        index = graph.extract_indexes_from_file(self.h5_file, 'deli')[0]
+        index = graph.extract_indexes_from_file(self.h5_file, 'deli')
         expect = {0: set([0, 1, 3, 4]), 
                   1: set([2]), 
                   2: set([0, 5]), 
@@ -40,9 +40,9 @@ class TestGraph(unittest.TestCase):
         self.assertEquals(index, expect)
         
     def test_edge_list(self):
-        base_index, tag_to_item = \
-            graph.extract_indexes_from_file(self.h5_file, 'deli')
-        edges = graph.edge_list(base_index, tag_to_item, False)[2]
+        base_index = \
+         graph.extract_indexes_from_file(self.h5_file, 'deli')
+        edges = graph.edge_list(base_index, False)[2]
 
         outgo_edges = [(0, 1),
                        (0, 3),
@@ -69,9 +69,9 @@ class TestGraph(unittest.TestCase):
         self.assertEquals(set(edges), set(expected))
     
     def test_graph(self):
-        base_index, tag_to_item = \
-            graph.extract_indexes_from_file(self.h5_file, 'deli')
-        g = graph.create_igraph(base_index, tag_to_item, False)[2]
+        base_index = \
+         graph.extract_indexes_from_file(self.h5_file, 'deli')
+        g = graph.create_igraph(base_index, False)[2]
         
         paths = g.shortest_paths_dijkstra([0])
         inf = float('inf')

@@ -28,15 +28,11 @@ def extract_indexes_from_file(fpath, table, use=2):
     
     with AnnotReader(fpath) as annotation_reader:
         iterator = annotation_reader.iterate(table)
-        base_index = index_creator.create_occurrence_index(iterator, 
-                                                           create_for, 'tag')
-        
-        iterator = annotation_reader.iterate(table)
-        tag_to_item_index = index_creator.create_occurrence_index(iterator, 
-                                                                  'tag', 'item')
-    return base_index, tag_to_item_index
+        index = index_creator.create_occurrence_index(iterator, 
+                                                      create_for, 'tag')
+    return index
 
-def edge_list(index_for_tag_edges, tag_to_items_index, uniq=True):
+def edge_list(index_for_tag_edges, uniq=True):
     '''
     Returns the edge list for the navigational graph.
     
@@ -45,34 +41,25 @@ def edge_list(index_for_tag_edges, tag_to_items_index, uniq=True):
     index_for_tag_edges: dict (int -> list) 
         An index where the values are tag lists. These tags will
         be connected for the 'center' of the graph
-    tag_to_items_index: dict (int -> list)
-        An index where keys are tags and values are items. These items
-        will be connected with and outgoing edge from each tag
     uniq: bool
         Indicates if ids in indices are already unique, that is no 
         tag, item and user shares the same id.
     '''
     edge_set = set()
-    tag_nodes = [tag for tag in tag_to_items_index.keys()]
+    tag_nodes = set()
     for key in index_for_tag_edges:
-        edge_set.update(permutations(index_for_tag_edges[key], 2))
+        for edge in permutations(index_for_tag_edges[key], 2):
+            tag_nodes.update(edge) #Update will upack!
+            edge_set.add(edge)
     
     max_tag = 0
     if not uniq:
-        #We need to find the max tag in order to add items.
-        #Tag and items are ints with overlaps, this will mess up the graph
-        max_tag = 0
-        for vertex1, vertex2 in edge_set:
-            aux = max(vertex1, vertex2)
-            if aux >= max_tag:
-                max_tag = aux
-            
         #This will prevent overlaps        
-        max_tag += 1
+        max_tag = len(tag_nodes) + 1
     
     sink_nodes = {}
-    for tag in tag_to_items_index:
-        for item in tag_to_items_index[tag]:
+    for item in index_for_tag_edges:
+        for tag in index_for_tag_edges[item]:
             new_item_id = max_tag + item
             sink_nodes[new_item_id] = item
             edge_set.add((tag, new_item_id))
@@ -83,10 +70,10 @@ def edge_list(index_for_tag_edges, tag_to_items_index, uniq=True):
     
     return tag_nodes, sink_nodes, edges
 
-def create_igraph(index_for_tag_edges, tag_to_items_index, uniq=True):
+def create_igraph(index_for_tag_edges, uniq=True):
     '''Creates a graph object from iGraphs library'''
     tag_nodes, sink_nodes, edges = \
-     edge_list(index_for_tag_edges, tag_to_items_index, uniq)
+     edge_list(index_for_tag_edges, uniq)
     return tag_nodes, sink_nodes, _create_igraph(tag_nodes, sink_nodes, edges)
     
 def _create_igraph(tag_nodes, sink_nodes, edges):
