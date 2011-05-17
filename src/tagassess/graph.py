@@ -49,7 +49,7 @@ def edge_list(index_for_tag_edges, uniq=False):
     tag_nodes = set()
     for key in index_for_tag_edges:
         for edge in permutations(index_for_tag_edges[key], 2):
-            tag_nodes.update(edge) #Update will upack!
+            tag_nodes.update(edge) #Update will unpack!
             edge_set.add(edge)
     
     max_tag = 0
