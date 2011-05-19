@@ -21,7 +21,7 @@ def determine_good_users(in_file, table, min_pairs):
             
             if user not in good_users:
                 pop_pairs[user].add((tag, item))
-                if len(pop_pairs[user]) > min_pairs:
+                if len(pop_pairs[user]) >= min_pairs:
                     del pop_pairs[user]
                     good_users.add(user)
                     
@@ -40,7 +40,7 @@ def write_good_annots(in_file, table, out_file, min_users_per_item,
             
             if user in good_users and item not in good_items:
                 pop_items[user].add(item)
-                if len(pop_items[user]) > min_users_per_item:
+                if len(pop_items[user]) >= min_users_per_item:
                     del pop_items[user]
                     good_items.add(item)
                     writer.write(annotation)
