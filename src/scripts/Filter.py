@@ -38,12 +38,15 @@ def write_good_annots(in_file, table, out_file, min_users_per_item,
             user = annotation.get_user()
             item = annotation.get_item()
             
-            if user in good_users and item not in good_items:
-                pop_items[user].add(item)
-                if len(pop_items[user]) >= min_users_per_item:
-                    del pop_items[user]
-                    good_items.add(item)
+            if user in good_users:
+                if item in good_items:
                     writer.write(annotation)
+                else:
+                    pop_items[user].add(item)
+                    if len(pop_items[user]) >= min_users_per_item:
+                        del pop_items[user]
+                        good_items.add(item)
+                        writer.write(annotation)
             
 def real_main(in_file, table, out_file, min_pairs, min_users_per_item):
     good_users = determine_good_users(in_file, table, min_pairs)
