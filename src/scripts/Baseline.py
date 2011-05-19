@@ -5,125 +5,79 @@ Hail to the king baby!
 '''
 from __future__ import division, print_function
 
-from collections import defaultdict
 from itertools import izip
 from tagassess import value_calculator
 from tagassess import graph
 from tagassess import smooth
 
 import numpy as np
-import random
 import sys
 import time
 
-def log(msg):
-    t = time.asctime()
-    print(t, msg)
+def log(msg, file_=sys.stderr):
+    '''Logs to given file'''
+    date = time.asctime()
+    print('%s -- %s'%(date, msg), file=file_)
 
-def get_shortest_paths_igraph(tag_nodes, sink_nodes, edge_list):
-    graph_rep = graph._create_igraph(tag_nodes, sink_nodes.keys(), edge_list)
-    paths = graph_rep.shortest_paths(tag_nodes)
+def get_shortest_paths_igraph(tag_nodes, sink_nodes, edges, user_items):
+    '''Get's a dictionary with all shortest paths to items'''
+    graph_rep = graph._create_igraph(tag_nodes, sink_nodes, edges)
+    tag_nodes_list = range(len(tag_nodes))
+    paths = graph_rep.shortest_paths(tag_nodes_list)
     
     return_val = {}
-    for tag, sps in izip(tag_nodes, paths):
+    for tag, sps in izip(tag_nodes_list, paths):
         return_val[tag] = {}
-        for destiny in sink_nodes:
-            item_id = sink_nodes[destiny]
-            return_val[tag][item_id] = sps[destiny]
+        for graph_id, old_id in sink_nodes.iteritems():
+            dist = sps[graph_id]
+            if dist != float('inf') and old_id in user_items:
+                return_val[tag][old_id] = sps[graph_id]
             
-    return graph_rep, return_val
+    return return_val
         
-def get_shortest_paths(tag_nodes, sink_nodes, edge_list, use_totem=False):
+def get_shortest_paths(tag_nodes, sink_nodes, edge_list, 
+                       user_items, use_totem=False):
     if not use_totem:
-        return get_shortest_paths_igraph(tag_nodes, sink_nodes, edge_list)
+        return get_shortest_paths_igraph(tag_nodes, sink_nodes, 
+                                         edge_list, user_items)
     else:
         raise Exception('Not yet done!!')
 
-def real_main(annotation_file, table, user, smooth_func, lambda_, num_relevant):
+def real_main(annotation_file, table, user, smooth_func, lambda_, 
+              num_relevant):
+    
     #Relevant items
     log('Getting relevant items')
-    iitem_value = value_calculator.iitem_value(annotation_file, table, 
-                                               user, smooth_func, lambda_)
-    item_values = [(v, i) for v, i, u in iitem_value if u == False]
+    iitem_value = value_calculator.iitem_value(annotation_file, table,
+                                               user, smooth_func, lambda_,
+                                               False)
+    
+    user_items = set(i for v, i, u in iitem_value if u)
+    items_for_val = [(v, i) for v, i, u in iitem_value if not u]
     
     #Tags
     log('Getting tag relevances')
     itag_value = value_calculator.itag_value(annotation_file, table, 
                                              user, smooth_func, lambda_, 
-                                             num_relevant, item_values)
-    tag_values = dict((tag, val) for val, tag, x in itag_value)
+                                             num_relevant, items_for_val)
+    tag_values = dict((tag, val) for val, tag, b in itag_value)
     
     log('Creating Graph')
-    base_index, tag_to_item_index = \
-     graph.extract_indexes_from_file(annotation_file, table)
-        
-    tag_nodes, sink_nodes, edge_list = \
-     graph.edge_list(base_index, tag_to_item_index, uniq=False)
+    base_index = graph.extract_indexes_from_file(annotation_file, table)
+    tag_nodes, sink_nodes, edges = graph.edge_list(base_index, uniq=False)
+    
+    #Free up some mem
+    del base_index
     
     log('Computing shortest paths')
-    graph_rep, shortest_paths = \
-     get_shortest_paths(tag_nodes, sink_nodes, edge_list)
+    shortest_paths = get_shortest_paths(tag_nodes, sink_nodes, edges, user_items)
     
-    results = defaultdict(list)
-    baselines = {}
-    log('Experiment!')
-    i = 0
-    for tup in sorted(item_values):
-        i += 1
-        log('Item %d of %d'%(i, len(item_values)))
-        item = tup[1]
-        
-        for j in xrange(100):
-            rand = random.randint(0, len(tag_nodes) - 1)
-            rand_tag = tag_nodes[rand]
-            baseline = shortest_paths[rand_tag][item]
-            baselines[item] = baseline
-            
-            log('Search starting from tag %d'%rand_tag)
-            if baseline == float('inf'):
-                log('No path! Skipping')
-                continue
-            else:
-                log('I need at least %d steps'%baseline)
-            
-            found = False
-            break_loop = False
-            steps = 1
-            query = rand_tag
-            visited = set()
-            visited.add(query)
-            while not found and not break_loop:
-                #TYPE-1 -> Outgoing edges
-                neighbors = graph_rep.neighbors(query, type=1)
-                if item in neighbors:
-                    found = True
-                else:
-                    max_importance = float('-inf')
-                    max_importance_tag = None
-                    for neighbor in neighbors:
-                        if neighbor not in sink_nodes:
-                            importance = tag_values[neighbor]
-                            if importance > max_importance:
-                                max_importance = importance
-                                max_importance_tag = neighbor
-                                
-                    query = max_importance_tag
-                    steps += 1
-                    
-                if not query or query in visited:
-                    log('No candidate found or returned to previous one. Breaking!')
-                    break_loop = True
-                else:
-                    visited.add(query)
-                    log('Going to tag %d'%query)
-            
-            if not break_loop:
-                log('Yippe Kaye!! Found in %d steps'%steps)
-                results[item].append(steps)
+    #Computing the actual baseline
+    log('Baseline')
+    for tag, paths in shortest_paths.iteritems():
+        if len(paths) > 0:
+            print(tag_values[tag], np.mean(paths.values()))
     
-    for item in baselines:
-        print(item, baselines[item], np.mean(results[item]))
-        
 def usage(prog_name, msg = None):
     '''Prints helps, msg if given and exits'''
     help_msg = 'Usage: %s <user> <smoothing type (jm | bayes)> <lambda> <num_relevant> <annotation_file> <table>'
