@@ -98,3 +98,20 @@ def none(local_freq, sum_locals, global_freq, sum_globals, lambda_=0):
     A tuple with the smoothed probability and the alpha estimate.
     '''
     return jelinek_mercer(local_freq, sum_locals, global_freq, sum_globals, 0)
+
+def name_dict():
+    '''Get's the smooth to name mappings'''
+    smooths = {'JM':jelinek_mercer,
+               'Bayes':bayes,
+               'None':none}
+    return smooths
+    
+def get_by_name(name):
+    '''
+    Get's smooth function by name.
+    
+    Arguments
+    ---------
+    name: str {JM, Bayes or None}
+    '''
+    return name_dict()[name]

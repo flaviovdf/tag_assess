@@ -142,6 +142,16 @@ class SmoothedItems(MLE):
         return prob, alpha
     
     @assert_good_prob
+    def prob_tag(self, tag):
+        '''Probability of seeing a given tag. $P(t)$'''
+        sum_each_item = 0
+        for item in self.item_col_freq.keys():
+            prob_tag_given_item = self.prob_tag_given_item(item, tag)
+            prob_item = self.prob_item(item)
+            sum_each_item += prob_tag_given_item * prob_item
+        return sum_each_item
+    
+    @assert_good_prob
     def prob_tag_given_item(self, item, tag):
         '''Probability of seeing a given tag for an item. $P(t|i)$'''
         prob, alpha = self.__estimator(item, tag)
@@ -149,7 +159,8 @@ class SmoothedItems(MLE):
         if self.item_tag_freq[item][tag] != 0:
             return prob    
         else:
-            return alpha * self.prob_tag(tag)
+            mle_tag = super(SmoothedItems, self).prob_tag(tag)
+            return alpha * mle_tag
 
 class SmoothedItemsUsersAsTags(SmoothedItems):
     '''

@@ -135,7 +135,7 @@ class TestSmoothedItems(unittest.TestCase):
         lamb = 0.5
         p = SmoothedItems(self.h5_file, 'deli', smooth_func, lamb)
         p.open()
-        
+
         prob_i0_t0 = smooth_func(2, 5, 3, 10, lamb)[0]
         prob_i0_t1 = smooth_func(1, 5, 3, 10, lamb)[0]
         prob_i0_t2 = smooth_func(0, 5, 1, 10, lamb)[0]
@@ -149,7 +149,21 @@ class TestSmoothedItems(unittest.TestCase):
         self.assertEquals(p.prob_tag_given_item(0, 3), prob_i0_t3)
         self.assertEquals(p.prob_tag_given_item(0, 4), prob_i0_t4)
         self.assertEquals(p.prob_tag_given_item(0, 5), prob_i0_t5)
-    
+        
+        prob_t0 = sum(p.prob_tag_given_item(i, 0) * p.prob_item(i) for i in xrange(5))
+        prob_t1 = sum(p.prob_tag_given_item(i, 1) * p.prob_item(i) for i in xrange(5))
+        prob_t2 = sum(p.prob_tag_given_item(i, 2) * p.prob_item(i) for i in xrange(5))
+        prob_t3 = sum(p.prob_tag_given_item(i, 3) * p.prob_item(i) for i in xrange(5))
+        prob_t4 = sum(p.prob_tag_given_item(i, 4) * p.prob_item(i) for i in xrange(5))
+        prob_t5 = sum(p.prob_tag_given_item(i, 5) * p.prob_item(i) for i in xrange(5))
+        
+        self.assertEquals(p.prob_tag(0), prob_t0)
+        self.assertEquals(p.prob_tag(1), prob_t1)
+        self.assertEquals(p.prob_tag(2), prob_t2)
+        self.assertEquals(p.prob_tag(3), prob_t3)
+        self.assertEquals(p.prob_tag(4), prob_t4)
+        self.assertEquals(p.prob_tag(5), prob_t5)
+        
         p.close()
         
     def test_all_bayes(self):
