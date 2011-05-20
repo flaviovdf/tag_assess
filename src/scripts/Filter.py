@@ -64,38 +64,27 @@ def write_good_annots(in_file, table, out_file, min_users_per_item,
     
     return user_ids, item_ids, tag_ids
 
-def old_ids_to_dict(id_path):
-    rv = {}
-    with open(id_path) as f:
-        for l in f:
-            spl = l.split()
-            k = ' '.join(str(x) for x in spl[:-1])
-            v = int(spl[-1])
-            rv[v] = k
-    return rv
-            
 def real_main(in_file, table, out_file, min_pairs, min_users_per_item,
-              old_ids_folder, new_ids_folder):
+              new_ids_folder):
     
     good_users = determine_good_users(in_file, table, min_pairs)
     user_ids, item_ids, tag_ids = \
         write_good_annots(in_file, table, out_file, min_users_per_item, good_users)
     
-    old_user_ids = old_ids_to_dict(os.path.join(old_ids_folder, table + '.user'))
-    old_item_ids = old_ids_to_dict(os.path.join(old_ids_folder, table + '.items'))
-    old_tag_ids = old_ids_to_dict(os.path.join(old_ids_folder, table + '.tags'))
-    
     with open(os.path.join(new_ids_folder, table + '.user'), 'w') as userf:
-        for user in sorted(user_ids):
-            print(old_user_ids[user_ids[user]], user_ids[user], file=userf)
+        print('old_id', 'new_id', file=userf)
+        for user in sorted(user_ids, key=user_ids.__getitem__):
+            print(user[1], user_ids[user], file=userf)
 
     with open(os.path.join(new_ids_folder, table + '.items'), 'w') as itemsf:
-        for item in sorted(item_ids):
-            print(old_item_ids[item_ids[item]], item_ids[item], file=itemsf)
+        print('old_id', 'new_id', file=itemsf)
+        for item in sorted(item_ids, key=item_ids.__getitem__):
+            print(item[1], item_ids[item], file=itemsf)
 
     with open(os.path.join(new_ids_folder, table + '.tags'), 'w') as tagsf:
-        for tag in sorted(tag_ids):
-            print(old_tag_ids[tag_ids[tag]], tag_ids[tag], file=tagsf)
+        print('old_id', 'new_id', file=tagsf)
+        for tag in sorted(tag_ids, key=tag_ids.__getitem__):
+            print(tag[1], tag_ids[tag], file=tagsf)
             
 def create_parser(prog_name):
     parser = argparse.ArgumentParser(prog=prog_name,
@@ -110,9 +99,6 @@ def create_parser(prog_name):
     parser.add_argument('out_file', type=str,
                         help='new file for filtered')
     
-    parser.add_argument('old_ids_folder', type=str,
-                        help='Folder with old id mappings')
-
     parser.add_argument('new_ids_folder', type=str,
                         help='Folder for new id mappings')
     
@@ -133,7 +119,7 @@ def main(args=None):
     try:
         return real_main(vals.in_file, vals.table, vals.out_file,
                          vals.min_pairs, vals.min_users_per_item,
-                         vals.old_ids_folder, vals.new_ids_folder)
+                         vals.new_ids_folder)
     except:
         parser.print_help()
         traceback.print_exc()
