@@ -37,47 +37,72 @@ class TestAll(unittest.TestCase):
     
     def test_items_and_user_items(self):
         self.__init_test(test.SMALL_DEL_FILE)
-        items, uitems0 = \
-            value_calculator._items_and_user_items(self.h5_file, 'deli', 0)
+        smooth_func = smooth.bayes
+        lambda_ = 0.3
+        vc = value_calculator.ValueCalculator(self.h5_file, 'deli', 
+                                              smooth_func, lambda_)
+        vc.open_reader()
         
+        items, uitems0 = vc._items_and_user_items(0)
         self.assertEquals(items, set(xrange(5)))
         self.assertEquals(uitems0, set(xrange(3)))
         
-        uitems1 = \
-            value_calculator._items_and_user_items(self.h5_file, 'deli', 1)[1]
+        uitems1 = vc._items_and_user_items(1)[1]
         self.assertEquals(uitems1, set([0, 3, 4]))
             
-        uitems2 = \
-            value_calculator._items_and_user_items(self.h5_file, 'deli', 2)[1]
+        uitems2 = vc._items_and_user_items(2)[1]
         self.assertEquals(uitems2, set([0, 2]))
         
     def test_tags_and_user_tags(self):
         self.__init_test(test.SMALL_DEL_FILE)
-        tags, utags0 = \
-            value_calculator._tags_and_user_tags(self.h5_file, 'deli', 0)
+        smooth_func = smooth.bayes
+        lambda_ = 0.3
+        vc = value_calculator.ValueCalculator(self.h5_file, 'deli', 
+                                              smooth_func, lambda_)
+        vc.open_reader()
         
+        tags, utags0 = vc._tags_and_user_tags(0)
         self.assertEquals(tags, set(xrange(6)))
         self.assertEquals(utags0, set(xrange(3)))
         
-        utags1 = \
-            value_calculator._tags_and_user_tags(self.h5_file, 'deli', 1)[1]
+        utags1 = vc._tags_and_user_tags(1)[1]
         self.assertEquals(utags1, set([0, 1, 3]))
             
-        utags2 = \
-            value_calculator._tags_and_user_tags(self.h5_file, 'deli', 2)[1]
+        utags2 = vc._tags_and_user_tags(2)[1]
         self.assertEquals(utags2, set([4, 5]))
     
-    def test_iitem_value(self):
+    def test_with_filter(self):
         self.__init_test(test.SMALL_DEL_FILE)
         smooth_func = smooth.bayes
         lambda_ = 0.3
+        vc = value_calculator.ValueCalculator(self.h5_file, 'deli', 
+                                              smooth_func, lambda_)
+        vc.open_reader()
+        vc.set_where('(USER != 0) | (ITEM != 0)')
+
+        tags, utags0 = vc._tags_and_user_tags(0)
+
+        self.assertEquals(tags, set(xrange(6)))
+        self.assertEquals(utags0, set([0, 2]))
+        
+        items, uitems0 = vc._items_and_user_items(0)
+        self.assertEquals(items, set(xrange(5)))
+        self.assertEquals(uitems0, set([1, 2]))
+    
+    def test_iitag_value(self):
+        self.__init_test(test.SMALL_DEL_FILE)
+        smooth_func = smooth.bayes
+        lambda_ = 0.3
+        vc = value_calculator.ValueCalculator(self.h5_file, 'deli', 
+                                              smooth_func, lambda_)
+        vc.open_reader()
         
         estimator = SmoothedItemsUsersAsTags(self.h5_file, 'deli', 
                                              smooth_func, lambda_)
         estimator.open()
         
         for user in [0, 1, 2]:
-            tag_vals = dict((v, k) for k, v, b in value_calculator.itag_value(self.h5_file, 'deli', user, smooth_func, lambda_, -1, False))
+            tag_vals = dict((v, k) for k, v, b in vc.itag_value(user, -1, False))
             
             for tag in [0, 1, 2, 3, 4, 5]:
                 #Iterative calculation
@@ -95,3 +120,15 @@ class TestAll(unittest.TestCase):
                 
                 #Assert
                 self.assertAlmostEquals(tag_vals[tag], val)
+                
+    def test_valid_values(self):
+        self.__init_test(test.SMALL_DEL_FILE)
+        smooth_func = smooth.bayes
+        lambda_ = 0.1
+        vc = value_calculator.ValueCalculator(self.h5_file, 'deli', 
+                                              smooth_func, lambda_)
+        vc.open_reader()
+        for val, tag, used in sorted(vc.itag_value(0, -1, False)):
+            pass
+#            print(val, tag)
+#            self.assertTrue(val >= 0)
