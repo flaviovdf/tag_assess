@@ -77,7 +77,7 @@ class ValueCalculator(object):
             
         return tags, user_tags
     
-    def iitem_value(self, user):
+    def iitem_value(self, user, items_to_compute=None):
         '''
         Creates a generator for the relevance of each item to the given user.
         This method will make use of the given `smooth_func` using the given
@@ -90,13 +90,15 @@ class ValueCalculator(object):
         tagassess.probability_estimates
         '''
         items, user_items = self._items_and_user_items(user)
+        if items_to_compute:
+            items = items_to_compute
     
         for item in items:
             relevance = self.recc.relevance(user, item)
             yield relevance, item, item in user_items
     
     def itag_value(self, user, num_to_consider=10, 
-                   ignore_known_items=True):
+                   ignore_known_items=True, items_to_compute=None):
         '''
         Creates a generator for the value of each tag to the given user.
         This method will make use of the given `smooth_func` using the given
@@ -109,7 +111,7 @@ class ValueCalculator(object):
         tagassess.probability_estimates
         '''
         filt = lambda item_val: not (ignore_known_items and item_val[2])
-        iitems = ifilter(filt, self.iitem_value(user))
+        iitems = ifilter(filt, self.iitem_value(user, items_to_compute))
         items = [(item_val[0], item_val[1]) for item_val in iitems]
                          
         if num_to_consider != -1:
