@@ -32,11 +32,12 @@ class TestGraph(unittest.TestCase):
         
     def test_extract_index(self):
         index = graph.extract_indexes_from_file(self.h5_file, 'deli')
-        expect = {0: set([0, 1, 3, 4]), 
-                  1: set([2]), 
-                  2: set([0, 5]), 
-                  3: set([1]), 
-                  4: set([1])}
+        expect = {0: set([0, 2]), 
+                  1: set([0, 3, 4]), 
+                  2: set([1]), 
+                  3: set([0]), 
+                  4: set([0]),
+                  5: set([2])}
         self.assertEquals(index, expect)
         
     def test_edge_list(self):
