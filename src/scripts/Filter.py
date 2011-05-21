@@ -88,7 +88,7 @@ def real_main(in_file, table, out_file, min_pairs, min_users_per_item,
             
 def create_parser(prog_name):
     parser = argparse.ArgumentParser(prog=prog_name,
-                                     description='Computes the baseline.')
+                                     description='Filters databases for exp.')
     
     parser.add_argument('in_file', type=str,
                         help='annotation h5 file to read from')

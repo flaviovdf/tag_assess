@@ -28,7 +28,7 @@ def main(args=[]):
                 'connotea':data_parser.connotea_parser,
                 'delicious':data_parser.delicious_flickr_parser,
                 'flickr':data_parser.delicious_flickr_parser}
-
+    
     infpath = args[1]
     outh5f = args[2]
     idsfold = args[3]
