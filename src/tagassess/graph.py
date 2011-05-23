@@ -7,7 +7,7 @@ from igraph import Graph
 from tagassess import index_creator
 from tagassess.dao.annotations import AnnotReader
 
-def extract_indexes_from_file(fpath, table, use=2):
+def __extract_indexes_from_file(fpath, table, use=2):
     '''
     Creates indexes and sets needed.
     
@@ -22,71 +22,61 @@ def extract_indexes_from_file(fpath, table, use=2):
             1: Items
             2: Users
     '''
-    opts = {1:'user', 2:'item'}
+    opts = {1:'item', 2:'user'}
     create_for = opts[use]
     
     with AnnotReader(fpath) as annotation_reader:
         iterator = annotation_reader.iterate(table)
-        index = index_creator.create_occurrence_index(iterator, 
-                                                      'tag', create_for)
-    return index
+        tag_index = index_creator.create_occurrence_index(iterator, 
+                                                          'tag', create_for)
+        iterator = annotation_reader.iterate(table)
+        sink_index = index_creator.create_occurrence_index(iterator, 
+                                                           create_for, 'tag')
+    return tag_index, sink_index
 
-def edge_list(index_for_tag_edges, uniq=False):
+def iedge_list(fpath, table, use=1, uniq=False):
     '''
     Returns the edge list for the navigational graph.
     
     Arguments
     ---------
-    index_for_tag_edges: dict (int -> list) 
-        An index where the values are tag lists. These tags will
-        be connected for the 'center' of the graph
+    fpath: str
+        The path to the annotation file
+    table: str
+        The table to use
+    use = int {1, 2}
+        Indicates whether to use items or users:
+            1: Items
+            2: Users
     uniq: bool
         Indicates if ids in indices are already unique, that is no 
-        tag, item and user shares the same id.
+        tag, sink and user shares the same id.
     '''
-    edge_set = set()
-    tag_nodes = set()
-    tag_id_space = len(index_for_tag_edges)
-    for tag1 in xrange(tag_id_space - 1):
-        sinks_with_t1 = index_for_tag_edges[tag1]
-        for tag2 in xrange(tag1 + 1, tag_id_space):
-            sinks_with_t2 = index_for_tag_edges[tag2]
-            
-            if not sinks_with_t1.isdisjoint(sinks_with_t2):
-                edge1 = (tag1, tag2)
-                edge2 = (tag2, tag1)
-                
-                tag_nodes.add(tag1)
-                tag_nodes.add(tag2)
-                
-                edge_set.add(edge1)
-                edge_set.add(edge2)
-            
+    tag_index, sink_index = __extract_indexes_from_file(fpath, table, use)
+    tags = tag_index.keys()
+    num_tags = len(tags)
+    num_sinks = len(sink_index)
+    
     max_tag = 0
     if not uniq:
         #This will prevent overlaps        
-        max_tag = tag_id_space
+        max_tag = len(tags)
     
-    sink_nodes = {}
-    for tag in index_for_tag_edges:
-        for item in index_for_tag_edges[tag]:
-            new_item_id = max_tag + item
-            sink_nodes[new_item_id] = item
-            edge_set.add((tag, new_item_id))
+    def edge_generator():
+        '''Generates edges without using much more mem'''
+        for tag in tags:
+            seen = set()
+            for sink in tag_index[tag]:
+                for o_tag in sink_index[sink]:
+                    if o_tag not in seen and tag != o_tag:
+                        seen.add(o_tag)
+                        yield (tag, o_tag)
+                        
+                new_id = sink + max_tag
+                yield (tag, new_id)
     
-    edges = []
-    for source, dest in sorted(edge_set):
-        edges.append((source, dest))
-    
-    return tag_nodes, sink_nodes, edges
+    return num_tags, num_sinks, edge_generator()
 
-def create_igraph(index_for_tag_edges, uniq=False):
+def create_igraph(edges):
     '''Creates a graph object from iGraphs library'''
-    tag_nodes, sink_nodes, edges = \
-     edge_list(index_for_tag_edges, uniq)
-    return tag_nodes, sink_nodes, _create_igraph(tag_nodes, sink_nodes, edges)
-    
-def _create_igraph(tag_nodes, sink_nodes, edges):
-    '''Creates a graph object from iGraphs library'''
-    num_nodes = len(tag_nodes) + len(sink_nodes)
-    return Graph(n=num_nodes, edges=edges, directed=True)
+    return Graph(edges=edges, directed=True)

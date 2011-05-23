@@ -30,20 +30,12 @@ class TestGraph(unittest.TestCase):
     def tearDown(self):
         os.remove(self.h5_file)
         
-    def test_extract_index(self):
-        index = graph.extract_indexes_from_file(self.h5_file, 'deli')
-        expect = {0: set([0, 2]), 
-                  1: set([0, 3, 4]), 
-                  2: set([1]), 
-                  3: set([0]), 
-                  4: set([0]),
-                  5: set([2])}
-        self.assertEquals(index, expect)
-        
     def test_edge_list(self):
-        base_index = \
-         graph.extract_indexes_from_file(self.h5_file, 'deli')
-        edges = graph.edge_list(base_index, False)[2]
+        ntags, nsinks, iedges = graph.iedge_list(self.h5_file, 'deli')
+        self.assertEqual(6, ntags)
+        self.assertEqual(5, nsinks)
+        
+        edges = set(e for e in iedges)
 
         outgo_edges = [(0, 1),
                        (0, 3),
@@ -67,12 +59,11 @@ class TestGraph(unittest.TestCase):
                          (4, 6),
                          (5, 8)])
         
-        self.assertEquals(set(edges), set(expected))
+        self.assertEquals(edges, set(expected))
     
     def test_graph(self):
-        base_index = \
-         graph.extract_indexes_from_file(self.h5_file, 'deli')
-        g = graph.create_igraph(base_index, False)[2]
+        edges = [e for e in graph.iedge_list(self.h5_file, 'deli')[2]]
+        g = graph.create_igraph(edges)
         
         paths = g.shortest_paths_dijkstra([0])
         inf = float('inf')
