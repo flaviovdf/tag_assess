@@ -47,19 +47,20 @@ def write_good_annots(in_file, table, out_file, min_users_per_item,
             item = annotation.get_item()
             tag  = annotation.get_item()
             date  = annotation.get_date()
-            
+
+            new_annot = Annotation(user_ids[(1, user)],
+                                   item_ids[(2, item)],
+                                   tag_ids[(3, tag)], date)
             if user in good_users:
                 if item in good_items:
-                    writer.write(annotation)
+                    writer.write(new_annot)
                 else:
                     pop_items[item].add(user)
                     if len(pop_items[item]) >= min_users_per_item:
                         del pop_items[item]
                         good_items.add(item)
                         
-                        new_annot = Annotation(user_ids[(1, user)],
-                                               item_ids[(2, item)],
-                                               tag_ids[(3, tag)], date)
+
                         writer.write(new_annot)
     
     return user_ids, item_ids, tag_ids
