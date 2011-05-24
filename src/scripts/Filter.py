@@ -30,7 +30,7 @@ def determine_good_users(in_file, table, min_pairs):
                     
     return good_users
 
-def write_good_annots(in_file, table, out_file, min_users_per_item, 
+def write_good_annots(in_file, table, out_file, min_users_per_item,
                       good_users):
     
     user_ids = ContiguousID()
@@ -52,9 +52,9 @@ def write_good_annots(in_file, table, out_file, min_users_per_item,
                 if item in good_items:
                     writer.write(annotation)
                 else:
-                    pop_items[user].add(item)
-                    if len(pop_items[user]) >= min_users_per_item:
-                        del pop_items[user]
+                    pop_items[item].add(user)
+                    if len(pop_items[item]) >= min_users_per_item:
+                        del pop_items[item]
                         good_items.add(item)
                         
                         new_annot = Annotation(user_ids[(1, user)],
