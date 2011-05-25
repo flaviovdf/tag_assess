@@ -45,7 +45,7 @@ def write_good_annots(in_file, table, out_file, min_users_per_item,
         for annotation in iterator:
             user = annotation.get_user()
             item = annotation.get_item()
-            tag  = annotation.get_item()
+            tag  = annotation.get_tag()
             date  = annotation.get_date()
 
             new_annot = Annotation(user_ids[(1, user)],
