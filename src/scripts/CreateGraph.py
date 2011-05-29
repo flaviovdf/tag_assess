@@ -2,8 +2,10 @@
 '''
 Creates the tag tag graph.
 '''
-
 from __future__ import division, print_function
+
+__authors__ = ['Flavio Figueiredo - flaviovdf <at> gmail <dot-no-spam> com']
+__date__ = '26/05/2011'
 
 from tagassess import graph
 

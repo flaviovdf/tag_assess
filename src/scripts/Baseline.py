@@ -1,54 +1,41 @@
 # -*- coding: utf8
 '''
-This is it! Finally our baseline implementation.
-Hail to the king baby!
+Baseline. This is a quite long code, explanation bellow:
+
+sps = load shortest paths
+
+for each user:
+    remove half of hers user x item annotations from trace
+    compute tag values
+    compare with shortest paths
 '''
 from __future__ import division, print_function
 
+__authors__ = ['Flavio Figueiredo - flaviovdf <at> gmail <dot-no-spam> com']
+__date__ = '26/05/2011'
+
 from collections import defaultdict
-from itertools import izip
+
 from tagassess import value_calculator
-from tagassess import graph
 from tagassess import smooth
 from tagassess.dao.annotations import AnnotReader
 
 import argparse
 import numpy as np
+import random
 import sys
 import time
 import traceback
 
-def log(msg, file_=sys.stderr):
-    '''Logs to given file'''
-    date = time.asctime()
-    print('%s -- %s'%(date, msg), file=file_)
-
-def get_shortest_paths_igraph(tag_nodes, sink_nodes, edges):
-    '''Get's a dictionary with all shortest paths to items'''
-    graph_rep = graph._create_igraph(tag_nodes, sink_nodes, edges)
-    tag_nodes_list = range(len(tag_nodes))
-    paths = graph_rep.shortest_paths(tag_nodes_list)
+def log(msg):
+    '''Simple logging function'''
     
-    return_val = {}
-    for tag, sps in izip(tag_nodes_list, paths):
-        return_val[tag] = {}
-        for graph_id, old_id in sink_nodes.iteritems():
-            dist = sps[graph_id]
-            
-            if dist != float('inf'):
-                return_val[tag][old_id] = sps[graph_id]
-            
-    return return_val
-        
-def get_shortest_paths(tag_nodes, sink_nodes, edge_list, 
-                       use_totem=False):
-    if not use_totem:
-        return get_shortest_paths_igraph(tag_nodes, sink_nodes, edge_list)
-    else:
-        raise Exception('Not yet done!!')
+    date = time.asctime()
+    print('%s -- %s'%(date, msg), file=sys.stderr)
 
-def real_main(in_file, table, smooth_func, lambda_):
-    log('Determining items by each user')
+def items_by_user(in_file, table):
+    '''Determining items by each user'''
+    
     user_to_items = defaultdict(set)
     with AnnotReader(in_file) as reader:
         iterator = reader.iterate(table)
@@ -56,48 +43,112 @@ def real_main(in_file, table, smooth_func, lambda_):
             user = annotation.get_user()
             item = annotation.get_item()
             user_to_items[user].add(item)
-    
-    log('Creating Graph')
-    base_index = graph.extract_indexes_from_file(in_file, table)
-    tag_nodes, sink_nodes, edges = graph.edge_list(base_index, uniq=False)
-    
-    log('Computing shortest paths')
-    shortest_paths = get_shortest_paths(tag_nodes, sink_nodes, edges)
-    
-    #Free mem
-    del base_index
-    del tag_nodes
-    del sink_nodes
-    del edges
+            
+    return user_to_items
 
-    log('Creating value calculator')    
-    vc = value_calculator.ValueCalculator(in_file, table, 
-                                          smooth_func, lambda_)
-    vc.open_reader()
-    for user in user_to_items:
-        user_items = user_to_items[user]
-        num_uitems = len(user_items)
-        half = num_uitems / 2
-        
-        filter_query = ['(USER != %d)'%user]
-        items_to_use = []
-        for i, item in enumerate(user_items):
-            filter_query.append('(ITEM != %d)'%item)
-            items_to_use.append(item)
-            if i >= half:
-                break
-        
-        log('Estimating tag relevance - user == %d'%user)
-        itag_value = vc.itag_value(user, -1, False, items_to_use)
-        tag_values = dict((tag, (val, used)) for val, tag, used in itag_value)
+def filter_users(user_to_items, num_items = 10):
+    '''Determining users with more than `num_items` items'''
     
-        #Computing the actual baseline
-        log('Baseline - user == %d'%user)
-        for tag, paths in shortest_paths.iteritems():
-            if len(paths) > 0:
-                val, used = tag_values[tag]
-                print(user, used, val, np.mean(paths.values()))
+    good_users = defaultdict(list)
+    for user in user_to_items.keys():
+        used = user_to_items[user]
+        if len(used) >= num_items:
+            good_users[user].extend(used)
+            random.shuffle(good_users[user])
+            
+    return good_users
 
+def load_tag_values(shortest_paths_file, good_users):
+    '''Loading pre-computed tag values'''
+    
+    #We only need the paths to the previous items for the user.
+    items = set()
+    for user in good_users:
+        items.update(good_users[user])
+    
+    sps = defaultdict(lambda: defaultdict(int))
+    with open(shortest_paths_file) as sps_file:
+        for line in sps_file:
+            spl = line.split()
+            
+            tag = int(spl[0])
+            item = int(spl[1])
+            distance = float(spl[2])
+            
+            if item in items:
+                sps[tag][item] = distance
+    return sps
+
+def create_value_calculator(in_file, table, smooth_func, lambda_):
+    '''Creating value calculator'''
+    
+    value_calc = value_calculator.ValueCalculator(in_file, table, 
+                                                  smooth_func, lambda_)
+    return value_calc
+
+def set_where(value_calc, user, items_to_disconsider):
+    '''Filtering user some of her items'''
+    
+    user_item_annotations = {'user':[user], 'item':set()}
+    for item in items_to_disconsider:
+        user_item_annotations['item'].add(item)
+    
+    value_calc.set_filter_out(user_item_annotations)
+    value_calc.open_reader()
+    
+def get_tag_values(value_calc, user, items_to_consider):
+    '''Computing tag values'''
+        
+    itag_value = value_calc.itag_value(user, -1, False, items_to_consider)
+    tag_to_vals = {}
+    for val, tag in itag_value:
+        tag_to_vals[tag] = val
+    return tag_to_vals
+
+def get_baseline_value(sps, tag):
+    '''Getting baseline tag value'''
+    
+    vals = []
+    for item in sps[tag]:
+        vals.append(sps[tag][item])
+        
+    return np.mean(vals)
+
+def real_main(in_file, table, smooth_func, lambda_, shortest_paths_file):
+    log('Here we go! smooth = %s ; lambda = %f' % (str(smooth_func), lambda_))
+    
+    log('Determining which items were used by each user')
+    user_to_items = items_by_user(in_file, table)
+    good_users = filter_users(user_to_items)
+    del user_to_items
+    log('Left with: %d users' % len(good_users))
+    
+    log('Loading tag values from %s ' % shortest_paths_file)
+    sps = load_tag_values(shortest_paths_file, good_users)
+    
+    log('Creating tag value calculator')
+    value_calc = create_value_calculator(in_file, table, smooth_func, lambda_)
+    
+    for user in good_users:
+        log('Starting experiment for user %d' % user)
+        
+        half = len(good_users[user]) // 2
+        first_half = good_users[user][half:]
+        second_half = good_users[user][:half]
+        
+        log('Leaving out %d items for user' % len(first_half))
+        set_where(value_calc, user, first_half)
+        
+        log('Computing tag values with other %d items' % len(second_half))
+        tag_vals = get_tag_values(value_calc, user, second_half)
+        
+        for tag in tag_vals:
+            if tag in sps:
+                base_val = get_baseline_value(sps, tag)
+                print(user, tag, tag_vals[tag], base_val)
+            else:
+                log('Tag %d not in baseline!!' % tag)
+                
 def create_parser(prog_name):
     parser = argparse.ArgumentParser(prog=prog_name,
                                      description='Computes the baseline.')
@@ -114,6 +165,9 @@ def create_parser(prog_name):
 
     parser.add_argument('lambda_', type=float,
                         help='Lambda to use, between [0, 1]')
+
+    parser.add_argument('shortest_paths_file', type=str,
+                        help='A file with the shortest paths')
     
     return parser
     
@@ -125,7 +179,8 @@ def main(args=None):
     try:
         smooth_func = smooth.get_by_name(vals.smooth_func)
         return real_main(vals.in_file, vals.table, 
-                         smooth_func, vals.lambda_)
+                         smooth_func, vals.lambda_,
+                         vals.shortest_paths_file)
     except:
         parser.print_help()
         traceback.print_exc()

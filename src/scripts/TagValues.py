@@ -2,8 +2,10 @@
 '''
 Simple scripts which prints the value of tags for a given user.
 '''
-
 from __future__ import division, print_function
+
+__authors__ = ['Flavio Figueiredo - flaviovdf <at> gmail <dot-no-spam> com']
+__date__ = '26/05/2011'
 
 from tagassess import smooth
 from tagassess import value_calculator
@@ -19,8 +21,8 @@ def real_main(in_file, table, smooth_func, lambda_, user, num_relevant):
     vc.open_reader()
     
     itag_value = vc.itag_value(user, num_relevant, False)
-    for tag_val, tag, used in sorted(itag_value, reverse=True):
-        print(tag, tag_val, used)
+    for tag_val, tag in sorted(itag_value, reverse=True):
+        print(tag, tag_val)
 
 def create_parser(prog_name):
     parser = argparse.ArgumentParser(prog=prog_name,

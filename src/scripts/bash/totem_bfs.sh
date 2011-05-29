@@ -9,17 +9,18 @@
 # Date: 2011-05-21
 #
 
-if [ $# -ne 1 ]; then
-    echo "Usage: " $0 "<.totem file>"
+if [ $# -ne 2 ]; then
+    echo "Usage: " $0 "<.totem file> <out dir>"
     exit 1
 fi
 
 TOTEM=~/Dropbox/totem-graph/trunk/src/totem/graph
 GRAPH=$1
+OUT=$2
 
 for S in `grep -v \# $GRAPH | awk '{ print $1}' | uniq`; do
     echo Running source $S ...
-    $TOTEM -s $S $GRAPH > sp_${S}.dat
+    $TOTEM -s $S $GRAPH > $OUT/sp_${S}.dat
 done
 
 echo Done.

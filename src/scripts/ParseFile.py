@@ -5,8 +5,10 @@ ParseFile
 
 Script which parsers annotation files
 '''
-
 from __future__ import print_function, division
+
+__authors__ = ['Flavio Figueiredo - flaviovdf <at> gmail <dot-no-spam> com']
+__date__ = '26/05/2011'
 
 from tagassess import data_parser
 from tagassess.dao.annotations import AnnotWriter
