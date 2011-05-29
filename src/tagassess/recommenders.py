@@ -5,7 +5,6 @@ Classes which computes item recommendations for a given user.
 from __future__ import division, print_function
 
 import abc
-import numpy as np
 
 class Recommender(object):
     '''Base Recommender, defines the relevant_items method'''
@@ -27,7 +26,7 @@ class ProbabilityReccomender(Recommender):
     
     def relevance(self, user, item):
         relevance = \
-            np.log2(self.estimator.prob_user_given_item(item, user)) + \
-            np.log2(self.estimator.prob_item(item))
+            self.estimator.log_prob_user_given_item(item, user) + \
+            self.estimator.log_prob_item(item)
             
         return relevance

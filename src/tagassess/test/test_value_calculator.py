@@ -35,7 +35,7 @@ class TestAll(unittest.TestCase):
         if self.h5_file and os.path.exists(self.h5_file):
             os.remove(self.h5_file)
     
-    def test_items_and_user_items(self):
+    def test_items(self):
         self.__init_test(test.SMALL_DEL_FILE)
         smooth_func = smooth.bayes
         lambda_ = 0.3
@@ -43,15 +43,8 @@ class TestAll(unittest.TestCase):
                                               smooth_func, lambda_)
         vc.open_reader()
         
-        items, uitems0 = vc._items_and_user_items(0)
-        self.assertEquals(items, set(xrange(5)))
-        self.assertEquals(uitems0, set(xrange(3)))
-        
-        uitems1 = vc._items_and_user_items(1)[1]
-        self.assertEquals(uitems1, set([0, 3, 4]))
-            
-        uitems2 = vc._items_and_user_items(2)[1]
-        self.assertEquals(uitems2, set([0, 2]))
+        items = vc.est.item_col_freq.keys()
+        self.assertEquals(items, range(5))
         
     def test_tags_and_user_tags(self):
         self.__init_test(test.SMALL_DEL_FILE)
@@ -61,15 +54,8 @@ class TestAll(unittest.TestCase):
                                               smooth_func, lambda_)
         vc.open_reader()
         
-        tags, utags0 = vc._tags_and_user_tags(0)
-        self.assertEquals(tags, set(xrange(6)))
-        self.assertEquals(utags0, set(xrange(3)))
-        
-        utags1 = vc._tags_and_user_tags(1)[1]
-        self.assertEquals(utags1, set([0, 1, 3]))
-            
-        utags2 = vc._tags_and_user_tags(2)[1]
-        self.assertEquals(utags2, set([4, 5]))
+        tags = vc.est.tag_col_freq.keys()
+        self.assertEquals(tags, range(6))
     
     def test_with_filter(self):
         self.__init_test(test.SMALL_DEL_FILE)
@@ -77,17 +63,14 @@ class TestAll(unittest.TestCase):
         lambda_ = 0.3
         vc = value_calculator.ValueCalculator(self.h5_file, 'deli', 
                                               smooth_func, lambda_)
+        vc.set_filter_out({'user':[0], 'item':[0, 1, 2]})
         vc.open_reader()
-        vc.set_where('(USER != 0) | (ITEM != 0)')
 
-        tags, utags0 = vc._tags_and_user_tags(0)
-
-        self.assertEquals(tags, set(xrange(6)))
-        self.assertEquals(utags0, set([0, 2]))
+        tags = vc.est.tag_col_freq.keys()
+        self.assertEquals(tags, [0, 1, 3, 4, 5])
         
-        items, uitems0 = vc._items_and_user_items(0)
-        self.assertEquals(items, set(xrange(5)))
-        self.assertEquals(uitems0, set([1, 2]))
+        items = vc.est.item_col_freq.keys()
+        self.assertEquals(items, [0, 2, 3, 4])
     
     def test_iitag_value(self):
         self.__init_test(test.SMALL_DEL_FILE)
@@ -97,12 +80,11 @@ class TestAll(unittest.TestCase):
                                               smooth_func, lambda_)
         vc.open_reader()
         
-        estimator = SmoothedItemsUsersAsTags(self.h5_file, 'deli', 
-                                             smooth_func, lambda_)
-        estimator.open()
+        estimator = SmoothedItemsUsersAsTags(smooth_func, lambda_)
+        estimator.open(vc._get_iterator())
         
         for user in [0, 1, 2]:
-            tag_vals = dict((v, k) for k, v, b in vc.itag_value(user, -1, False))
+            tag_vals = dict((v, k) for k, v in vc.itag_value(user, -1, False))
             
             for tag in [0, 1, 2, 3, 4, 5]:
                 #Iterative calculation
@@ -128,7 +110,7 @@ class TestAll(unittest.TestCase):
         vc = value_calculator.ValueCalculator(self.h5_file, 'deli', 
                                               smooth_func, lambda_)
         vc.open_reader()
-        for val, tag, used in sorted(vc.itag_value(0, -1, False)):
+        for val, tag in sorted(vc.itag_value(0, -1, False)):
             pass
 #            print(val, tag)
 #            self.assertTrue(val >= 0)

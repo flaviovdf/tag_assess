@@ -19,6 +19,7 @@ import unittest
 class TestMLE(unittest.TestCase):
 
     def setUp(self):
+        self.annots = []
         self.h5_file = None
 
     def __init_test(self, fpath):
@@ -28,7 +29,7 @@ class TestMLE(unittest.TestCase):
             with annotations.AnnotWriter(self.h5_file) as writer:
                 writer.create_table('deli')
                 for annot in parser.iparse(in_f, data_parser.delicious_flickr_parser):
-                    writer.write(annot)
+                    self.annots.append(annot)
                     
     def tearDown(self):
         if self.h5_file and os.path.exists(self.h5_file):
@@ -37,8 +38,8 @@ class TestMLE(unittest.TestCase):
     def test_all(self):
         self.__init_test(test.SMALL_DEL_FILE)
         
-        p = MLE(self.h5_file, 'deli')
-        p.open()
+        p = MLE()
+        p.open(self.annots)
         
         #Item frequencies
         self.assertEquals(p.item_col_freq[0], 5)
@@ -107,12 +108,11 @@ class TestMLE(unittest.TestCase):
         self.assertEquals(p.prob_user_given_item(1, 0), 1)
         self.assertEquals(p.prob_user_given_item(1, 1), 0)
         self.assertEquals(p.prob_user_given_item(1, 2), 0)
-        
-        p.close()
  
 class TestSmoothedItems(unittest.TestCase):
     
     def setUp(self):
+        self.annots = []
         self.h5_file = None
 
     def __init_test(self, fpath):
@@ -122,8 +122,8 @@ class TestSmoothedItems(unittest.TestCase):
             with annotations.AnnotWriter(self.h5_file) as writer:
                 writer.create_table('deli')
                 for annot in parser.iparse(in_f, data_parser.delicious_flickr_parser):
-                    writer.write(annot)
-                    
+                    self.annots.append(annot)
+    
     def tearDown(self):
         if self.h5_file and os.path.exists(self.h5_file):
             os.remove(self.h5_file)
@@ -133,8 +133,8 @@ class TestSmoothedItems(unittest.TestCase):
         
         smooth_func = smooth.jelinek_mercer
         lamb = 0.5
-        p = SmoothedItems(self.h5_file, 'deli', smooth_func, lamb)
-        p.open()
+        p = SmoothedItems(smooth_func, lamb)
+        p.open(self.annots)
 
         prob_i0_t0 = smooth_func(2, 5, 3, 10, lamb)[0]
         prob_i0_t1 = smooth_func(1, 5, 3, 10, lamb)[0]
@@ -164,15 +164,13 @@ class TestSmoothedItems(unittest.TestCase):
         self.assertEquals(p.prob_tag(4), prob_t4)
         self.assertEquals(p.prob_tag(5), prob_t5)
         
-        p.close()
-        
     def test_all_bayes(self):
         self.__init_test(test.SMALL_DEL_FILE)
         
         smooth_func = smooth.bayes
         lamb = 0.3
-        p = SmoothedItems(self.h5_file, 'deli', smooth_func, lamb)
-        p.open()
+        p = SmoothedItems(smooth_func, lamb)
+        p.open(self.annots)
         
         prob_i0_t0, alpha = smooth_func(2, 5, 3, 10, lamb)
         prob_i0_t1 = smooth_func(1, 5, 3, 10, lamb)[0]
@@ -188,10 +186,10 @@ class TestSmoothedItems(unittest.TestCase):
         self.assertAlmostEquals(p.prob_tag_given_item(0, 4), prob_i0_t4)
         self.assertAlmostEquals(p.prob_tag_given_item(0, 5), prob_i0_t5)
         
-        p.close()
-        
 class TestSmoothedItemsUsersAsTags(unittest.TestCase):
+    
     def setUp(self):
+        self.annots = []
         self.h5_file = None
 
     def __init_test(self, fpath):
@@ -201,7 +199,7 @@ class TestSmoothedItemsUsersAsTags(unittest.TestCase):
             with annotations.AnnotWriter(self.h5_file) as writer:
                 writer.create_table('deli')
                 for annot in parser.iparse(in_f, data_parser.delicious_flickr_parser):
-                    writer.write(annot)
+                    self.annots.append(annot)
                     
     def tearDown(self):
         if self.h5_file and os.path.exists(self.h5_file):
@@ -212,11 +210,8 @@ class TestSmoothedItemsUsersAsTags(unittest.TestCase):
         
         smooth_func = smooth.jelinek_mercer
         lamb = 0.5
-        p = SmoothedItemsUsersAsTags(self.h5_file, 'deli', smooth_func, lamb)
-        p.open()
-        
-        user_tags = p._get_user_tags(0)
-        self.assertEquals(user_tags, set([0, 1, 2]))
+        p = SmoothedItemsUsersAsTags(smooth_func, lamb)
+        p.open(self.annots)
         
         prob = p.prob_user(0)
         expected_prob = p.prob_tag(0) * p.prob_tag(1) * p.prob_tag(2) 
@@ -225,8 +220,6 @@ class TestSmoothedItemsUsersAsTags(unittest.TestCase):
         prob = p.prob_user_given_item(0, 0)
         expected_prob = p.prob_tag_given_item(0, 0) * p.prob_tag_given_item(0, 1) * p.prob_tag_given_item(0, 2) 
         self.assertEquals(prob, expected_prob)
-        
-        p.close()
                 
 if __name__ == "__main__":
     unittest.main()

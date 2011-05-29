@@ -63,7 +63,7 @@ def iedge_list(fpath, table, use=1, uniq=False):
         max_tag = len(tags)
     
     def edge_generator():
-        '''Generates edges without using much more mem'''
+        '''Generates edges without using much more memory'''
         for tag in tags:
             seen = set()
             for sink in tag_index[tag]:
