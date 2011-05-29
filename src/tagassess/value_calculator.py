@@ -85,7 +85,8 @@ class ValueCalculator(object):
             yield relevance, item
     
     def itag_value(self, user, num_to_consider=10, 
-                   ignore_known_items=True, items_to_compute=None):
+                   ignore_known_items=True, items_to_compute=None,
+                   tags_to_consider=None):
         '''
         Creates a generator for the value of each tag to the given user.
         This method will make use of the given `smooth_func` using the given
@@ -110,8 +111,13 @@ class ValueCalculator(object):
         p_i = [est.prob_item(item) for item in rel_items]
         p_u_i = [est.prob_user_given_item(item, user) for item in rel_items]
 #        p_u = est.prob_user(user) #This can be ignored, does to change rank.
-    
-        tags = self.est.tag_col_freq.keys()
+        
+        if tags_to_consider:
+            tags_with_nonz = self.est.tag_col_freq
+            tags = ifilter(lambda tag: tag in tags_with_nonz, tags_to_consider)
+        else:
+            tags = self.est.tag_col_freq.keys()
+            
         for tag in tags:
             p_t = est.prob_tag(tag)
             p_t_i = [est.prob_tag_given_item(item, tag) for item in rel_items]
