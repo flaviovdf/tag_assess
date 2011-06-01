@@ -71,14 +71,6 @@ class TestMLE(unittest.TestCase):
         self.assertEquals(p.prob_tag(4), 1 / 10)
         self.assertEquals(p.prob_tag(5), 1 / 10)
         
-        #Item tag frequencies
-        self.assertEquals(p.item_tag_freq[0][0], 2)
-        self.assertEquals(p.item_tag_freq[0][1], 1)
-        self.assertEquals(p.item_tag_freq[0][2], 0)
-        self.assertEquals(p.item_tag_freq[0][3], 1)
-        self.assertEquals(p.item_tag_freq[0][4], 1)
-        self.assertEquals(p.item_tag_freq[0][5], 0)
-        
         #Prob P(t|i)
         self.assertEquals(p.prob_tag_given_item(0, 0), 2 / 5)
         self.assertEquals(p.prob_tag_given_item(0, 1), 1 / 5)
@@ -97,12 +89,6 @@ class TestMLE(unittest.TestCase):
         self.assertEquals(p.prob_user(1), 4 / 10)
         self.assertEquals(p.prob_user(2), 2 / 10)
 
-        #Item user frequencies
-        self.assertEquals(p.item_user_freq[0][0], 2)
-        self.assertEquals(p.item_user_freq[1][0], 1)
-        self.assertEquals(p.item_user_freq[1][1], 0)
-        self.assertEquals(p.item_user_freq[1][2], 0)
-        
         #Item user probs
         self.assertEquals(p.prob_user_given_item(0, 0), 2 / 5)
         self.assertEquals(p.prob_user_given_item(1, 0), 1)

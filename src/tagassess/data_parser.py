@@ -103,11 +103,14 @@ class Parser(object):
 
     def __init__(self, share_ids=False):
         '''
-        Creates a new Parser
+        Creates a new Parser. A lot of the code now depends
+        on `share_ids` to be equal to *False* (i.e., it has been
+        optimized for independent id spaces). We are still keeping
+        this just in case it is a necessity in the future.
 
-        Arguments:
+        Arguments
         ----------
-        share_ids: boolean
+        share_ids (*DEPRECATED!!*): boolean 
             Determines if tags, items and user will share the same id space
         '''
         self.share_ids = share_ids

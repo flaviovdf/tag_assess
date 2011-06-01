@@ -60,8 +60,8 @@ def norm_mutual_information(probabilities_x, probabilities_xy):
         
     return normalized_mi
 
-def information_gain_estimate(prob_items, prob_tag_given_items, 
-                              prob_user_given_items, prob_tag, prob_user=1):
+def kl_estimate_ucontext(prob_items, prob_tag_given_items, 
+                         prob_user_given_items, prob_tag, prob_user=1):
     
     '''
     Estimates how much information gain a tag adds to a user seeking relevant
@@ -97,6 +97,39 @@ def information_gain_estimate(prob_items, prob_tag_given_items,
     np_multi = np_user_items * np_tag_items * np_prob_items
     
     alpha = 1 / (prob_tag * prob_user)
+    summation_part = np_multi.dot(np_log_diff)
+    
+    return alpha * summation_part
+
+def kl_estimate_gcontext(prob_items, prob_tag_given_items, 
+                         prob_tag):
+    
+    '''
+    Estimates how much information gain a tag adds to a user seeking relevant
+    items. In formula:
+    $$D_{kl}( P(\dot | t) || P(\dot))
+    
+    Arguments
+    ---------
+    prob_items: numpy array or any iterable
+        The probabilities of seeing individual items P(i)
+
+    prob_tag_given_items: numpy array or any iterable
+        For each item, the probability of the tag given the item P(t|i)
+    
+    prob_tag: float
+        The probability of the individual tag under consideration
+    '''
+    
+    np_prob_items = np.asarray(prob_items)
+    np_tag_items = np.asarray(prob_tag_given_items)
+    
+    assert len(np_prob_items) == len(np_tag_items)
+    
+    np_log_diff = np.log2(np_tag_items / prob_tag)
+    np_multi = np_tag_items * np_prob_items
+    
+    alpha = 1 / prob_tag
     summation_part = np_multi.dot(np_log_diff)
     
     return alpha * summation_part

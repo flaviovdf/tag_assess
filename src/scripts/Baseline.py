@@ -96,11 +96,11 @@ def set_where(value_calc, user, items_to_disconsider):
     value_calc.set_filter_out(user_item_annotations)
     value_calc.open_reader()
     
-def get_tag_values(value_calc, user, items_to_consider, tags_to_consider):
+def get_tag_values(value_calc, items_to_consider, tags_to_consider):
     '''Computing tag values'''
         
-    itag_value = value_calc.itag_value(user, -1, False, items_to_consider,
-                                       tags_to_consider)
+    itag_value = value_calc.itag_value_gcontext(items_to_consider,
+                                                tags_to_consider)
     tag_to_vals = {}
     for val, tag in itag_value:
         tag_to_vals[tag] = val
@@ -112,7 +112,6 @@ def get_baseline_value(sps, tag):
     vals = []
     for item in sps[tag]:
         vals.append(sps[tag][item])
-        
     return np.mean(vals)
 
 def real_main(in_file, table, smooth_func, lambda_, shortest_paths_file):
@@ -141,7 +140,7 @@ def real_main(in_file, table, smooth_func, lambda_, shortest_paths_file):
         set_where(value_calc, user, first_half)
         
         log('Computing tag values with other %d items' % len(second_half))
-        tag_vals = get_tag_values(value_calc, user, second_half, sps.keys())
+        tag_vals = get_tag_values(value_calc, second_half, sps.keys())
         
         for tag in tag_vals:
             base_val = get_baseline_value(sps, tag)

@@ -74,7 +74,7 @@ def bayes(local_freq, sum_locals, global_freq, sum_globals, lambda_):
 def none(local_freq, sum_locals, global_freq, sum_globals, lambda_=0):
     '''
     Calculates the none smoothing for the given parameters. This
-    is just JM with lambda = 0. The lambda_ parameter is ignore, it
+    is just JM with lambda = 0. The lambda_ parameter is ignored, it
     is here just to maintain the abstraction.
     
     Arguments

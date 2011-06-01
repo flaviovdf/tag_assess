@@ -3,7 +3,6 @@
 
 from __future__ import division, print_function
 
-from heapq import nlargest
 from itertools import ifilter
 from tagassess import entropy
 from tagassess.dao.annotations import AnnotReader
@@ -68,7 +67,30 @@ class ValueCalculator(object):
         Creates a generator for the relevance of each item to the given user.
         This method will make use of the given `smooth_func` using the given
         `lambda_`. The generator will yield the tuple:
-         (item_relevance, item, True if user has tagged item and False otherwise).
+         (item_relevance, item).
+        
+        See also
+        --------
+        tagassess.smooth
+        tagassess.probability_estimates
+        '''
+        if items_to_compute:
+            good_items = self.est.valid_items()
+            items = ifilter(lambda item: item in good_items, items_to_compute)
+        else:
+            items = self.est.valid_items()
+    
+        for item in items:
+            relevance = self.recc.relevance(user, item)
+            yield relevance, item
+    
+    def itag_value_ucontext(self, user, items_to_compute=None,
+                           tags_to_consider=None):
+        '''
+        Creates a generator for the value of each tag to the given user.
+        This method will make use of the given `smooth_func` using the given
+        `lambda_`. The generator will yield the tuple:
+         (tag_value, tag).
         
         See also
         --------
@@ -78,51 +100,60 @@ class ValueCalculator(object):
         if items_to_compute:
             items = items_to_compute
         else:
-            items = self.est.item_col_freq.keys()
+            items = self.est.valid_items()
+                         
+        est = self.est
+        p_i = est.vect_prob_item(est, items)
+        p_u_i = est.vect_prob_user_given_item(est, items, user)
+        
+        #This can be ignored, does to change rank.
+        #p_u = est.prob_user(user) 
+        
+        if tags_to_consider:
+            good_tags = self.est.valid_tags()
+            tags = ifilter(lambda tag: tag in good_tags, tags_to_consider)
+        else:
+            tags = self.est.valid_tags()
+            
+        for tag in tags:
+            p_t = est.prob_tag(tag)
+            p_t_i = est.vect_prob_tag_given_item(est, items, tag)
+            
+            tag_val = entropy.kl_estimate_ucontext(p_i, p_t_i, 
+                                                   p_u_i, p_t)
+            
+            yield tag_val, tag
     
-        for item in items:
-            relevance = self.recc.relevance(user, item)
-            yield relevance, item
-    
-    def itag_value(self, user, num_to_consider=10, 
-                   ignore_known_items=True, items_to_compute=None,
-                   tags_to_consider=None):
+    def itag_value_gcontext(self, items_to_compute=None, 
+                            tags_to_consider=None):
         '''
-        Creates a generator for the value of each tag to the given user.
+        Creates a generator for the value of each tag in a global context.
         This method will make use of the given `smooth_func` using the given
         `lambda_`. The generator will yield the tuple:
-         (tag_value, tag, True if user has used the tag and False otherwise).
+         (tag_value, tag).
         
         See also
         --------
         tagassess.smooth
         tagassess.probability_estimates
         '''
-        filt = lambda item_val: not (ignore_known_items and item_val[2])
-        iitems = ifilter(filt, self.iitem_value(user, items_to_compute))
-        items = [(item_val[0], item_val[1]) for item_val in iitems]
-                         
-        if num_to_consider != -1:
-            rel_items = [item[1] for item in nlargest(num_to_consider, items)]
+        if items_to_compute:
+            items = items_to_compute
         else:
-            rel_items = [item[1] for item in items]
-            
+            items = self.est.valid_items()
+                         
         est = self.est
-        p_i = [est.prob_item(item) for item in rel_items]
-        p_u_i = [est.prob_user_given_item(item, user) for item in rel_items]
-#        p_u = est.prob_user(user) #This can be ignored, does to change rank.
+        p_i = est.vect_prob_item(est, items)
         
         if tags_to_consider:
-            tags_with_nonz = self.est.tag_col_freq
-            tags = ifilter(lambda tag: tag in tags_with_nonz, tags_to_consider)
+            good_tags = self.est.valid_tags()
+            tags = ifilter(lambda tag: tag in good_tags, tags_to_consider)
         else:
-            tags = self.est.tag_col_freq.keys()
+            tags = self.est.valid_tags()
             
         for tag in tags:
             p_t = est.prob_tag(tag)
-            p_t_i = [est.prob_tag_given_item(item, tag) for item in rel_items]
+            p_t_i = est.vect_prob_tag_given_item(est, items, tag)
             
-            tag_val = entropy.information_gain_estimate(p_i, p_t_i, 
-                                                        p_u_i, p_t)
-            
+            tag_val = entropy.kl_estimate_gcontext(p_i, p_t_i, p_t)
             yield tag_val, tag
