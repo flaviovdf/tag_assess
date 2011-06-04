@@ -27,6 +27,10 @@ import sys
 import time
 import traceback
 
+#Profile code
+import cProfile as profile
+import pstats
+
 def log(msg):
     '''Simple logging function'''
     
@@ -96,8 +100,23 @@ def set_where(value_calc, user, items_to_disconsider):
     value_calc.set_filter_out(user_item_annotations)
     value_calc.open_reader()
     
-def get_tag_values(value_calc, items_to_consider, tags_to_consider):
-    '''Computing tag values'''
+def get_tag_values_personalized(value_calc, user, items_to_consider, 
+                                tags_to_consider):
+    '''
+    Computing tag values considering user probability in information gain.
+    '''
+        
+    itag_value = value_calc.itag_value_ucontext(user, items_to_consider,
+                                                tags_to_consider)
+    tag_to_vals = {}
+    for val, tag in itag_value:
+        tag_to_vals[tag] = val
+    return tag_to_vals
+
+def get_tag_values_global(value_calc, items_to_consider, tags_to_consider):
+    '''
+    Computing tag values on without considering individual user probabilities.
+    '''
         
     itag_value = value_calc.itag_value_gcontext(items_to_consider,
                                                 tags_to_consider)
@@ -114,7 +133,9 @@ def get_baseline_value(sps, tag):
         vals.append(sps[tag][item])
     return np.mean(vals)
 
-def real_main(in_file, table, smooth_func, lambda_, shortest_paths_file):
+def real_main(in_file, table, smooth_func, lambda_, shortest_paths_file,
+              global_):
+    
     log('Here we go! smooth = %s ; lambda = %f' % (str(smooth_func), lambda_))
     
     log('Determining which items were used by each user')
@@ -129,7 +150,9 @@ def real_main(in_file, table, smooth_func, lambda_, shortest_paths_file):
     log('Creating tag value calculator')
     value_calc = create_value_calculator(in_file, table, smooth_func, lambda_)
     
-    for user in good_users:
+    for i, user in enumerate(good_users):
+        if i == 20:
+            break
         log('Starting experiment for user %d' % user)
         
         half = len(good_users[user]) // 2
@@ -140,11 +163,17 @@ def real_main(in_file, table, smooth_func, lambda_, shortest_paths_file):
         set_where(value_calc, user, first_half)
         
         log('Computing tag values with other %d items' % len(second_half))
-        tag_vals = get_tag_values(value_calc, second_half, sps.keys())
+        if global_:
+            tag_vals = get_tag_values_global(value_calc, second_half, 
+                                             sps.keys())
+        else:
+            tag_vals = get_tag_values_personalized(value_calc, user,
+                                                   second_half, sps.keys())
         
+        user_tags = value_calc.get_user_tags(user)
         for tag in tag_vals:
             base_val = get_baseline_value(sps, tag)
-            print(user, tag, tag_vals[tag], base_val)
+            print(user, tag, tag_vals[tag], base_val, len(user_tags))
                 
 def create_parser(prog_name):
     parser = argparse.ArgumentParser(prog=prog_name,
@@ -165,6 +194,12 @@ def create_parser(prog_name):
 
     parser.add_argument('shortest_paths_file', type=str,
                         help='A file with the shortest paths')
+
+    parser.add_argument('--no_user_prob', action='store_true',
+                        help='Use a global information gain')
+    
+    parser.add_argument('--profile', action='store_true',
+                        help='Profile execution!?')
     
     return parser
     
@@ -173,11 +208,31 @@ def main(args=None):
     
     parser = create_parser(args[0])
     vals = parser.parse_args(args[1:])
+    
+    in_file = vals.in_file
+    table = vals.table
+    smooth_func = smooth.get_by_name(vals.smooth_func)
+    lambda_ = vals.lambda_
+    shortest_paths_file = vals.shortest_paths_file
+    global_ = vals.no_user_prob
+    
     try:
-        smooth_func = smooth.get_by_name(vals.smooth_func)
-        return real_main(vals.in_file, vals.table, 
-                         smooth_func, vals.lambda_,
-                         vals.shortest_paths_file)
+        if vals.profile:
+            log('saving profiler output to: .run_profile.prof')
+            
+            cmd = 'real_main(in_file, table, smooth_func, ' + \
+                            'lambda_, shortest_paths_file)'
+                            
+            ret = profile.runctx(cmd, globals(), locals(), '.run_profile.prof')
+            
+            stats = pstats.Stats('.run_profile.prof').\
+                    strip_dirs().sort_stats('time')
+            stats.print_stats()
+            
+            return ret
+        else:
+            return real_main(in_file, table, smooth_func, 
+                             lambda_, shortest_paths_file, global_)
     except:
         parser.print_help()
         traceback.print_exc()

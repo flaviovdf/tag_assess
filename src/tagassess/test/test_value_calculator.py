@@ -44,7 +44,7 @@ class TestAll(unittest.TestCase):
                                               smooth_func, lambda_)
         vc.open_reader()
         
-        items = range(len(vc.est.item_col_freq))
+        items = range(len(vc.est.item_col_mle))
         self.assertEquals(items, range(5))
         
     def test_tags_and_user_tags(self):
@@ -57,6 +57,7 @@ class TestAll(unittest.TestCase):
         
         tags = range(len(vc.est.tag_col_freq))
         self.assertEquals(tags, range(6))
+        self.assertEquals(vc.get_user_tags(0), range(3))
     
     def test_with_filter(self):
         self.__init_test(test.SMALL_DEL_FILE)
@@ -76,7 +77,7 @@ class TestAll(unittest.TestCase):
         self.assertEquals(len(items), 4)
         for item in items:
             self.assertTrue(item in [0, 2, 3, 4])
-    
+            
     def test_iitag_value_user(self):
         self.__init_test(test.SMALL_DEL_FILE)
         smooth_func = smooth.bayes
@@ -85,8 +86,8 @@ class TestAll(unittest.TestCase):
                                               smooth_func, lambda_)
         vc.open_reader()
         
-        estimator = SmoothedItemsUsersAsTags(smooth_func, lambda_)
-        estimator.open(vc._get_iterator())
+        estimator = SmoothedItemsUsersAsTags(smooth_func, lambda_,
+                                             vc._get_iterator())
         
         for user in [0, 1, 2]:
             tag_vals = dict((v, k) for k, v in vc.itag_value_ucontext(user))
@@ -117,8 +118,8 @@ class TestAll(unittest.TestCase):
                                               smooth_func, lambda_)
         vc.open_reader()
         
-        estimator = SmoothedItemsUsersAsTags(smooth_func, lambda_)
-        estimator.open(vc._get_iterator())
+        estimator = SmoothedItemsUsersAsTags(smooth_func, lambda_,
+                                             vc._get_iterator())
         
         tag_vals = dict((v, k) for k, v in vc.itag_value_gcontext())
         for tag in [0, 1, 2, 3, 4, 5]:

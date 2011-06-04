@@ -79,6 +79,7 @@ class BasePyTablesWrapper(object):
 
         iterable = None
         if condition:
+            items = [0, 1, 2, 3, 4]
             iterable = table.where(condition)
         else:
             iterable = table

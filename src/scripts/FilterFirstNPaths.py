@@ -59,7 +59,8 @@ def real_main(in_file, out_file, num_consider):
             #Reachable items.
             items_with_path = np.where(paths > 0)[0]
             
-            #Has to reach at least 10 items.
+            #Has to reach at least 10 items. This a simple hack to
+            #determine items from giant component. TODO: better solution.
             if len(items_with_path) > 10: 
                 for item in items_with_path:
                     print(tag, item, paths[item], file=new_out)

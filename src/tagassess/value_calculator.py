@@ -30,8 +30,8 @@ class ValueCalculator(object):
         self.reader = AnnotReader(self.annotation_file)
         self.reader.open_file()
         
-        self.est = SmoothedItemsUsersAsTags(self.smooth_func, self.lambda_)
-        self.est.open(self._get_iterator())
+        self.est = SmoothedItemsUsersAsTags(self.smooth_func, self.lambda_,
+                                            self._get_iterator())
         self.recc = ProbabilityReccomender(self.est)
 
     def set_filter_out(self, filter_out):
@@ -116,8 +116,8 @@ class ValueCalculator(object):
             tags = self.est.valid_tags()
             
         for tag in tags:
-            p_t = est.prob_tag(tag)
             p_t_i = est.vect_prob_tag_given_item(est, items, tag)
+            p_t = est.prob_tag(tag)
             
             tag_val = entropy.kl_estimate_ucontext(p_i, p_t_i, 
                                                    p_u_i, p_t)
@@ -152,8 +152,20 @@ class ValueCalculator(object):
             tags = self.est.valid_tags()
             
         for tag in tags:
-            p_t = est.prob_tag(tag)
             p_t_i = est.vect_prob_tag_given_item(est, items, tag)
+            p_t = est.prob_tag(tag)
             
             tag_val = entropy.kl_estimate_gcontext(p_i, p_t_i, p_t)
             yield tag_val, tag
+    
+    def get_user_tags(self, user):
+        '''
+        Get's the tags used by the user. These are the tags used in probability
+        computations for this user
+        
+        Arguments
+        ---------
+        user: int
+            The user to get tags from
+        '''
+        return self.est.user_tags[user]

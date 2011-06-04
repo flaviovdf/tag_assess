@@ -15,17 +15,6 @@ import abc
 import numexpr as ne
 import numpy as np
 
-def assert_good_prob(func):
-    '''Utility method to check probabilities'''
-    
-    def check(*args, **kwargs): 
-        '''decorator'''
-        prob = func(*args, **kwargs)
-        if not prob <= 1 + 10e-14:
-            raise AssertionError('Invalid prob. = %.5f %s'%(prob))
-        return prob
-    return check
-
 class ProbabilityEstimator(object):
     '''Base class for probability estimates'''
     __metaclass__ = abc.ABCMeta
@@ -76,8 +65,8 @@ class ProbabilityEstimator(object):
         '''Log probability of seeing a given item. $P(i)$'''
         return np.log2(self.prob_item(item))
 
-    #Vectorized methods
-    #TODO: Ugly hack, see if we can do better later.
+    #Vector methods
+    #Ugly hack, see if we can do better later.
     #It is ugly because it needs to be redone for every overwritten method.
     #We could use reflection, but lets keep this for now. Small module.
     vect_prob_item = np.vectorize(prob_item)
@@ -92,210 +81,7 @@ class ProbabilityEstimator(object):
     vect_log_prob_tag_given_item  = np.vectorize(log_prob_tag_given_item)
     vect_log_prob_user_given_item = np.vectorize(log_prob_user_given_item)
 
-class MLE(ProbabilityEstimator):
-    '''Estimations completely based on maximum likelihood'''
-
-    def __init__(self):
-        super(MLE, self).__init__()
-        self.n_annotations = 0
-        
-        self.item_tag_freq = {}
-        self.item_user_freq = {}
-        self.item_tag_freq_ids = defaultdict(lambda: defaultdict(lambda: -1))
-        self.item_user_freq_ids = defaultdict(lambda: defaultdict(lambda: -1))
-        
-        self.tag_col_freq = None
-        self.item_col_freq = None
-        self.user_col_freq = None
-        
-    def open(self, annotation_it):
-        '''
-        Computes initial indexes based on the iterator
-        
-        Arguments
-        ---------
-        annotation_it: iterable
-            An iterable with annotations
-        '''
-        item_tag_dict = defaultdict(lambda: defaultdict(int))
-        item_user_dict = defaultdict(lambda: defaultdict(int))
-        
-        tag_col_dict = defaultdict(int)
-        item_col_dict = defaultdict(int)
-        user_col_dict = defaultdict(int)
-        
-        max_tag = 0
-        max_user = 0
-        max_item = 0
-        
-        #For this class we need user and item indexes
-        self.n_annotations = 0
-        for annotation in annotation_it:
-            self.n_annotations += 1
-            
-            tag = annotation.get_tag()
-            item = annotation.get_item()
-            user = annotation.get_user()
-            
-            item_tag_dict[item][tag] += 1
-            item_user_dict[item][user] += 1
-            
-            tag_col_dict[tag] += 1
-            item_col_dict[item] += 1
-            user_col_dict[user] += 1
-            
-            if user > max_user:
-                max_user = user
-                
-            if tag > max_tag:
-                max_tag = tag
-                
-            if item > max_item:
-                max_item = item
-            
-            self._extra_updates(user, tag, item)
-        
-        self.tag_col_freq = np.zeros(shape = (max_tag + 1,))
-        for tag in tag_col_dict:
-            self.tag_col_freq[tag] = tag_col_dict[tag]
-        
-        self.user_col_freq = np.zeros(shape = (max_user + 1,))
-        for user in user_col_dict:
-            self.user_col_freq[user] = user_col_dict[user]
-        
-        self.item_col_freq = np.zeros(shape = (max_item + 1,))
-        for item in item_col_dict:
-            self.item_col_freq[item] = item_col_dict[item]
-            
-            shape = (len(item_tag_dict[item]),)
-            self.item_tag_freq[item] = np.ndarray(shape=shape)
-            for i, tag in enumerate(item_tag_dict[item]):
-                self.item_tag_freq[item][i] = item_tag_dict[item][tag]
-                self.item_tag_freq_ids[item][tag] = i
-                
-            shape = (len(item_user_dict[item]),)
-            self.item_user_freq[item] = np.ndarray(shape=shape)
-            for i, user in enumerate(item_user_dict[item]):
-                self.item_user_freq[item][i] = item_user_dict[item][user]
-                self.item_user_freq_ids[item][user] = i
-    
-    def _extra_updates(self, user, tag, item):
-        '''
-        Performs any extra update on the open method. This
-        method should be overridden by subclasses
-        '''
-        pass
-            
-    @assert_good_prob
-    def prob_tag(self, tag):
-        '''Probability of seeing a given tag. $P(t)$'''
-        return self.tag_col_freq[tag] / self.n_annotations
-    
-    @assert_good_prob
-    def prob_tag_given_item(self, item, tag):
-        '''Probability of seeing a given tag for an item. $P(t|i)$'''
-        sum_local = self.item_tag_freq[item].sum()
-        tid = self.item_tag_freq_ids[item][tag]
-        
-        if tid == -1:
-            return 0
-        else:
-            return self.item_tag_freq[item][tid] / sum_local
-    
-    @assert_good_prob
-    def prob_user(self, user):
-        '''Probability of seeing an user. $P(u)$'''
-        return self.user_col_freq[user] / self.n_annotations
-    
-    @assert_good_prob
-    def prob_user_given_item(self, item, user):
-        '''Probability of seeing an user given an item. $P(u|i)$'''
-        sum_local = self.item_user_freq[item].sum()
-        uid = self.item_user_freq_ids[item][user]
-        
-        if uid == -1:
-            return 0
-        else:
-            return self.item_user_freq[item][uid] / sum_local
-    
-    @assert_good_prob
-    def prob_item(self, item):
-        '''Probability of seeing a given item. $P(i)$'''
-        return self.item_col_freq[item] / self.n_annotations
-
-    #Vectorized methods
-    vect_prob_item = np.vectorize(prob_item)
-    vect_prob_tag  = np.vectorize(prob_tag)
-    vect_prob_user = np.vectorize(prob_user)
-    vect_prob_tag_given_item  = np.vectorize(prob_tag_given_item)
-    vect_prob_user_given_item = np.vectorize(prob_user_given_item)
-    
-    def valid_items(self):
-        '''Items with non zero P(i)'''
-        return self.item_col_freq.nonzero()[0]
-
-    def valid_tags(self):
-        '''Tags with non zero P(t)'''
-        return self.tag_col_freq.nonzero()[0]
-    
-    def valid_users(self):
-        '''Users with non zero P(u)'''
-        return self.user_col_freq.nonzero()[0]
-    
-class SmoothedItems(MLE):
-    '''
-    In this approach, items are smoothed according to
-    a smoothing function which will consider global information.
-    
-    In details:
-        * $P(t|i) = P(t|M_i)$ where, $M_i$ is a smoothed model of the items
-    '''
-    
-    def __init__(self, smooth_func, lambda_):
-        super(SmoothedItems, self).__init__()
-        self.smooth_func = smooth_func
-        self.lambda_ = lambda_
-    
-    def open(self, annotation_it):
-        super(SmoothedItems, self).open(annotation_it)
-        del self.item_user_freq
-        del self.user_col_freq
-    
-    @assert_good_prob
-    def prob_tag(self, tag):
-        '''Probability of seeing a given tag. $P(t)$'''
-        items = np.arange(len(self.item_col_freq))
-        p_items = self.vect_prob_item(self, items)
-        p_tag_items = self.vect_prob_tag_given_item(self, items, tag)
-        return ne.evaluate('sum(p_items * p_tag_items)')
-    
-    @assert_good_prob
-    def prob_tag_given_item(self, item, tag):
-        '''Probability of seeing a given tag for an item. $P(t|i)$'''
-        sum_local = self.item_tag_freq[item].sum()
-        tid = self.item_tag_freq_ids[item][tag]
-        
-        if tid == -1:
-            alpha = self.smooth_func(0,
-                                     sum_local,
-                                     self.tag_col_freq[tag],
-                                     self.n_annotations,
-                                     self.lambda_)[1]
-            mle_tag = super(SmoothedItems, self).prob_tag(tag)
-            return alpha * mle_tag
-        else:
-            prob = self.smooth_func(self.item_tag_freq[item][tid],
-                                    sum_local,
-                                    self.tag_col_freq[tag],
-                                    self.n_annotations,
-                                    self.lambda_)[0]
-            return prob
-
-    #Vectorized methods
-    vect_prob_tag  = np.vectorize(prob_tag)
-    vect_prob_tag_given_item  = np.vectorize(prob_tag_given_item)
-
-class SmoothedItemsUsersAsTags(SmoothedItems):
+class SmoothedItemsUsersAsTags(ProbabilityEstimator):
     '''
     Implementation of the approach proposed in:
     
@@ -308,25 +94,123 @@ class SmoothedItemsUsersAsTags(SmoothedItems):
         * $P(u)$ and $P(u|i)$ considers users as tags. More specifically, the past
           tags used by the user. So, these two functions will make use of $P(t)$ and $P(t|i)$.
     '''
-    
-    def __init__(self, smooth_func, lambda_):
-        super(SmoothedItemsUsersAsTags, self).__init__(smooth_func, lambda_)
+    def __init__(self, smooth_func, lambda_, annotation_it):
+        super(SmoothedItemsUsersAsTags, self).__init__()
+        self.n_annotations = 0
         self.smooth_func = smooth_func
         self.lambda_ = lambda_
-        self.user_tags = {}
-    
-    def _extra_updates(self, user, tag, item):
-        if user in self.user_tags:
-            tags = self.user_tags[user]
-        else:
-            #If this becomes an overhead, change to set.
-            tags = []
-            self.user_tags[user] = tags
         
-        if tag not in tags:
-            tags.append(tag)
+        #These will be numpy arrays
+        self.item_col_mle = None
+        self.tag_col_freq = None
+        self.item_local_sums = None
+        
+        #I prefer not to use defaultdicts here.
+        #Key error are better than wrong values.
+        self.item_tag_freq = {}
+        self.pti_cache = {}
+        self.user_tags = {}
+        
+        self.__populate(annotation_it)
+        
+    def __populate(self, annotation_it):
+        '''
+        Computes initial indexes based on the iterator
+        
+        Arguments
+        ---------
+        annotation_it: iterable
+            An iterable with annotations
+        '''
+        tag_col_dict = defaultdict(int)
+        item_col_dict = defaultdict(int)
+        item_tag_dict = defaultdict(lambda: defaultdict(int))
+        
+        max_tag = 0
+        max_item = 0
+        
+        #For this class we need user and item indexes
+        self.n_annotations = 0
+        for annotation in annotation_it:
+            self.n_annotations += 1
+            
+            #Initial updates
+            tag = annotation.get_tag()
+            item = annotation.get_item()
+            user = annotation.get_user()
+            
+            tag_col_dict[tag] += 1
+            item_col_dict[item] += 1
+            item_tag_dict[item][tag] += 1
+            
+            #Updating user tags
+            if user in self.user_tags:
+                tags = self.user_tags[user]
+            else:
+                #If this becomes an overhead, change to set.
+                tags = []
+                self.user_tags[user] = tags
+            
+            if tag not in tags:
+                tags.append(tag)
+
+            #Tag, item and user id spaced being defined            
+            if tag > max_tag:
+                max_tag = tag
+                
+            if item > max_item:
+                max_item = item
+        
+        self.tag_col_freq = np.zeros(shape = max_tag + 1)
+        for tag in tag_col_dict:
+            self.tag_col_freq[tag] = tag_col_dict[tag]
+        
+        self.item_col_mle = np.zeros(shape = max_item + 1)
+        self.item_local_sums = np.zeros(shape = max_item + 1)
+        for item in item_col_dict:
+            self.item_col_mle[item] = item_col_dict[item] / self.n_annotations
+            
+            sum_local = sum(item_tag_dict[item].values())
+            self.item_local_sums[item] = sum_local
+            
+            for tag in item_tag_dict[item]:
+                self.item_tag_freq[item, tag] = item_tag_dict[item][tag]
+                
+    def prob_item(self, item):
+        '''Probability of seeing a given item. $P(i)$'''
+        return self.item_col_mle[item]
     
-    @assert_good_prob
+    def prob_tag(self, tag):
+        '''Probability of seeing a given tag. $P(t)$'''
+        items = np.arange(len(self.item_col_mle))
+        p_items = self.item_col_mle
+        p_tag_items = self.vect_prob_tag_given_item(self, items, tag)
+        return ne.evaluate('sum(p_items * p_tag_items)')
+    
+    def prob_tag_given_item(self, item, tag):
+        '''Probability of seeing a given tag for an item. $P(t|i)$'''
+        key = (item, tag)
+        if (item, tag) not in self.pti_cache:
+            if key in self.item_tag_freq:
+                local_freq = self.item_tag_freq[key]
+            else:
+                local_freq = 0
+            
+            sum_local = self.item_local_sums[item]
+            prob, alpha = self.smooth_func(local_freq,
+                                           sum_local,
+                                           self.tag_col_freq[tag],
+                                           self.n_annotations,
+                                           self.lambda_)
+            
+            if local_freq:
+                self.pti_cache[item, tag] = prob
+            else:
+                mle = self.tag_col_freq[tag] / self.n_annotations
+                self.pti_cache[item, tag] = alpha * mle
+                
+        return self.pti_cache[item, tag]
+    
     def prob_user(self, user):
         '''Probability of seeing an user. $P(u)$'''
         if len(self.user_tags[user]) == 0:
@@ -336,7 +220,6 @@ class SmoothedItemsUsersAsTags(SmoothedItems):
             prob_t = self.vect_prob_tag(self, atags)
             return prob_t.prod()
     
-    @assert_good_prob
     def prob_user_given_item(self, item, user):
         '''Probability of seeing an user given an item. $P(u|i)$'''
         if len(self.user_tags[user]) == 0:
@@ -372,7 +255,19 @@ class SmoothedItemsUsersAsTags(SmoothedItems):
     
     #Vectorized methods
     vect_prob_user = np.vectorize(prob_user)
+    vect_prob_item = np.vectorize(prob_item)
+    vect_prob_tag  = np.vectorize(prob_tag)
+    
     vect_prob_user_given_item = np.vectorize(prob_user_given_item)
+    vect_prob_tag_given_item  = np.vectorize(prob_tag_given_item)
     
     vect_log_prob_user = np.vectorize(log_prob_user)
     vect_log_prob_user_given_item = np.vectorize(log_prob_user_given_item)
+    
+    def valid_items(self):
+        '''Items with non zero P(i)'''
+        return self.item_col_mle.nonzero()[0]
+
+    def valid_tags(self):
+        '''Tags with non zero P(t)'''
+        return self.tag_col_freq.nonzero()[0]
