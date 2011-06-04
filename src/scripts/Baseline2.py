@@ -5,8 +5,9 @@ Simple scripts which prints the value of tags for a given user.
 from __future__ import division, print_function
 
 __authors__ = ['Flavio Figueiredo - flaviovdf <at> gmail <dot-no-spam> com']
-__date__ = '26/05/2011'
+__date__ = '03/06/2011'
 
+from collections import defaultdict
 from tagassess import smooth
 from tagassess import value_calculator
 
@@ -15,14 +16,29 @@ import traceback
 
 import sys
 
-def real_main(in_file, table, smooth_func, lambda_, user):
-    vc = value_calculator.ValueCalculator(in_file, table, 
-                                          smooth_func, lambda_)
-    vc.open_reader()
+def load_tag_values(shortest_paths_file):
+    '''Loading pre-computed tag values'''
     
-    itag_value = vc.itag_value_ucontext(user)
-    for tag_val, tag in sorted(itag_value, reverse=True):
-        print(tag, tag_val)
+    sps = defaultdict(lambda: defaultdict(int))
+    with open(shortest_paths_file) as sps_file:
+        for line in sps_file:
+            spl = line.split()
+            tag = int(spl[0])
+            item = int(spl[1])
+            distance = float(spl[2])
+            sps[item][tag] = distance
+            
+    return sps
+
+def real_main(in_file, table, smooth_func, lambda_, shortest_paths_file):
+    sps = load_tag_values(shortest_paths_file)
+    val_calc = value_calculator.ValueCalculator(in_file, table,
+                                          smooth_func, lambda_)
+    val_calc.open_reader()
+    for item in sps:
+        itag_value = val_calc.itag_value_gcontext([item], sps[item])
+        for tag_val, tag in itag_value:
+            print(item, tag, tag_val, sps[item][tag])
 
 def create_parser(prog_name):
     parser = argparse.ArgumentParser(prog=prog_name,
@@ -41,8 +57,8 @@ def create_parser(prog_name):
     parser.add_argument('lambda_', type=float,
                         help='Lambda to use, between [0, 1]')
     
-    parser.add_argument('user', type=int,
-                        help='User to consider')
+    parser.add_argument('shortest_paths_file', type=str,
+                        help='A file with the shortest paths')
     
     return parser
     
@@ -55,7 +71,7 @@ def main(args=None):
         smooth_func = smooth.get_by_name(vals.smooth_func)
         return real_main(vals.in_file, vals.table, 
                          smooth_func, vals.lambda_,
-                         vals.user)
+                         vals.shortest_paths_file)
     except:
         parser.print_help()
         traceback.print_exc()

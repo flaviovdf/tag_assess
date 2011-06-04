@@ -177,7 +177,7 @@ def real_main(in_file, table, smooth_func, lambda_, shortest_paths_file,
                 
 def create_parser(prog_name):
     parser = argparse.ArgumentParser(prog=prog_name,
-                                     description='Computes the baseline.')
+                                     description='Baseline for our method.')
     
     parser.add_argument('in_file', type=str,
                         help='annotation h5 file to read from')
