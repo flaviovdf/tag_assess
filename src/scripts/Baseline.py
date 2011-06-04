@@ -150,9 +150,7 @@ def real_main(in_file, table, smooth_func, lambda_, shortest_paths_file,
     log('Creating tag value calculator')
     value_calc = create_value_calculator(in_file, table, smooth_func, lambda_)
     
-    for i, user in enumerate(good_users):
-        if i == 20:
-            break
+    for user in good_users:
         log('Starting experiment for user %d' % user)
         
         half = len(good_users[user]) // 2
