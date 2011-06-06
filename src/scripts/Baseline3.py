@@ -33,7 +33,7 @@ def load_tag_values(shortest_paths_file):
     
     asps = {}
     for tag in sps:
-        asps[tag] = np.mean(asps[tag])
+        asps[tag] = np.mean(sps[tag])
     return asps, [i for i in items]
 
 def real_main(in_file, table, smooth_func, lambda_, shortest_paths_file):
