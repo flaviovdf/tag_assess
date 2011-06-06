@@ -31,7 +31,7 @@ def load_tag_values(shortest_paths_file):
             sps[tag][item] = distance
             items.add(item)
             
-    return sps, items
+    return sps, [i for i in items]
 
 def real_main(in_file, table, smooth_func, lambda_, shortest_paths_file):
     sps, items = load_tag_values(shortest_paths_file)
