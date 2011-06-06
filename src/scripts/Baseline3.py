@@ -21,6 +21,7 @@ def load_tag_values(shortest_paths_file):
     '''Loading pre-computed tag values'''
     
     sps = defaultdict(lambda: defaultdict(int))
+    items = set()
     with open(shortest_paths_file) as sps_file:
         for line in sps_file:
             spl = line.split()
@@ -28,15 +29,16 @@ def load_tag_values(shortest_paths_file):
             item = int(spl[1])
             distance = float(spl[2])
             sps[tag][item] = distance
+            items.add(item)
             
-    return sps
+    return sps, items
 
 def real_main(in_file, table, smooth_func, lambda_, shortest_paths_file):
-    sps = load_tag_values(shortest_paths_file)
+    sps, items = load_tag_values(shortest_paths_file)
     val_calc = value_calculator.ValueCalculator(in_file, table,
                                                 smooth_func, lambda_)
     val_calc.open_reader()
-    itag_value = val_calc.itag_value_gcontext(sps.keys(), sps.values())
+    itag_value = val_calc.itag_value_gcontext(items, sps.keys())
     for tag_val, tag in itag_value:
         print(tag, tag_val, np.mean(sps[tag].values()))
 
