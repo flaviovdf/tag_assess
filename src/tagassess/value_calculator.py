@@ -85,7 +85,7 @@ class ValueCalculator(object):
             yield relevance, item
     
     def itag_value_ucontext(self, user, items_to_compute=None,
-                           tags_to_consider=None):
+                            tags_to_consider=None):
         '''
         Creates a generator for the value of each tag to the given user.
         This method will make use of the given `smooth_func` using the given
@@ -104,10 +104,8 @@ class ValueCalculator(object):
                          
         est = self.est
         p_i = est.vect_prob_item(est, items)
-        p_u_i = est.vect_prob_user_given_item(est, items, user)
-        
-        #This can be ignored, does to change rank.
-        #p_u = est.prob_user(user) 
+        p_ui = est.vect_prob_user_given_item(est, items, user)
+        p_u = est.prob_user(user) 
         
         if tags_to_consider:
             good_tags = self.est.valid_tags()
@@ -116,12 +114,17 @@ class ValueCalculator(object):
             tags = self.est.valid_tags()
             
         for tag in tags:
-            p_t_i = est.vect_prob_tag_given_item(est, items, tag)
+            p_ti = est.vect_prob_tag_given_item(est, items, tag)
             p_t = est.prob_tag(tag)
             
-            tag_val = entropy.kl_estimate_ucontext(p_i, p_t_i, 
-                                                   p_u_i, p_t)
+            p_iu = p_ui * p_i / p_u
+            p_itu = p_ti * p_ui * p_i / (p_u * p_t)
             
+            #Renormalization is necessary
+            p_iu /= p_iu.sum()
+            p_itu /= p_itu.sum() 
+            
+            tag_val = entropy.kullback_leiber_divergence(p_itu, p_iu)
             yield tag_val, tag
     
     def itag_value_gcontext(self, items_to_compute=None, 
@@ -131,7 +134,7 @@ class ValueCalculator(object):
         This method will make use of the given `smooth_func` using the given
         `lambda_`. The generator will yield the tuple:
          (tag_value, tag).
-        
+         
         See also
         --------
         tagassess.smooth
@@ -152,10 +155,15 @@ class ValueCalculator(object):
             tags = self.est.valid_tags()
             
         for tag in tags:
-            p_t_i = est.vect_prob_tag_given_item(est, items, tag)
+            p_ti = est.vect_prob_tag_given_item(est, items, tag)
             p_t = est.prob_tag(tag)
+            p_it = p_ti * p_i / p_t
             
-            tag_val = entropy.kl_estimate_gcontext(p_i, p_t_i, p_t)
+            #Renormalization is necessary
+            p_it /= p_it.sum()
+            p_i /= p_i.sum()
+            
+            tag_val = entropy.kullback_leiber_divergence(p_it, p_i)
             yield tag_val, tag
     
     def get_user_tags(self, user):

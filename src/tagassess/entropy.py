@@ -4,6 +4,7 @@
 from __future__ import division, print_function
 
 import numpy as np
+import numpy.ma as ma
 
 def __assert_good_probs(prob_array):
     '''
@@ -16,27 +17,63 @@ def __assert_good_probs(prob_array):
     '''
     #Filter elements which are 0 <= x <= 1
     good_elements = prob_array[(prob_array >= 0) & (prob_array <= 1)]
-    psum = np.sum(prob_array)
+    psum = prob_array.sum()
     
     eq_length = len(good_elements) == len(prob_array)
-    return psum == 1.0 and eq_length
+    return psum >= 0.9999999999 and psum <= 1.0000000001 and eq_length
 
-def entropy(x_probabilities):
+def mask_zeros(func):
+    '''
+    Defines a decorator which will:
+        1. Convert arguments to numpy arrays
+        2. Mask zeros (zero prob is ignored in entropy calculations)
+        3. Check if probabilities are valid: sum == 1 and values in [0,1]
+    '''
+    
+    def decorator(*args):
+        '''The decorator function'''
+        array_args = []
+        for arg in args:
+            array = np.asarray(arg)
+            masked_array = ma.masked_array(array, array == 0) #Mask zeros.
+            array_args.append(masked_array)
+            __assert_good_probs(masked_array)
+        return func(*array_args)
+    return decorator
+
+@mask_zeros
+def entropy(probabilities_x):
     '''
     Calculates the entropy (H) of the input vector which
     represents some random variable X.
 
     Arguments
     ---------
-    x_probabilities: numpy array or any iterable
-        Array with the individual x_probabilities. Values must be 0 <= x <=1
+    probabilities_x: numpy array or any iterable
+        Array with the individual probabilities_x. Values must be 0 <= x <=1
+    '''
+    return -1 * np.add.reduce(probabilities_x * np.log2(probabilities_x))
+
+@mask_zeros
+def mutual_information(probabilities_x, probabilities_xy):
+    '''
+    Calculates the mutual information between the
+    random variables (X and X|Y):
+
+    Arguments
+    ---------
+    probabilities_x: numpy array or any iterable
+        Array with the individual probabilities X. Values must be 0 <= x <= 1
+
+    probabilities_xy: numpy array or any iterable
+        Array with the individual probabilities for X|Y. Values must be 0 <= x <= 1
     '''
 
-    probs = np.asarray(x_probabilities)
-    assert __assert_good_probs(probs)
+    h_x = entropy(probabilities_x)
+    h_xy = entropy(probabilities_xy)
+    return h_x - h_xy
 
-    return -1 * np.add.reduce(x_probabilities * np.log2(probs))
-
+@mask_zeros
 def norm_mutual_information(probabilities_x, probabilities_xy):
     '''
     Calculates the normalized mutual information between the
@@ -60,76 +97,29 @@ def norm_mutual_information(probabilities_x, probabilities_xy):
         
     return normalized_mi
 
-def kl_estimate_ucontext(prob_items, prob_tag_given_items, 
-                         prob_user_given_items, prob_tag, prob_user=1):
-    
+@mask_zeros
+def kullback_leiber_divergence(probabilities_p, probabilities_q):
     '''
-    Estimates how much information gain a tag adds to a user seeking relevant
-    items. In formula:
-    $$D_{kl}( P(\dot | u, t) || P(\dot | u))
-    
+    Calculates the Kullback-Leiber divergence between the distributions
+    of two random variables.
+
+    $$ D_{kl}(P(X) || Q(X)) = \sum_{x \in X) p(x) * log(\frac{p(x)}{q(x)}) $$
+
     Arguments
     ---------
-    prob_items: numpy array or any iterable
-        The probabilities of seeing individual items P(i)
+    probabilities_p: numpy array or any iterable
+        Array with the individual probabilities P. Values must be 0 <= x <= 1
 
-    prob_tag_given_items: numpy array or any iterable
-        For each item, the probability of the tag given the item P(t|i)
-    
-    prob_user_given_items: numpy array or any iterable
-        For each item, the probability of the user given the item P(u|i)
-        
-    prob_tag: float
-        The probability of the individual tag under consideration
-    
-    prob_user: float (optional)
-        The probability of the user under consideration. This parameter is
-        optional since it does not affect the ranking of the estimate.
+    probabilities_q: numpy array or any iterable
+        Array with the individual probabilities for Q. Values must be 0 <= x <= 1
     '''
+    #n * log(n / 0) = inf (definition of kullback leiber)
+    #Since we have arrays which mask zeros. We get the 
+    #elements in Q where P is not masked. If any of these are
+    #also masked, we have: n * log(n / 0)
+    is_val_pos = ~probabilities_q.mask[~probabilities_p.mask]
+    if not is_val_pos.all():
+        return np.float('inf')
     
-    np_prob_items = np.asarray(prob_items)
-    np_tag_items = np.asarray(prob_tag_given_items)
-    np_user_items = np.asarray(prob_user_given_items)
-    
-    assert len(np_prob_items) == len(np_tag_items) == len(np_user_items)
-    
-    np_log_diff = np.log2(np_tag_items / prob_tag)
-    np_multi = np_user_items * np_tag_items * np_prob_items
-    
-    alpha = 1 / (prob_tag * prob_user)
-    summation_part = np_multi.dot(np_log_diff)
-    
-    return alpha * summation_part
-
-def kl_estimate_gcontext(prob_items, prob_tag_given_items, 
-                         prob_tag):
-    
-    '''
-    Estimates how much information gain a tag adds to a user seeking relevant
-    items. In formula:
-    $$D_{kl}( P(\dot | t) || P(\dot))
-    
-    Arguments
-    ---------
-    prob_items: numpy array or any iterable
-        The probabilities of seeing individual items P(i)
-
-    prob_tag_given_items: numpy array or any iterable
-        For each item, the probability of the tag given the item P(t|i)
-    
-    prob_tag: float
-        The probability of the individual tag under consideration
-    '''
-    
-    np_prob_items = np.asarray(prob_items)
-    np_tag_items = np.asarray(prob_tag_given_items)
-    
-    assert len(np_prob_items) == len(np_tag_items)
-    
-    np_log_diff = np.log2(np_tag_items / prob_tag)
-    np_multi = np_tag_items * np_prob_items
-    
-    alpha = 1 / prob_tag
-    summation_part = np_multi.dot(np_log_diff)
-    
-    return alpha * summation_part
+    log_part = np.log2(probabilities_p) - np.log2(probabilities_q)
+    return np.add.reduce(probabilities_p * log_part)

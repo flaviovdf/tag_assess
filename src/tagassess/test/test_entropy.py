@@ -9,13 +9,14 @@ from __future__ import print_function, division
 from tagassess import entropy
 
 import math
-import numpy as np
 import unittest
 
 #Calculates the entropy iteratively.
 def it_entropy(probs):
     ent = 0.0
     for prob in probs:
+        if prob == 0:
+            continue
         ent -= prob * math.log(prob, 2)
     return ent
 
@@ -25,7 +26,7 @@ class TestEntropy(unittest.TestCase):
     with an iterative calculation
     '''
     def test_entropy(self):
-        probs = [0.1, 0.5, 0.01, 0.07, 0.02, 0.3]
+        probs = [0.1, 0.5, 0.01, 0.07, 0.02, 0.3, 0, 0, 0]
 
         self.assertEquals(entropy.entropy(probs), it_entropy(probs))
 
@@ -66,42 +67,43 @@ class TestEntropy(unittest.TestCase):
         x_probs = [1]
         self.assertEqual(entropy.norm_mutual_information(x_probs, xy_probs), 0)
 
-    def test_klu_estimate(self):
-        from random import random
-        
-        prob_tag = random()
-        prob_user = random()
-        prob_items = np.random.rand(10)
-        prob_tag_items = np.random.rand(10)
-        prob_user_items = np.random.rand(10)
-        
-        result = 0
-        for i in xrange(10):
-            result += prob_user_items[i] * prob_tag_items[i] * prob_items[i] * \
-                      (math.log(prob_tag_items[i], 2) - math.log(prob_tag, 2))
-        
-        result /= prob_tag * prob_user
-        self.assertAlmostEquals(result, entropy.kl_estimate_ucontext(prob_items, 
-                                                                     prob_tag_items, 
-                                                                     prob_user_items,
-                                                                     prob_tag, prob_user))  
+    def test_mi(self):
+        x_probs = [0.04, 0.16] * 5
+        xy_probs = [0.02, 0.18] * 5
 
-    def test_glu_estimate(self):
-        from random import random
+        h_x = it_entropy(x_probs)
+        h_y = it_entropy(xy_probs)
+
+        mutual_inf = h_x - h_y
+        self.assertAlmostEqual(entropy.mutual_information(x_probs, xy_probs), mutual_inf)
+
+    def test_kl(self):
+        x_probs = [0.04, 0.16] * 5
+        xy_probs = [0.02, 0.18] * 5
         
-        prob_tag = random()
-        prob_items = np.random.rand(10)
-        prob_tag_items = np.random.rand(10)
+        dkl = 0
+        for i in range(len(x_probs)):
+            div = x_probs[i] / xy_probs[i]
+            dkl += x_probs[i] * math.log(div, 2)
+            
+        self.assertAlmostEqual(entropy.kullback_leiber_divergence(x_probs, xy_probs), dkl)
+
+    def test_kl2(self):
+        x_probs = [0.04, 0.16] * 5 + [0]
+        xy_probs = [0.02, 0.18] * 5 + [0]
         
-        result = 0
-        for i in xrange(10):
-            result += prob_tag_items[i] * prob_items[i] * \
-                      (math.log(prob_tag_items[i], 2) - math.log(prob_tag, 2))
+        dkl = 0
+        for i in range(len(x_probs) - 1):
+            div = x_probs[i] / xy_probs[i]
+            dkl += x_probs[i] * math.log(div, 2)
+            
+        self.assertAlmostEqual(entropy.kullback_leiber_divergence(x_probs, xy_probs), dkl)
+
+    def test_kl3(self):
+        x_probs = [0.25, 0.20, 0, 0.55]
+        xy_probs = [0.20, 0, 0.25, 0.55]
         
-        result /= prob_tag
-        self.assertAlmostEquals(result, entropy.kl_estimate_gcontext(prob_items, 
-                                                                     prob_tag_items, 
-                                                                     prob_tag)) 
+        self.assertAlmostEqual(entropy.kullback_leiber_divergence(x_probs, xy_probs), float('inf'))
 
 if __name__ == "__main__":
     unittest.main()
