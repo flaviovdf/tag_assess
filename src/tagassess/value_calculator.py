@@ -222,10 +222,7 @@ class ValueCalculator(object):
         tag: int
             The tag id
         '''
-        if (item, tag) in self.est.item_tag_freq:
-            return self.est.prob_tag_given_item(item, tag)
-        else:
-            return 0
+        return self.est.prob_tag_given_item(item, tag)
         
     def get_item_tag_popularity(self, item, tag):
         '''
