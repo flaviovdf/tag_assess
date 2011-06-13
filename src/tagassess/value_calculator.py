@@ -177,3 +177,67 @@ class ValueCalculator(object):
             The user to get tags from
         '''
         return self.est.user_tags[user]
+    
+    def get_tag_popularity(self, tag):
+        '''
+        Get's the amount of times a tag has been used in
+        the collections
+        
+        Arguments
+        ---------
+        tag: int
+            The tag id
+        '''
+        if tag in self.est.tag_col_freq:
+            return self.est.tag_col_freq[tag]
+        else:
+            return 0
+    
+    def get_tag_probability(self, tag):
+        '''
+        Get's the probability of tag appearing
+        in the collection.
+        
+        Arguments
+        ---------
+        tag: int
+            The tag id
+        '''
+        if tag in self.est.tag_col_freq:
+            return self.est.prob_tag(tag)
+        else:
+            return 0
+    
+    def get_item_tag_probability(self, item, tag):
+        '''
+        Get's the probability of tag appearing
+        in the item.
+        
+        Arguments
+        ---------
+        item: int
+            The item id
+        tag: int
+            The tag id
+        '''
+        if (item, tag) in self.est.item_tag_freq:
+            return self.est.prob_tag_given_item(item, tag)
+        else:
+            return 0
+        
+    def get_item_tag_popularity(self, item, tag):
+        '''
+        Get's the probability of tag appearing
+        in the item.
+        
+        Arguments
+        ---------
+        item: int
+            The item id
+        tag: int
+            The tag id
+        '''
+        if (item, tag) in self.est.item_tag_freq:
+            return self.est.item_tag_freq[(item, tag)]
+        else:
+            return 0

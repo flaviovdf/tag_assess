@@ -171,7 +171,20 @@ def real_main(in_file, table, smooth_func, lambda_, shortest_paths_file,
         user_tags = value_calc.get_user_tags(user)
         for tag in tag_vals:
             base_val = get_baseline_value(sps, tag)
-            print(user, tag, tag_vals[tag], base_val, len(user_tags))
+            tprob = value_calc.get_tag_probability(tag)
+            tfreq = value_calc.get_tag_popularity(tag)
+            nutags = len(user_tags)
+            
+            item_tag_p = np.zeros(shape=len(second_half))
+            item_tag_f = np.zeros(shape=len(second_half))
+            for i, item in enumerate(second_half):
+                item_tag_p[i] = value_calc.get_item_tag_probability(item, tag)
+                item_tag_f[i] = value_calc.get_item_tag_popularity(item, tag)
+            
+            print(user, tag, tag_vals[tag], 
+                  base_val, tprob, tfreq, 
+                  np.mean(item_tag_p), np.mean(item_tag_f), 
+                  nutags)
                 
 def create_parser(prog_name):
     parser = argparse.ArgumentParser(prog=prog_name,

@@ -32,13 +32,15 @@ def load_tag_values(shortest_paths_file):
 
 def real_main(in_file, table, smooth_func, lambda_, shortest_paths_file):
     sps = load_tag_values(shortest_paths_file)
-    val_calc = value_calculator.ValueCalculator(in_file, table,
+    value_calc = value_calculator.ValueCalculator(in_file, table,
                                           smooth_func, lambda_)
-    val_calc.open_reader()
+    value_calc.open_reader()
     for item in sps:
-        itag_value = val_calc.itag_value_gcontext([item], sps[item])
+        itag_value = value_calc.itag_value_gcontext([item], sps[item])
         for tag_val, tag in itag_value:
-            print(item, tag, tag_val, sps[item][tag])
+            tprob = value_calc.get_tag_probability(tag)
+            tfreq = value_calc.get_tag_popularity(tag)
+            print(item, tag, tag_val, sps[item][tag], tprob, tfreq)
 
 def create_parser(prog_name):
     parser = argparse.ArgumentParser(prog=prog_name,
