@@ -93,6 +93,7 @@ def create_value_calculator(in_file, table, smooth_func, lambda_):
 def set_where(value_calc, user, items_to_disconsider):
     '''Filtering user some of her items'''
     
+    value_calc.close()
     user_item_annotations = {'user':[user], 'item':set()}
     for item in items_to_disconsider:
         user_item_annotations['item'].add(item)

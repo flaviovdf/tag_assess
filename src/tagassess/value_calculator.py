@@ -34,6 +34,13 @@ class ValueCalculator(object):
                                             self._get_iterator())
         self.recc = ProbabilityReccomender(self.est)
 
+    def close(self):
+        if self.reader:
+            self.reader.close_file()
+            self.est = None
+            self.recc = None    
+            self.reader = None
+
     def set_filter_out(self, filter_out):
         '''Set's the row tuple pairs to disconsider'''
         self.filter_out = filter_out
