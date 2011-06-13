@@ -196,10 +196,7 @@ class ValueCalculator(object):
         tag: int
             The tag id
         '''
-        if tag in self.est.tag_col_freq:
-            return self.est.tag_col_freq[tag]
-        else:
-            return 0
+        return self.est.tag_col_freq[tag]
     
     def get_tag_probability(self, tag):
         '''
@@ -211,10 +208,7 @@ class ValueCalculator(object):
         tag: int
             The tag id
         '''
-        if tag in self.est.tag_col_freq:
-            return self.est.prob_tag(tag)
-        else:
-            return 0
+        return self.est.prob_tag(tag)
     
     def get_item_tag_probability(self, item, tag):
         '''
