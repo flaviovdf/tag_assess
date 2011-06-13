@@ -35,6 +35,7 @@ class ValueCalculator(object):
         self.recc = ProbabilityReccomender(self.est)
 
     def close(self):
+        '''Resets the value calculator'''
         if self.reader:
             self.reader.close_file()
             self.est = None
