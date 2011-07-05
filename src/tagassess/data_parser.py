@@ -116,8 +116,8 @@ def to_json(user, item, tag, date):
 class Parser(object):
 
     '''
-    Base class to parse annotation files. The main method of this class is `iparse`, which
-    generates Annotations.
+    Base class to parse annotation files. The main method of this class is 
+    `iparse`, which generates Annotations.
     '''
 
     def __init__(self):
