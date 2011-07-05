@@ -1,19 +1,11 @@
 # -*- coding: utf8
-#pylint: disable-msg=C0111
-#pylint: disable-msg=C0103
-#pylint: disable-msg=C0301
-#pylint: disable-msg=R0201
-#pylint: disable-msg=W0401
-#pylint: disable-msg=W0612
-#pylint: disable-msg=W0614
-
 from __future__ import division, print_function
 
 from collections import defaultdict
 
 from tagassess import data_parser
 from tagassess import test
-from tagassess.dao.annotations import Annotation
+from tagassess.index_creator import create_double_occurrence_index
 from tagassess.index_creator import create_occurrence_index
 from tagassess.index_creator import create_metrics_index
 
@@ -37,7 +29,7 @@ class TestIndexCreation(unittest.TestCase):
             user = random.randint(0, 4)
             tag = random.randint(0, 4)
             item = random.randint(0, 4)
-            annotations.append(Annotation(user, item, tag, any_date))
+            annotations.append(data_parser.to_json(user, item, tag, any_date))
             
             post = user if use_user else item
             
@@ -105,11 +97,11 @@ class TestIndexCreation(unittest.TestCase):
         #which have no impact on the test.
         no_impact = 1
         
-        a1 = Annotation(1, 1, no_impact, no_impact)
-        a2 = Annotation(1, 2, no_impact, no_impact)
-        a3 = Annotation(1, 1, no_impact, no_impact)
-        a4 = Annotation(2, 2, no_impact, no_impact)
-        a5 = Annotation(2, 3, no_impact, no_impact)
+        a1 = data_parser.to_json(1, 1, no_impact, no_impact)
+        a2 = data_parser.to_json(1, 2, no_impact, no_impact)
+        a3 = data_parser.to_json(1, 1, no_impact, no_impact)
+        a4 = data_parser.to_json(2, 2, no_impact, no_impact)
+        a5 = data_parser.to_json(2, 3, no_impact, no_impact)
     
         index = create_occurrence_index([a1, a2, a3, a4, a5], 'user', 'item')
         self.assertEqual(index[1], set([1, 2, 1]))
@@ -120,11 +112,11 @@ class TestIndexCreation(unittest.TestCase):
         #which have no impact on the test.
         no_impact = 1
         
-        a1 = Annotation(1, no_impact, 1, no_impact)
-        a2 = Annotation(1, no_impact, 2, no_impact)
-        a3 = Annotation(1, no_impact, 1, no_impact)
-        a4 = Annotation(2, no_impact, 2, no_impact)
-        a5 = Annotation(2, no_impact, 3, no_impact)
+        a1 = data_parser.to_json(1, no_impact, 1, no_impact)
+        a2 = data_parser.to_json(1, no_impact, 2, no_impact)
+        a3 = data_parser.to_json(1, no_impact, 1, no_impact)
+        a4 = data_parser.to_json(2, no_impact, 2, no_impact)
+        a5 = data_parser.to_json(2, no_impact, 3, no_impact)
     
         index = create_occurrence_index([a1, a2, a3, a4, a5], 'user', 'tag')
         self.assertEqual(index[1], set([1, 2, 1]))
@@ -135,16 +127,34 @@ class TestIndexCreation(unittest.TestCase):
         #which have no impact on the test.
         no_impact = 1
         
-        a1 = Annotation(1, 1, no_impact, no_impact)
-        a2 = Annotation(1, 2, no_impact, no_impact)
-        a3 = Annotation(1, 1, no_impact, no_impact)
-        a4 = Annotation(2, 2, no_impact, no_impact)
-        a5 = Annotation(2, 3, no_impact, no_impact)
+        a1 = data_parser.to_json(1, 1, no_impact, no_impact)
+        a2 = data_parser.to_json(1, 2, no_impact, no_impact)
+        a3 = data_parser.to_json(1, 1, no_impact, no_impact)
+        a4 = data_parser.to_json(2, 2, no_impact, no_impact)
+        a5 = data_parser.to_json(2, 3, no_impact, no_impact)
             
         index = create_occurrence_index([a1, a2, a3, a4, a5], 'item', 'user')
         self.assertEqual(index[1], set([1, 1]))
         self.assertEqual(index[2], set([1, 2]))
         self.assertEqual(index[3], set([2]))
+        
+    def test_double_occurrence_index(self):
+        no_impact = 1
+        
+        a1 = data_parser.to_json(1, no_impact, 1, no_impact)
+        a2 = data_parser.to_json(1, no_impact, 2, no_impact)
+        a3 = data_parser.to_json(1, no_impact, 1, no_impact)
+        a4 = data_parser.to_json(2, no_impact, 2, no_impact)
+        a5 = data_parser.to_json(2, no_impact, 3, no_impact)
     
+        from_to, inv = create_double_occurrence_index([a1, a2, a3, a4, a5], 
+                                                      'user', 'tag')
+        self.assertEqual(from_to[1], set([1, 2, 1]))
+        self.assertEqual(from_to[2], set([2, 3]))
+        
+        self.assertEqual(inv[1], set([1]))
+        self.assertEqual(inv[2], set([1, 2]))
+        self.assertEqual(inv[3], set([2]))
+        
 if __name__ == "__main__":
     unittest.main()

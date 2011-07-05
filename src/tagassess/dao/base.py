@@ -1,136 +1,99 @@
 # -*- coding: utf8
-#pylint: disable-msg=W0401
-#pylint: disable-msg=W0614
-#pylint: disable-msg=W0622
-
 '''
-Contains base classes for accessing data stored on PyTables files.
+Contains base classes for accessing data stored on DBs.
 '''
 from __future__ import division, print_function
 
-from tables import * #Wildcard necessary for PyTables.
-
 import abc
-import itertools
 
-class BasePyTablesWrapper(object):
+class Base(object):
     '''
-    Base wrapper for accessing PyTables. Defines basic functions
-    for creating, populating and searching PyTables databases. This
-    class is to be extended by others so that table rows can be converted
-    to and from dao objects.
+    Base wrapper for accessing DBs
     '''
     __metaclass__ = abc.ABCMeta
     
-    def __init__(self, fpath, mode):
-        self.fpath = fpath
-        self.mode = mode
-        self.opened = False
-        self.tablefile = None
+    @abc.abstractmethod
+    def open(self, **kwargs):
+        '''Opens connection to database'''
+        pass
+    
+    @abc.abstractmethod
+    def close(self, **kwargs):
+        '''Closes connection to database'''
+        pass
+
+    @abc.abstractmethod
+    def change_table(self, tname, **kwargs):
+        '''
+        Changes to another table that can be written or
+        read from.
         
-    def open_file(self):
-        '''Opens the file given in the constructor.'''
-        if not self.opened:
-            self.tablefile = openFile(self.fpath, self.mode)
-            self.opened = True
-
-    def close_file(self):
-        '''Closes the file. If the file is already closed, does nothing.'''
-        if self.opened:
-            self.tablefile.close()
-            self.opened = False
-
-    def _get_table(self, table_name):
+        Arguments
+        ---------
+        tname: str
+            The name of the table
         '''
-        Jumps to a table returning it. 
-        '''
-        return self.tablefile.getNode('/', table_name)
+        pass
 
-    def _create_table(self, tname, desc):
+    def __enter__(self):
+        self.open()
+        return self
+
+    def __exit__(self, type, value, traceback):
+        '''Closes the file return `True` if no exception was caught'''
+        self.close()
+        #Value is an exception in case with fails.
+        return not isinstance(value, Exception) 
+
+class Reader(Base):
+    '''
+    Defines base methods for DB readers.
+    '''
+    __metaclass__ = abc.ABCMeta
+    
+    @abc.abstractmethod
+    def iterate(self, query = None, **kwargs):
         '''
-        Creates a new table in the annotation H5 file. Returns
+        Returns a iterator of the table under the given conditions.
+        
+        Arguments
+        ---------
+        query (optional): any (depends on subclass)
+            A query to filter some rows
+            
+        Returns
+        -------
+        Each element of the iterator should be a dict
+        '''
+        pass
+    
+class Writer(Base):
+    '''
+    Defines base methods for DB writers.
+    '''
+    __metaclass__ = abc.ABCMeta
+    
+    @abc.abstractmethod
+    def append_row(self, row, **kwargs):
+        '''
+        Appends a new row to the end of the table.
+        
+        Arguments
+        ---------
+        row: dict
+            The row to append
+        '''
+        pass
+
+    @abc.abstractmethod
+    def create_table(self, tname, **kwargs):
+        '''
+        Creates a new table. Returns
         the table if creation was successful, `None` otherwise.
 
         Arguments
         ---------
         tname: str
             The name of the new table
-        desc: IsDescription
-            Describes the table
         '''
-        if self.opened:
-            return self.tablefile.createTable(self.tablefile.root,
-                                              tname, desc)
-
-    def _iterate(self, table_name, conv_function, condition=None):
-        '''
-        Returns a iterator of the table under the given conditions.
-        
-        Arguments
-        ---------
-        table_name: str
-            The table to iterate over
-        conv_function: callable
-            The function which will convert row to objects
-        condition:
-            A condition to filter some rows such as: where date > x.
-        '''
-        table = self._get_table(table_name)
-
-        iterable = None
-        if condition:
-            items = [0, 1, 2, 3, 4]
-            iterable = table.where(condition)
-        else:
-            iterable = table
-            
-        return itertools.imap(conv_function, iterable)
-
-    def __enter__(self):
-        self.open_file()
-        return self
-
-    def __exit__(self, type, value, traceback):
-        '''Closes the file return `True` if no exception was caught'''
-        self.close_file()
-        return not value #Value is an exception in case with fails.
-
-class BaseReader(BasePyTablesWrapper):
-    '''Base class for creating table reader'''
-    
-    def iterate(self, table_name, condition=None):
-        '''
-        Returns a iterator of the table under the given conditions.
-        This iterator yields objects according to the `get_base_func`
-        method.
-        
-        Arguments
-        ---------
-        table_name: str
-            The table to iterate over
-        condition:
-            A condition to filter some rows such as: where date > x.
-        '''
-        return super(BaseReader, self)._iterate(table_name, 
-                                                self.get_conversion_func(), 
-                                                condition)
-    
-    @abc.abstractmethod
-    def get_conversion_func(self):
-        '''Gets the callable which will convert table rows to objects.'''
         pass
-
-class BaseDao(object):
-    '''Base dao which defines equality and hash'''
-    
-    @abc.abstractmethod
-    def get_tuple(self):
-        '''Return the tuple representation of the dao'''
-        pass
-
-    def __eq__(self, other):
-        return isinstance(other, BaseDao) and \
-               self.get_tuple() == other.get_tuple()
-
-    def __hash__(self):
-        return hash(self.get_tuple())

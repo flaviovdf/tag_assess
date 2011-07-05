@@ -18,11 +18,10 @@ from collections import defaultdict
 
 from tagassess import value_calculator
 from tagassess import smooth
-from tagassess.dao.annotations import AnnotReader
+from tagassess.dao.mongodb.annotations import AnnotReader
 
 import argparse
 import numpy as np
-import random
 import sys
 import time
 import traceback
@@ -58,7 +57,6 @@ def filter_users(user_to_items, num_items = 10):
         used = user_to_items[user]
         if len(used) >= num_items:
             good_users[user].extend(used)
-            random.shuffle(good_users[user])
             
     return good_users
 
@@ -191,11 +189,11 @@ def create_parser(prog_name):
     parser = argparse.ArgumentParser(prog=prog_name,
                                      description='Baseline for our method.')
     
-    parser.add_argument('in_file', type=str,
-                        help='annotation h5 file to read from')
+    parser.add_argument('database', type=str,
+                        help='database to read from')
     
     parser.add_argument('table', type=str,
-                        help='database table from the file')
+                        help='table with data')
     
     parser.add_argument('smooth_func', choices=smooth.name_dict().keys(),
                         type=str,

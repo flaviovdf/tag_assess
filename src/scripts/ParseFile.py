@@ -11,7 +11,7 @@ __authors__ = ['Flavio Figueiredo - flaviovdf <at> gmail <dot-no-spam> com']
 __date__ = '26/05/2011'
 
 from tagassess import data_parser
-from tagassess.dao.annotations import AnnotWriter
+from tagassess.dao.mongodb.annotations import AnnotWriter
 
 import os
 import sys
@@ -20,7 +20,7 @@ def main(args=[]):
 
     if len(args) < 5:
         print('Usage %s %s %s %s %s'
-              %(args[0], '<annotation_file>', '<output_h5file>', '<ids_folder>',
+              %(args[0], '<annotation_file>', '<database_name>', '<ids_folder>',
                 '<ftype = {flickr, delicious, bibsonomy, connotea, citeulike}'),
                 file=sys.stderr)
         return 1
@@ -32,7 +32,7 @@ def main(args=[]):
                 'flickr':data_parser.delicious_flickr_parser}
     
     infpath = args[1]
-    outh5f = args[2]
+    database_name = args[2]
     idsfold = args[3]
 
     func_name = args[4]
@@ -43,13 +43,13 @@ def main(args=[]):
 
     table_file = None
     try:
-        #Saving Table to H5 file
-        parser = data_parser.Parser(share_ids=False)
-        with open(infpath) as annotf, AnnotWriter(outh5f, 'a') as writer:
+        #Saving Table to MongoDB
+        parser = data_parser.Parser()
+        with open(infpath) as annotf, AnnotWriter(database_name) as writer:
             writer.create_table(func_name)
             
             for annotation in parser.iparse(annotf, parse_func, sys.stderr):
-                writer.write(annotation)
+                writer.append_row(annotation)
 
         #Saving IDs to text files
         user_ids = parser.user_ids
@@ -68,7 +68,8 @@ def main(args=[]):
             for tag in sorted(tag_ids, key=tag_ids.__getitem__):
                 print(tag[1], tag_ids[tag], file=tagsf)
     finally:
-        if table_file: table_file.close()
+        if table_file: 
+            table_file.close()
 
 if __name__ == '__main__':
     sys.exit(main(sys.argv))

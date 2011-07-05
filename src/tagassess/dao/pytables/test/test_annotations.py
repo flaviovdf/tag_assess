@@ -5,7 +5,7 @@
 
 from __future__ import print_function, division
 
-from tagassess.dao import annotations
+from tagassess.dao.pytables import annotations
 from tagassess import data_parser
 from tagassess import test
 
@@ -27,28 +27,25 @@ class TestAnnotWriterReader(unittest.TestCase):
         This simple test writes annotations to h5 file and reads them back. 
         Comparing if both are equal.
         '''
-        
         parser = data_parser.Parser()
         written_list = []
-        written_set = set()
         n_lines = 0
         with open(fpath) as in_f:
             with annotations.AnnotWriter(self.h5_file) as writer:
                 writer.create_table('bibs')
                 for annot in parser.iparse(in_f, parse_func):
-                    written_list.append(annot)
-                    written_set.add(annot)
-                    writer.write(annot)
+                    written_list.append(tuple(sorted(annot.items())))
+                    writer.append_row(annot)
                     n_lines += 1
 
+        read_list = []
         with annotations.AnnotReader(self.h5_file) as reader:
-            read_list = [annot for annot in reader.iterate('bibs')]
-            self.assertEquals(read_list, written_list)
-            self.assertEquals(set(read_list), written_set)
-            self.assertEquals(n_lines, len(written_list))
-            self.assertEquals(n_lines, len(written_set))
+            reader.change_table('bibs')
+            for annot in reader.iterate():
+                read_list.append(tuple(sorted(annot.items())))
+        self.assertEquals(n_lines, len(written_list))
+        self.assertEquals(read_list, written_list)
             
-
     def test_create_and_write_bibsonomy(self):
         self.base_tfunc(test.BIBSONOMY_FILE, data_parser.bibsonomy_parser)
 

@@ -10,28 +10,23 @@ from tagassess import data_parser
 from tagassess import graph 
 from tagassess import test
 
-from tagassess.dao import annotations
-
-import os
-import tempfile
+import networkx as nx
 import unittest
 
 class TestGraph(unittest.TestCase):
     
     def setUp(self):
-        self.h5_file = tempfile.mktemp('testw.h5')
+        self.annots = []
         parser = data_parser.Parser()
         with open(test.SMALL_DEL_FILE) as in_f:
-            with annotations.AnnotWriter(self.h5_file) as writer:
-                writer.create_table('deli')
-                for annot in parser.iparse(in_f, data_parser.delicious_flickr_parser):
-                    writer.write(annot)
+            for annot in parser.iparse(in_f, data_parser.delicious_flickr_parser):
+                self.annots.append(annot)
                     
     def tearDown(self):
-        os.remove(self.h5_file)
+        self.annots = None
         
     def test_edge_list(self):
-        ntags, nsinks, iedges = graph.iedge_list(self.h5_file, 'deli')
+        ntags, nsinks, iedges = graph.iedge_from_annotations(self.annots)
         self.assertEqual(6, ntags)
         self.assertEqual(5, nsinks)
         
@@ -62,12 +57,11 @@ class TestGraph(unittest.TestCase):
         self.assertEquals(edges, set(expected))
     
     def test_graph(self):
-        edges = [e for e in graph.iedge_list(self.h5_file, 'deli')[2]]
-        g = graph.create_igraph(edges)
+        edges = [e for e in graph.iedge_from_annotations(self.annots)[2]]
+        g = graph.create_nxgraph(edges)
         
-        paths = g.shortest_paths_dijkstra([0])
-        inf = float('inf')
-        self.assertEquals(paths, [[0, 1, inf, 1, 1, 1, 1, inf, 1, 2, 2]])
+        paths = nx.shortest_path_length(g, source = 0)
+        self.assertEquals(paths, {0: 0, 1: 1, 3: 1, 4: 1, 5: 1, 6: 1, 8: 1, 9: 2, 10: 2})
         
 if __name__ == "__main__":
     unittest.main()

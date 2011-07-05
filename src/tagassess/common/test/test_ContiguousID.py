@@ -32,5 +32,16 @@ class TestContiguousID(unittest.TestCase):
 
         self.assertEquals(203, len(cont_id))
 
+    def test_boost(self):
+        cont_id = ContiguousID()
+        self.assertEquals(cont_id['a'], 0)
+        self.assertEquals(cont_id['b'], 1)
+        self.assertEquals(cont_id[0], 2)
+        
+        cont_id.boost(10)
+        self.assertEquals(cont_id['a'], 10)
+        self.assertEquals(cont_id['b'], 11)
+        self.assertEquals(cont_id[0], 12)
+        
 if __name__ == "__main__":
     unittest.main()

@@ -30,7 +30,7 @@ def real_main(in_file, out_file, num_consider):
         num_items = last_item - initial_item + 1
         
         while len(data) != num_consider:
-            #There is no need to check EOF. Loop will always end.
+            #There is no need to check EOF. Loop will on the break.
             line = totem_file.readline()
             spl = line.split()
             

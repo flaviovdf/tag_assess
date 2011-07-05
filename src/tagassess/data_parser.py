@@ -1,12 +1,10 @@
 # -*- coding: utf8
 '''
-Module used for parsing annotation files and creating PyTables.
+Module used for parsing annotation files.
 '''
-
 from __future__ import print_function, division
 
 from tagassess.common import ContiguousID
-from tagassess.dao.annotations import Annotation
 
 import time
 
@@ -94,6 +92,27 @@ def delicious_flickr_parser(line):
 
     return (user, item, tag, date)
 
+def to_json(user, item, tag, date):
+    '''
+    Creates a JSON dict for storing
+    
+    Arguments
+    ---------
+    user: any
+        User name or id
+    item: any
+        Item name or id
+    tag: any
+        Tag name or id
+    date: int (seconds)
+        Annotation date
+    '''
+    
+    return {'user':user,
+            'item':item,
+            'tag':tag,
+            'date':date}
+
 class Parser(object):
 
     '''
@@ -101,19 +120,10 @@ class Parser(object):
     generates Annotations.
     '''
 
-    def __init__(self, share_ids=False):
+    def __init__(self):
         '''
-        Creates a new Parser. A lot of the code now depends
-        on `share_ids` to be equal to *False* (i.e., it has been
-        optimized for independent id spaces). We are still keeping
-        this just in case it is a necessity in the future.
-
-        Arguments
-        ----------
-        share_ids (*DEPRECATED!!*): boolean 
-            Determines if tags, items and user will share the same id space
+        Creates a new Parser
         '''
-        self.share_ids = share_ids
         self.tag_ids = None
         self.item_ids = None
         self.user_ids = None
@@ -135,9 +145,9 @@ class Parser(object):
                 user, item, tag, date = parse_func(line)
                 #We make use of tuple (1 to 3, X) in order to differentiate
                 #user, tags and items with same names.
-                yield Annotation(self.user_ids[(1, user)],
-                                 self.item_ids[(2, item)],
-                                 self.tag_ids[(3, tag)], date)
+                yield to_json(self.user_ids[(1, user)],
+                              self.item_ids[(2, item)],
+                              self.tag_ids[(3, tag)], date)
             except Exception as exc:
                 if logf:
                     print('Error at line %d:\n\t%s\nEx=%s'%(i, line, str(exc)))
@@ -145,12 +155,6 @@ class Parser(object):
     def __reset(self):
         '''Resets the parser ids to new ones. Useful for reusing
         the same parser object'''
-        if not self.share_ids:
-            self.tag_ids = ContiguousID()
-            self.item_ids = ContiguousID()
-            self.user_ids = ContiguousID()
-        else:
-            ids = ContiguousID()
-            self.tag_ids = ids
-            self.item_ids = ids
-            self.user_ids = ids
+        self.tag_ids = ContiguousID()
+        self.item_ids = ContiguousID()
+        self.user_ids = ContiguousID()

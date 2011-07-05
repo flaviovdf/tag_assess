@@ -10,23 +10,26 @@ __date__ = '26/05/2011'
 
 from collections import defaultdict
 
+from tagassess import data_parser
 from tagassess.common import ContiguousID
-from tagassess.dao.annotations import AnnotReader, AnnotWriter, Annotation
+from tagassess.dao.mongodb.annotations import AnnotReader
+from tagassess.dao.mongodb.annotations import AnnotWriter
 
 import argparse
 import traceback
 import sys
 import os
 
-def determine_good_items(in_file, table, min_users_per_item):
+def determine_good_items(database, table, min_users_per_item):
     '''Filters the items used by a minimum number of users'''
     pop_items = defaultdict(set)
     good_items = set()
-    with AnnotReader(in_file) as reader:
-        iterator = reader.iterate(table)
+    with AnnotReader(database) as reader:
+        reader.change_table(table)
+        iterator = reader.iterate()
         for annotation in iterator:
-            user = annotation.get_user()
-            item = annotation.get_item()
+            user = annotation['user']
+            item = annotation['item']
             
             if item not in good_items:
                 pop_items[item].add(user)
@@ -34,34 +37,36 @@ def determine_good_items(in_file, table, min_users_per_item):
                     del pop_items[item]
                     good_items.add(item)
 
-    return good_items    
+    return good_items
 
-def write_good_annots(in_file, table, out_file, good_items):
+def write_good_annots(database, table, new_database, good_items):
     '''Writes new annotations based on filters'''
     user_ids = ContiguousID()
     tag_ids = ContiguousID()
     item_ids = ContiguousID()
 
-    with AnnotReader(in_file) as reader, AnnotWriter(out_file) as writer:
-        iterator = reader.iterate(table)
+    with AnnotReader(database) as reader, AnnotWriter(new_database) as writer:
+        reader.change_table(table)
         writer.create_table(table)
+        iterator = reader.iterate()
         for annotation in iterator:
-            user = annotation.get_user()
-            item = annotation.get_item()
-            tag  = annotation.get_tag()
-            date  = annotation.get_date()
+            user = annotation['user']
+            item = annotation['item']
+            tag  = annotation['tag']
+            date = annotation['date']
             
             if item in good_items:
-                writer.write(Annotation(user_ids[(1, user)],
-                                       item_ids[(2, item)],
-                                       tag_ids[(3, tag)], date))
+                new_annot = data_parser.to_json(user_ids[(1, user)],
+                                                item_ids[(2, item)],
+                                                tag_ids[(3, tag)], date)
+                writer.append_row(new_annot)
 
     return user_ids, item_ids, tag_ids
 
 def real_main(in_file, table, out_file, min_users_per_item,
               new_ids_folder):
     '''Main'''
-    good_items = determine_good_items(in_file, table, 
+    good_items = determine_good_items(in_file, table,
                                       min_users_per_item)
     
     user_ids, item_ids, tag_ids = \
@@ -87,14 +92,14 @@ def create_parser(prog_name):
     parser = argparse.ArgumentParser(prog=prog_name,
                                      description='Filters databases for exp.')
     
-    parser.add_argument('in_file', type=str,
-                        help='annotation h5 file to read from')
-
-    parser.add_argument('table', type=str,
-                        help='database table from the file')
+    parser.add_argument('database', type=str,
+                        help='database to read from')
     
-    parser.add_argument('out_file', type=str,
-                        help='new file for filtered')
+    parser.add_argument('table', type=str,
+                        help='table with data')
+    
+    parser.add_argument('new_database', type=str,
+                        help='database to store filtered annotations')
     
     parser.add_argument('new_ids_folder', type=str,
                         help='Folder for new id mappings')
@@ -104,7 +109,6 @@ def create_parser(prog_name):
     
     return parser
     
-
 def main(args=None):
     '''Fake Main'''
     if not args: args = []
@@ -112,7 +116,7 @@ def main(args=None):
     parser = create_parser(args[0])
     vals = parser.parse_args(args[1:])
     try:
-        return real_main(vals.in_file, vals.table, vals.out_file,
+        return real_main(vals.database, vals.table, vals.new_database,
                          vals.min_users_per_item, vals.new_ids_folder)
     except:
         parser.print_help()

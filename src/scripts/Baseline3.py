@@ -17,29 +17,10 @@ import traceback
 import numpy as np
 import sys
 
-def load_tag_values(shortest_paths_file):
-    '''Loading pre-computed tag values'''
-    
-    sps = defaultdict(list)
-    items = set()
-    with open(shortest_paths_file) as sps_file:
-        for line in sps_file:
-            spl = line.split()
-            tag = int(spl[0])
-            item = int(spl[1])
-            distance = float(spl[2])
-            sps[tag].append(distance)
-            items.add(item)
-    
-    asps = {}
-    for tag in sps:
-        asps[tag] = np.mean(sps[tag])
-    return asps, [i for i in items]
-
-def real_main(in_file, table, smooth_func, lambda_, shortest_paths_file):
+def real_main(database, table, smooth_func, lambda_):
     asps, items = load_tag_values(shortest_paths_file)
     value_calc = value_calculator.ValueCalculator(in_file, table,
-                                                smooth_func, lambda_)
+                                                  smooth_func, lambda_)
     value_calc.open_reader()
     itag_value = value_calc.itag_value_gcontext(items, asps.keys())
     for tag_val, tag in itag_value:
@@ -51,11 +32,11 @@ def create_parser(prog_name):
     parser = argparse.ArgumentParser(prog=prog_name,
                                      description='Computes tag values.')
     
-    parser.add_argument('in_file', type=str,
-                        help='annotation h5 file to read from')
+    parser.add_argument('database', type=str,
+                        help='database to read from')
     
     parser.add_argument('table', type=str,
-                        help='database table from the file')
+                        help='table with data')
     
     parser.add_argument('smooth_func', choices=smooth.name_dict().keys(),
                         type=str,
@@ -63,9 +44,6 @@ def create_parser(prog_name):
 
     parser.add_argument('lambda_', type=float,
                         help='Lambda to use, between [0, 1]')
-    
-    parser.add_argument('shortest_paths_file', type=str,
-                        help='A file with the shortest paths')
     
     return parser
     
@@ -77,8 +55,7 @@ def main(args=None):
     try:
         smooth_func = smooth.get_by_name(vals.smooth_func)
         return real_main(vals.in_file, vals.table, 
-                         smooth_func, vals.lambda_,
-                         vals.shortest_paths_file)
+                         smooth_func, vals.lambda_)
     except:
         parser.print_help()
         traceback.print_exc()

@@ -1,6 +1,6 @@
 # -*- coding: utf8
 '''
-Simple scripts which prints the value of tags for a given user.
+Computes the reduction of uncertainty for individual items
 '''
 from __future__ import division, print_function
 
@@ -44,13 +44,13 @@ def real_main(in_file, table, smooth_func, lambda_, shortest_paths_file):
 
 def create_parser(prog_name):
     parser = argparse.ArgumentParser(prog=prog_name,
-                                     description='Computes tag values.')
+                                     description='Baseline for individual items.')
     
-    parser.add_argument('in_file', type=str,
-                        help='annotation h5 file to read from')
+    parser.add_argument('database', type=str,
+                        help='database to read from')
     
     parser.add_argument('table', type=str,
-                        help='database table from the file')
+                        help='table with data')
     
     parser.add_argument('smooth_func', choices=smooth.name_dict().keys(),
                         type=str,

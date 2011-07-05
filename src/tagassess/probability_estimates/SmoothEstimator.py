@@ -1,87 +1,15 @@
 # -*- coding: utf8
-'''
-Classes that compute:
-    * P(i) = Probability of an item
-    * P(t) = Probability of a tag
-    * P(u) = Probability of an user
-    * P(u|i) = Probability of an user given an item
-    * P(t|i) = Probability of a tag given an item
-'''
+'''Estimator based on smoothing methods'''
+
 from __future__ import division, print_function
 
 from collections import defaultdict
+from tagassess.probability_estimates import ProbabilityEstimator
 
-import abc
 import numexpr as ne
 import numpy as np
 
-class ProbabilityEstimator(object):
-    '''Base class for probability estimates'''
-    __metaclass__ = abc.ABCMeta
-    
-    @abc.abstractmethod
-    def prob_tag(self, tag):
-        '''Probability of seeing a given tag. $P(t)$'''
-        pass
-    
-    @abc.abstractmethod
-    def prob_tag_given_item(self, item, tag):
-        '''Probability of seeing a given tag for an item. $P(t|i)$'''
-        pass
-    
-    @abc.abstractmethod
-    def prob_user(self, user):
-        '''Probability of seeing an user. $P(u)$'''
-        pass
-    
-    @abc.abstractmethod
-    def prob_user_given_item(self, item, user):
-        '''Probability of seeing an user given an item. $P(u|i)$'''
-        pass
-    
-    @abc.abstractmethod
-    def prob_item(self, item):
-        '''Probability of seeing a given item. $P(i)$'''
-        pass
-    
-    #Log methods are useful in case of underflows
-    def log_prob_tag(self, tag):
-        '''Log probability of seeing a given tag. $P(t)$'''
-        return np.log2(self.prob_tag(tag))
-    
-    def log_prob_tag_given_item(self, item, tag):
-        '''Log probability of seeing a given tag for an item. $P(t|i)$'''
-        return np.log2(self.prob_tag_given_item(item, tag))
-    
-    def log_prob_user(self, user):
-        '''Log probability of seeing an user. $P(u)$'''
-        return np.log2(self.prob_user(user))
-    
-    def log_prob_user_given_item(self, item, user):
-        '''Log probability of seeing an user given an item. $P(u|i)$'''
-        return np.log2(self.prob_user_given_item(item, user))
-    
-    def log_prob_item(self, item):
-        '''Log probability of seeing a given item. $P(i)$'''
-        return np.log2(self.prob_item(item))
-
-    #Vector methods
-    #Ugly hack, see if we can do better later.
-    #It is ugly because it needs to be redone for every overwritten method.
-    #We could use reflection, but lets keep this for now. Small module.
-    vect_prob_item = np.vectorize(prob_item)
-    vect_prob_tag  = np.vectorize(prob_tag)
-    vect_prob_user = np.vectorize(prob_user)
-    vect_prob_tag_given_item  = np.vectorize(prob_tag_given_item)
-    vect_prob_user_given_item = np.vectorize(prob_user_given_item)
-    
-    vect_log_prob_item = np.vectorize(log_prob_item)
-    vect_log_prob_tag  = np.vectorize(log_prob_tag)
-    vect_log_prob_user = np.vectorize(log_prob_user)
-    vect_log_prob_tag_given_item  = np.vectorize(log_prob_tag_given_item)
-    vect_log_prob_user_given_item = np.vectorize(log_prob_user_given_item)
-
-class SmoothedItemsUsersAsTags(ProbabilityEstimator):
+class SmoothEstimator(ProbabilityEstimator):
     '''
     Implementation of the approach proposed in:
     
@@ -90,12 +18,13 @@ class SmoothedItemsUsersAsTags(ProbabilityEstimator):
     Information Processing and Management, Volume 46, Issue 1, p.58-70, (2010)
     
     In details:
+        * $P(t) and P(i) = Base on MLE.
         * $P(t|i) = P(t|M_i)$ where, $M_i$ is a smoothed model of the items
         * $P(u)$ and $P(u|i)$ considers users as tags. More specifically, the past
           tags used by the user. So, these two functions will make use of $P(t)$ and $P(t|i)$.
     '''
-    def __init__(self, smooth_func, lambda_, annotation_it):
-        super(SmoothedItemsUsersAsTags, self).__init__()
+    def __init__(self, smooth_func, lambda_, annotation_it, cache = True):
+        super(SmoothEstimator, self).__init__()
         self.n_annotations = 0
         self.smooth_func = smooth_func
         self.lambda_ = lambda_
@@ -108,8 +37,13 @@ class SmoothedItemsUsersAsTags(ProbabilityEstimator):
         #I prefer not to use defaultdicts here.
         #Key error are better than wrong values.
         self.item_tag_freq = {}
-        self.pti_cache = {}
         self.user_tags = {}
+        
+        self.cache = cache
+        if self.cache:
+            self.pti_cache = {}
+        else:
+            self.pti_cache = None
         
         self.__populate(annotation_it)
         
@@ -135,24 +69,24 @@ class SmoothedItemsUsersAsTags(ProbabilityEstimator):
             self.n_annotations += 1
             
             #Initial updates
-            tag = annotation.get_tag()
-            item = annotation.get_item()
-            user = annotation.get_user()
+            tag = annotation['tag']
+            item = annotation['item']
+            user = annotation['user']
             
             tag_col_dict[tag] += 1
             item_col_dict[item] += 1
             item_tag_dict[item][tag] += 1
             
-            #Updating user tags
+            #Updating user utags
             if user in self.user_tags:
-                tags = self.user_tags[user]
+                utags = self.user_tags[user]
             else:
                 #If this becomes an overhead, change to set.
-                tags = []
-                self.user_tags[user] = tags
+                utags = []
+                self.user_tags[user] = utags
             
-            if tag not in tags:
-                tags.append(tag)
+            if tag not in utags:
+                utags.append(tag)
 
             #Tag, item and user id spaced being defined            
             if tag > max_tag:
@@ -184,13 +118,15 @@ class SmoothedItemsUsersAsTags(ProbabilityEstimator):
         '''Probability of seeing a given tag. $P(t)$'''
         items = np.arange(len(self.item_col_mle))
         p_items = self.item_col_mle
-        p_tag_items = self.vect_prob_tag_given_item(self, items, tag)
+        p_tag_items = self.vect_prob_tag_given_item(items, tag)
         return ne.evaluate('sum(p_items * p_tag_items)')
     
     def prob_tag_given_item(self, item, tag):
         '''Probability of seeing a given tag for an item. $P(t|i)$'''
         key = (item, tag)
-        if (item, tag) not in self.pti_cache:
+        if self.cache and key in self.pti_cache:
+            return self.pti_cache[key]
+        else:
             if key in self.item_tag_freq:
                 local_freq = self.item_tag_freq[key]
             else:
@@ -204,12 +140,14 @@ class SmoothedItemsUsersAsTags(ProbabilityEstimator):
                                            self.lambda_)
             
             if local_freq:
-                self.pti_cache[item, tag] = prob
+                return_val = prob
             else:
                 mle = self.tag_col_freq[tag] / self.n_annotations
-                self.pti_cache[item, tag] = alpha * mle
-                
-        return self.pti_cache[item, tag]
+                return_val = alpha * mle
+            
+            if self.cache:
+                self.pti_cache[key] = return_val
+            return return_val
     
     def prob_user(self, user):
         '''Probability of seeing an user. $P(u)$'''
@@ -217,7 +155,7 @@ class SmoothedItemsUsersAsTags(ProbabilityEstimator):
             return 0
         else:
             atags = np.array(self.user_tags[user])
-            prob_t = self.vect_prob_tag(self, atags)
+            prob_t = self.vect_prob_tag(atags)
             return prob_t.prod()
     
     def prob_user_given_item(self, item, user):
@@ -226,9 +164,10 @@ class SmoothedItemsUsersAsTags(ProbabilityEstimator):
             return 0
         else:
             atags = np.array(self.user_tags[user])
-            prob_ut = self.vect_prob_tag_given_item(self, item, atags)
+            prob_ut = self.vect_prob_tag_given_item(item, atags)
             return prob_ut.prod()
     
+    #Log methods
     def log_prob_user(self, user):
         '''
         Log probability of seeing an user. $P(u)$
@@ -238,7 +177,7 @@ class SmoothedItemsUsersAsTags(ProbabilityEstimator):
             return float('-inf')
         else:
             atags = np.array(self.user_tags[user])
-            prob_t = self.vect_log_prob_tag(self, atags)
+            prob_t = self.vect_log_prob_tag(atags)
             return prob_t.sum()
     
     def log_prob_user_given_item(self, item, user):
@@ -250,24 +189,33 @@ class SmoothedItemsUsersAsTags(ProbabilityEstimator):
             return float('-inf')
         else:
             atags = np.array(self.user_tags[user])
-            prob_ut = self.vect_log_prob_tag_given_item(self, item, atags)
+            prob_ut = self.vect_log_prob_tag_given_item(item, atags)
             return prob_ut.sum()
     
     #Vectorized methods
-    vect_prob_user = np.vectorize(prob_user)
-    vect_prob_item = np.vectorize(prob_item)
-    vect_prob_tag  = np.vectorize(prob_tag)
+    _vect_prob_user = np.vectorize(prob_user)
+    _vect_prob_item = np.vectorize(prob_item)
+    _vect_prob_tag  = np.vectorize(prob_tag)
     
-    vect_prob_user_given_item = np.vectorize(prob_user_given_item)
-    vect_prob_tag_given_item  = np.vectorize(prob_tag_given_item)
+    _vect_prob_user_given_item = np.vectorize(prob_user_given_item)
+    _vect_prob_tag_given_item  = np.vectorize(prob_tag_given_item)
     
-    vect_log_prob_user = np.vectorize(log_prob_user)
-    vect_log_prob_user_given_item = np.vectorize(log_prob_user_given_item)
+    _vect_log_prob_user = np.vectorize(log_prob_user)
+    _vect_log_prob_user_given_item = np.vectorize(log_prob_user_given_item)
     
-    def valid_items(self):
-        '''Items with non zero P(i)'''
-        return self.item_col_mle.nonzero()[0]
-
-    def valid_tags(self):
-        '''Tags with non zero P(t)'''
-        return self.tag_col_freq.nonzero()[0]
+    #Other methods
+    def num_items(self):
+        '''Number of items'''
+        return len(self.item_col_mle)
+    
+    def num_tags(self):
+        '''Number of tags'''
+        return len(self.tag_col_freq)
+    
+    def num_users(self):
+        '''Number of users'''
+        return len(self.user_tags)
+    
+    def num_annotations(self):
+        '''Number of annotations'''
+        return self.n_annotations

@@ -10,36 +10,36 @@ from numpy import log2
 from tagassess import value_calculator, smooth
 from tagassess import data_parser
 from tagassess import test
-from tagassess.dao import annotations
-from tagassess.probability_estimates import SmoothedItemsUsersAsTags  
+from tagassess.dao.mongodb import annotations
+from tagassess.dao.mongodb.test import MongoManager
+from tagassess.probability_estimates import SmoothEstimator  
 
-import os
-import tempfile
 import unittest
 
 class TestAll(unittest.TestCase):
     
-    def setUp(self):
-        self.h5_file = None
-
-    def __init_test(self, fpath):
-        self.h5_file = tempfile.mktemp('testw.h5')
+    def __init_test(self, annot_file):
         parser = data_parser.Parser()
-        with open(fpath) as in_f:
-            with annotations.AnnotWriter(self.h5_file) as writer:
+        with open(annot_file) as in_f:
+            with annotations.AnnotWriter(self.dbname) as writer:
                 writer.create_table('deli')
                 for annot in parser.iparse(in_f, data_parser.delicious_flickr_parser):
-                    writer.write(annot)
-                    
-    def tearDown(self):
-        if self.h5_file and os.path.exists(self.h5_file):
-            os.remove(self.h5_file)
+                    writer.append_row(annot)
     
+    def setUp(self):
+        self.dbname = 'test'
+        self.manager = MongoManager()
+        self.manager.start_mongo()
+        
+    def tearDown(self):
+        if self.manager:
+            self.manager.stop_mongo()
+                    
     def test_items(self):
         self.__init_test(test.SMALL_DEL_FILE)
         smooth_func = smooth.bayes
         lambda_ = 0.3
-        vc = value_calculator.ValueCalculator(self.h5_file, 'deli', 
+        vc = value_calculator.ValueCalculator(self.dbname, 'deli', 
                                               smooth_func, lambda_)
         vc.open_reader()
         
@@ -50,7 +50,7 @@ class TestAll(unittest.TestCase):
         self.__init_test(test.SMALL_DEL_FILE)
         smooth_func = smooth.bayes
         lambda_ = 0.3
-        vc = value_calculator.ValueCalculator(self.h5_file, 'deli', 
+        vc = value_calculator.ValueCalculator(self.dbname, 'deli', 
                                               smooth_func, lambda_)
         vc.open_reader()
         
@@ -62,17 +62,17 @@ class TestAll(unittest.TestCase):
         self.__init_test(test.SMALL_DEL_FILE)
         smooth_func = smooth.bayes
         lambda_ = 0.3
-        vc = value_calculator.ValueCalculator(self.h5_file, 'deli', 
+        vc = value_calculator.ValueCalculator(self.dbname, 'deli', 
                                               smooth_func, lambda_)
         vc.set_filter_out({'user':[0], 'item':[0, 1, 2]})
         vc.open_reader()
 
-        tags = vc.est.valid_tags()
+        tags = vc.est.tag_col_freq.nonzero()[0]
         self.assertEquals(len(tags), 5)
         for tag in tags:
             self.assertTrue(tag in [0, 1, 3, 4, 5])
         
-        items = vc.est.valid_items()
+        items = vc.est.item_col_mle.nonzero()[0]
         self.assertEquals(len(items), 4)
         for item in items:
             self.assertTrue(item in [0, 2, 3, 4])
@@ -81,11 +81,11 @@ class TestAll(unittest.TestCase):
         self.__init_test(test.SMALL_DEL_FILE)
         smooth_func = smooth.bayes
         lambda_ = 0.3
-        vc = value_calculator.ValueCalculator(self.h5_file, 'deli', 
+        vc = value_calculator.ValueCalculator(self.dbname, 'deli', 
                                               smooth_func, lambda_)
         vc.open_reader()
         
-        estimator = SmoothedItemsUsersAsTags(smooth_func, lambda_,
+        estimator = SmoothEstimator(smooth_func, lambda_,
                                              vc._get_iterator())
         
         pus = []
@@ -133,11 +133,11 @@ class TestAll(unittest.TestCase):
         self.__init_test(test.SMALL_DEL_FILE)
         smooth_func = smooth.bayes
         lambda_ = 0.3
-        vc = value_calculator.ValueCalculator(self.h5_file, 'deli', 
+        vc = value_calculator.ValueCalculator(self.dbname, 'deli', 
                                               smooth_func, lambda_)
         vc.open_reader()
         
-        estimator = SmoothedItemsUsersAsTags(smooth_func, lambda_,
+        estimator = SmoothEstimator(smooth_func, lambda_,
                                              vc._get_iterator())
         
         tag_vals = dict((v, k) for k, v in vc.itag_value_gcontext())
@@ -160,7 +160,7 @@ class TestAll(unittest.TestCase):
         self.__init_test(test.SMALL_DEL_FILE)
         smooth_func = smooth.bayes
         lambda_ = 0.1
-        vc = value_calculator.ValueCalculator(self.h5_file, 'deli', 
+        vc = value_calculator.ValueCalculator(self.dbname, 'deli', 
                                               smooth_func, lambda_)
         vc.open_reader()
         for val in sorted(vc.itag_value_ucontext(0)):
@@ -170,7 +170,7 @@ class TestAll(unittest.TestCase):
         self.__init_test(test.SMALL_DEL_FILE)
         smooth_func = smooth.bayes
         lambda_ = 0.1
-        vc = value_calculator.ValueCalculator(self.h5_file, 'deli', 
+        vc = value_calculator.ValueCalculator(self.dbname, 'deli', 
                                               smooth_func, lambda_)
         vc.open_reader()
         for val in sorted(vc.itag_value_gcontext()):

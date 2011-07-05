@@ -1,5 +1,5 @@
 # -*- coding: utf8
-#pylint: disable-msg=C0111
+'''ContiguousID class'''
 
 from __future__ import print_function, division
 
@@ -35,7 +35,7 @@ class ContiguousID(Mapping):
         '''
         Get's the value associated with the item. If the item has already been
         "looked up" it returns the previous key. Else, it will return the next
-        integer beggining with 0. Example:
+        integer beginning with 0. Example:
 
         >>> x = ContiguousID()
         >>> x['a']
@@ -55,6 +55,19 @@ class ContiguousID(Mapping):
             self.mem[key] = self.curr_id
             return self.curr_id
 
+    def boost(self, boost_val):
+        '''
+        Boost all ids by increment the `boost_val` param.
+        
+        Arguments
+        ---------
+        boost_val: int
+            The value to boost by
+        '''
+        
+        for key in self.mem.keys(): #This creates a copy
+            self.mem[key] = self.mem[key] + boost_val
+    
     def __iter__(self):
         return iter(self.mem)
 

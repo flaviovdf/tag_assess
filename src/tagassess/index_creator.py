@@ -1,13 +1,10 @@
 # -*- coding: utf8
-#pylint: disable-msg=W0401
-#pylint: disable-msg=W0614
 '''
 Functions used to create indices and reverse lists. 
 '''
 from __future__ import division, print_function
 
 from collections import defaultdict
-from tagassess.dao.index import IndexInf
 
 def create_occurrence_index(annotation_it, from_, dest):
     '''
@@ -34,17 +31,48 @@ def create_occurrence_index(annotation_it, from_, dest):
     --------
     tagassess.dao.Annotation
     '''
-    methods = {'tag':lambda annot: annot.get_tag(),
-               'item':lambda annot: annot.get_item(),
-               'user':lambda annot: annot.get_user()}
-    
     occurence_index = defaultdict(set)
     for annot in annotation_it:
-        from_id = methods[from_](annot)
-        dest_id = methods[dest](annot)
+        from_id = annot[from_]
+        dest_id = annot[dest]
         occurence_index[from_id].add(dest_id)
         
     return occurence_index
+
+def create_double_occurrence_index(annotation_it, from_, dest):
+    '''
+    Creates double way occurrence indices. This is the same
+    as two occurrence indexes in each direction. The first
+    tuple returned has a index : from -> dest, while the
+    second is dest -> from.
+    
+    Arguments
+    ---------
+    annotation_it: any iterable
+        the annotations to process
+    from_: str 
+        the key of the index {'tag', 'item', 'user'}
+    dest: str
+        the lists to create. e.g from tags to items for a reverse tag index.
+        {'tag', 'item', 'user'}
+    
+    Returns
+    -------
+    A dict with the index
+        
+    See also
+    --------
+    tagassess.dao.Annotation
+    '''
+    from_to_dest = defaultdict(set)
+    dest_to_from = defaultdict(set)
+    for annot in annotation_it:
+        from_id = annot[from_]
+        dest_id = annot[dest]
+        from_to_dest[from_id].add(dest_id)
+        dest_to_from[dest_id].add(from_id)
+        
+    return (from_to_dest, dest_to_from)
 
 def create_metrics_index(annotation_it, from_, dest):
     '''
@@ -72,17 +100,13 @@ def create_metrics_index(annotation_it, from_, dest):
     --------
     tagassess.dao.Annotation
     '''
-    methods = {'tag':lambda annot: annot.get_tag(),
-               'item':lambda annot: annot.get_item(),
-               'user':lambda annot: annot.get_user()}
-        
     from_dest_frequencies = defaultdict(lambda: defaultdict(int))
     collection_from_frequency = defaultdict(int)
     collection_dest_frequency = defaultdict(int)
     
     for annot in annotation_it:
-        from_id = methods[from_](annot)
-        dest_id = methods[dest](annot)
+        from_id = annot[from_]
+        dest_id = annot[dest]
         
         from_dest_frequencies[from_id][dest_id] += 1
         collection_from_frequency[from_id] += 1
@@ -90,24 +114,3 @@ def create_metrics_index(annotation_it, from_, dest):
     
     return (from_dest_frequencies, collection_from_frequency, 
             collection_dest_frequency)
-
-def metric_index_to_dao(term_frequencies, collection_frequency):
-    '''
-    Converts the term frequencies and collection frequencies to
-    dao objects. This is to be called if the metrics index does
-    not fit in main memory
-    
-    Arguments
-    ---------
-    term_frequencies: defaultdict(lambda: defaudict(list))
-    collection_frequency: dict to integer
-    '''
-    return_index = []
-    for posterior in term_frequencies:
-        for tag in term_frequencies[posterior]:
-            inf = IndexInf(posterior, tag, 
-                           term_frequencies[posterior][tag], 
-                           collection_frequency[tag])
-            return_index.append(inf)
-    
-    return return_index

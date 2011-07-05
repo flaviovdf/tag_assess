@@ -5,8 +5,8 @@ from __future__ import division, print_function
 
 from itertools import ifilter
 from tagassess import entropy
-from tagassess.dao.annotations import AnnotReader
-from tagassess.probability_estimates import SmoothedItemsUsersAsTags
+from tagassess.dao.mongodb.annotations import AnnotReader
+from tagassess.probability_estimates import SmoothEstimator
 from tagassess.recommenders import ProbabilityReccomender
 
 class ValueCalculator(object):
@@ -15,8 +15,8 @@ class ValueCalculator(object):
     Contains basic value functions and filtering.
     '''
     
-    def __init__(self, annotation_file, table, smooth_func, lambda_):
-        self.annotation_file = annotation_file
+    def __init__(self, db_name, table, smooth_func, lambda_):
+        self.db_name = db_name
         self.table = table
         self.smooth_func = smooth_func 
         self.lambda_ = lambda_
@@ -25,19 +25,19 @@ class ValueCalculator(object):
         self.reader = None
         self.filter_out = None
         
-    def open_reader(self):
+    def open_reader(self, cache = True):
         '''Opens the reader, must be called before using this class'''
-        self.reader = AnnotReader(self.annotation_file)
-        self.reader.open_file()
+        self.reader = AnnotReader(self.db_name)
+        self.reader.open()
         
-        self.est = SmoothedItemsUsersAsTags(self.smooth_func, self.lambda_,
-                                            self._get_iterator())
+        self.est = SmoothEstimator(self.smooth_func, self.lambda_,
+                                   self._get_iterator(), cache)
         self.recc = ProbabilityReccomender(self.est)
 
     def close(self):
         '''Resets the value calculator'''
         if self.reader:
-            self.reader.close_file()
+            self.reader.close()
             self.est = None
             self.recc = None    
             self.reader = None
@@ -51,19 +51,16 @@ class ValueCalculator(object):
         This method has to exist because pytables does not
         support really complex queries, like `in`.
         '''
-        methods = {'tag':lambda annot: annot.get_tag(),
-                   'item':lambda annot: annot.get_item(),
-                   'user':lambda annot: annot.get_user()}
-        
         has_all = True
         for key in self.filter_out:
-            has_all &= methods[key](annot) in self.filter_out[key]
+            has_all &= annot[key] in self.filter_out[key]
         
         return not has_all
 
     def _get_iterator(self):
         '''Get's the annotations according to `filter_out`'''
-        iter_table = self.reader.iterate(self.table)
+        self.reader.change_table(self.table)
+        iter_table = self.reader.iterate()
         
         if self.filter_out:
             return ifilter(self.__filt_func, iter_table)
@@ -83,10 +80,9 @@ class ValueCalculator(object):
         tagassess.probability_estimates
         '''
         if items_to_compute:
-            good_items = self.est.valid_items()
-            items = ifilter(lambda item: item in good_items, items_to_compute)
+            items = items_to_compute
         else:
-            items = self.est.valid_items()
+            items = range(self.est.num_items())
     
         for item in items:
             relevance = self.recc.relevance(user, item)
@@ -108,21 +104,20 @@ class ValueCalculator(object):
         if items_to_compute:
             items = items_to_compute
         else:
-            items = self.est.valid_items()
+            items = range(self.est.num_items())
                          
         est = self.est
-        p_i = est.vect_prob_item(est, items)
-        p_ui = est.vect_prob_user_given_item(est, items, user)
+        p_i = est.vect_prob_item(items)
+        p_ui = est.vect_prob_user_given_item(items, user)
         p_u = est.prob_user(user) 
         
         if tags_to_consider:
-            good_tags = self.est.valid_tags()
-            tags = ifilter(lambda tag: tag in good_tags, tags_to_consider)
+            tags = tags_to_consider
         else:
-            tags = self.est.valid_tags()
+            tags = range(self.est.num_tags())
             
         for tag in tags:
-            p_ti = est.vect_prob_tag_given_item(est, items, tag)
+            p_ti = est.vect_prob_tag_given_item(items, tag)
             p_t = est.prob_tag(tag)
             
             p_iu = p_ui * p_i / p_u
@@ -151,19 +146,18 @@ class ValueCalculator(object):
         if items_to_compute:
             items = items_to_compute
         else:
-            items = self.est.valid_items()
+            items = range(self.est.num_items())
                          
         est = self.est
-        p_i = est.vect_prob_item(est, items)
+        p_i = est.vect_prob_item(items)
         
         if tags_to_consider:
-            good_tags = self.est.valid_tags()
-            tags = ifilter(lambda tag: tag in good_tags, tags_to_consider)
+            tags = tags_to_consider
         else:
-            tags = self.est.valid_tags()
+            tags = range(self.est.num_tags())
             
         for tag in tags:
-            p_ti = est.vect_prob_tag_given_item(est, items, tag)
+            p_ti = est.vect_prob_tag_given_item(items, tag)
             p_t = est.prob_tag(tag)
             p_it = p_ti * p_i / p_t
             
@@ -240,3 +234,25 @@ class ValueCalculator(object):
             return self.est.item_tag_freq[(item, tag)]
         else:
             return 0
+    
+    def get_item_probability(self, item):
+        '''
+        Get's the probability of item appearing
+        
+        Arguments
+        ---------
+        item: int
+            The item id
+        '''
+        return self.est.item_col_mle[item]
+
+    def get_item_popularity(self, item):
+        '''
+        Get's the popularity of an item
+        
+        Arguments
+        ---------
+        item: int
+            The item id
+        '''
+        return round(self.est.item_col_mle[item] * self.est.n_annotations)

@@ -15,8 +15,8 @@ import traceback
 
 import sys
 
-def real_main(in_file, table, smooth_func, lambda_, user):
-    vc = value_calculator.ValueCalculator(in_file, table, 
+def real_main(database, table, smooth_func, lambda_, user):
+    vc = value_calculator.ValueCalculator(database, table, 
                                           smooth_func, lambda_)
     vc.open_reader()
     
@@ -28,11 +28,11 @@ def create_parser(prog_name):
     parser = argparse.ArgumentParser(prog=prog_name,
                                      description='Computes tag values.')
     
-    parser.add_argument('in_file', type=str,
-                        help='annotation h5 file to read from')
+    parser.add_argument('database', type=str,
+                        help='database to read from')
     
     parser.add_argument('table', type=str,
-                        help='database table from the file')
+                        help='table with data')
     
     parser.add_argument('smooth_func', choices=smooth.name_dict().keys(),
                         type=str,
@@ -53,7 +53,7 @@ def main(args=None):
     vals = parser.parse_args(args[1:])
     try:
         smooth_func = smooth.get_by_name(vals.smooth_func)
-        return real_main(vals.in_file, vals.table, 
+        return real_main(vals.database, vals.table, 
                          smooth_func, vals.lambda_,
                          vals.user)
     except:

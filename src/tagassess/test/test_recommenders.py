@@ -49,6 +49,18 @@ class FakeEstimator(ProbabilityEstimator):
         x[1] = 0.25
         
         return x[item]
+
+    def num_items(self):
+        pass
+
+    def num_tags(self):
+        pass
+    
+    def num_users(self):
+        pass
+    
+    def num_annotations(self):
+        pass
         
 if __name__ == "__main__":
     unittest.main()

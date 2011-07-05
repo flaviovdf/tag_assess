@@ -9,38 +9,30 @@ from __future__ import division, print_function
 from tagassess import data_parser
 from tagassess import smooth
 from tagassess import test
-from tagassess.dao import annotations
-from tagassess.probability_estimates import SmoothedItemsUsersAsTags
+from tagassess.probability_estimates import SmoothEstimator
 
 import numpy as np
-import os
-import tempfile
 import unittest
 
 class TestAll(unittest.TestCase):
 
     def setUp(self):
         self.annots = []
-        self.h5_file = None
 
     def __init_test(self, fpath):
-        self.h5_file = tempfile.mktemp('testw.h5')
         parser = data_parser.Parser()
         with open(fpath) as in_f:
-            with annotations.AnnotWriter(self.h5_file) as writer:
-                writer.create_table('deli')
-                for annot in parser.iparse(in_f, data_parser.delicious_flickr_parser):
-                    self.annots.append(annot)
+            for annot in parser.iparse(in_f, data_parser.delicious_flickr_parser):
+                self.annots.append(annot)
                     
     def tearDown(self):
-        if self.h5_file and os.path.exists(self.h5_file):
-            os.remove(self.h5_file)
+        self.annots = None
         
     def test_prob_item(self):
         self.__init_test(test.SMALL_DEL_FILE)
         smooth_func = smooth.jelinek_mercer
         lamb = 0.5
-        p = SmoothedItemsUsersAsTags(smooth_func, lamb, self.annots)
+        p = SmoothEstimator(smooth_func, lamb, self.annots)
         
         #Item probabilities
         self.assertEquals(p.prob_item(0), 5 / 10)
@@ -57,13 +49,13 @@ class TestAll(unittest.TestCase):
         
         #Vect methods
         expected = np.array([0.5, 0.1, 0.2, 0.1, 0.2])
-        estimated = p.vect_prob_item(p, range(5))
+        estimated = p.vect_prob_item(range(5))
         self.assertTrue(np.in1d(expected, estimated).all())
         self.assertTrue(np.in1d(estimated, expected).all())
 
         #Log vect methods
         expected = np.log2(np.array([0.5, 0.1, 0.2, 0.1, 0.2]))
-        estimated = p.vect_log_prob_item(p, range(5))
+        estimated = p.vect_log_prob_item(range(5))
         self.assertTrue(np.in1d(expected, estimated).all())
         self.assertTrue(np.in1d(estimated, expected).all())
     
@@ -71,7 +63,7 @@ class TestAll(unittest.TestCase):
         self.__init_test(test.SMALL_DEL_FILE)
         smooth_func = smooth.jelinek_mercer
         lamb = 0.5
-        p = SmoothedItemsUsersAsTags(smooth_func, lamb, self.annots)
+        p = SmoothEstimator(smooth_func, lamb, self.annots)
 
         prob_t0 = sum(p.prob_tag_given_item(i, 0) * p.prob_item(i) for i in xrange(5))
         prob_t1 = sum(p.prob_tag_given_item(i, 1) * p.prob_item(i) for i in xrange(5))
@@ -96,22 +88,21 @@ class TestAll(unittest.TestCase):
         
         #Vect methods
         expected = np.array([prob_t0, prob_t1, prob_t2, prob_t3, prob_t4, prob_t5])
-        estimated = p.vect_prob_tag(p, range(6))
+        estimated = p.vect_prob_tag(range(6))
         self.assertTrue(np.in1d(expected, estimated).all())
         self.assertTrue(np.in1d(estimated, expected).all())
 
         #Log vect methods
         expected = np.log2([prob_t0, prob_t1, prob_t2, prob_t3, prob_t4, prob_t5])
-        estimated = p.vect_log_prob_tag(p, range(6))
+        estimated = p.vect_log_prob_tag(range(6))
         self.assertTrue(np.in1d(expected, estimated).all())
         self.assertTrue(np.in1d(estimated, expected).all())
-
 
     def test_tag_given_item(self):
         self.__init_test(test.SMALL_DEL_FILE)
         smooth_func = smooth.jelinek_mercer
         lamb = 0.5
-        p = SmoothedItemsUsersAsTags(smooth_func, lamb, self.annots)
+        p = SmoothEstimator(smooth_func, lamb, self.annots)
             
         #Tag given item
         prob_i0_t0 = smooth_func(2, 5, 3, 10, lamb)[0]
@@ -137,13 +128,13 @@ class TestAll(unittest.TestCase):
     
         #Vect methods
         expected = np.array([prob_i0_t0, prob_i0_t1, prob_i0_t2, prob_i0_t3, prob_i0_t4, prob_i0_t5])
-        estimated = p.vect_prob_tag_given_item(p, 0, range(6))
+        estimated = p.vect_prob_tag_given_item(0, range(6))
         self.assertTrue(np.in1d(expected, estimated).all())
         self.assertTrue(np.in1d(estimated, expected).all())
 
         #Log vect methods
         expected = np.log2([prob_i0_t0, prob_i0_t1, prob_i0_t2, prob_i0_t3, prob_i0_t4, prob_i0_t5])
-        estimated = p.vect_log_prob_tag_given_item(p, 0, range(6))
+        estimated = p.vect_log_prob_tag_given_item(0, range(6))
         self.assertTrue(np.in1d(expected, estimated).all())
         self.assertTrue(np.in1d(estimated, expected).all())
     
@@ -151,7 +142,7 @@ class TestAll(unittest.TestCase):
         self.__init_test(test.SMALL_DEL_FILE)
         smooth_func = smooth.jelinek_mercer
         lamb = 0.5
-        p = SmoothedItemsUsersAsTags(smooth_func, lamb, self.annots)
+        p = SmoothEstimator(smooth_func, lamb, self.annots)
         
         #User and user given item
         prob = p.prob_user(0)
@@ -173,7 +164,7 @@ class TestAll(unittest.TestCase):
         
         smooth_func = smooth.bayes
         lamb = 0.3
-        p = SmoothedItemsUsersAsTags(smooth_func, lamb, self.annots)
+        p = SmoothEstimator(smooth_func, lamb, self.annots)
         
         prob_i0_t0, alpha = smooth_func(2, 5, 3, 10, lamb)
         prob_i0_t1 = smooth_func(1, 5, 3, 10, lamb)[0]
