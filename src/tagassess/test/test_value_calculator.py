@@ -10,9 +10,8 @@ from numpy import log2
 from tagassess import value_calculator, smooth
 from tagassess import data_parser
 from tagassess import test
-from tagassess.dao.mongodb import annotations
-from tagassess.dao.mongodb.test import MongoManager
-from tagassess.probability_estimates import SmoothEstimator  
+from tagassess.probability_estimates import SmoothEstimator
+from tagassess.recommenders import ProbabilityReccomender 
 
 import unittest
 
@@ -21,77 +20,28 @@ class TestAll(unittest.TestCase):
     def __init_test(self, annot_file):
         parser = data_parser.Parser()
         with open(annot_file) as in_f:
-            with annotations.AnnotWriter(self.dbname) as writer:
-                writer.create_table('deli')
-                for annot in parser.iparse(in_f, data_parser.delicious_flickr_parser):
-                    writer.append_row(annot)
+            for annot in parser.iparse(in_f, data_parser.delicious_flickr_parser):
+                self.annots.append(annot)
     
     def setUp(self):
-        self.dbname = 'test'
-        self.manager = MongoManager()
-        self.manager.start_mongo()
-        
-    def tearDown(self):
-        if self.manager:
-            self.manager.stop_mongo()
-                    
-    def test_items(self):
-        self.__init_test(test.SMALL_DEL_FILE)
-        smooth_func = smooth.bayes
-        lambda_ = 0.3
-        vc = value_calculator.ValueCalculator(self.dbname, 'deli', 
-                                              smooth_func, lambda_)
-        vc.open_reader()
-        
-        items = range(len(vc.est.item_col_mle))
-        self.assertEquals(items, range(5))
-        
-    def test_tags_and_user_tags(self):
-        self.__init_test(test.SMALL_DEL_FILE)
-        smooth_func = smooth.bayes
-        lambda_ = 0.3
-        vc = value_calculator.ValueCalculator(self.dbname, 'deli', 
-                                              smooth_func, lambda_)
-        vc.open_reader()
-        
-        tags = range(len(vc.est.tag_col_freq))
-        self.assertEquals(tags, range(6))
-        self.assertEquals(vc.get_user_tags(0), range(3))
+        self.annots = []
     
-    def test_with_filter(self):
-        self.__init_test(test.SMALL_DEL_FILE)
-        smooth_func = smooth.bayes
-        lambda_ = 0.3
-        vc = value_calculator.ValueCalculator(self.dbname, 'deli', 
-                                              smooth_func, lambda_)
-        vc.set_filter_out({'user':[0], 'item':[0, 1, 2]})
-        vc.open_reader()
-
-        tags = vc.est.tag_col_freq.nonzero()[0]
-        self.assertEquals(len(tags), 5)
-        for tag in tags:
-            self.assertTrue(tag in [0, 1, 3, 4, 5])
+    def tearDown(self):
+        self.annots = None
         
-        items = vc.est.item_col_mle.nonzero()[0]
-        self.assertEquals(len(items), 4)
-        for item in items:
-            self.assertTrue(item in [0, 2, 3, 4])
-
     def test_iitag_value_user(self):
         self.__init_test(test.SMALL_DEL_FILE)
         smooth_func = smooth.bayes
         lambda_ = 0.3
-        vc = value_calculator.ValueCalculator(self.dbname, 'deli', 
-                                              smooth_func, lambda_)
-        vc.open_reader()
+        est = SmoothEstimator(smooth_func, lambda_, self.annots)
+        recc = ProbabilityReccomender(est)
         
-        estimator = SmoothEstimator(smooth_func, lambda_,
-                                             vc._get_iterator())
+        vc = value_calculator.ValueCalculator(est, recc)
         
         pus = []
         s_pus = 0.0
         for user in [0, 1, 2]:
-            pu = estimator.prob_user(user)
+            pu = est.prob_user(user)
             pus.append(pu)
             s_pus += pu
         
@@ -104,14 +54,14 @@ class TestAll(unittest.TestCase):
             tag_vals = dict((v, k) for k, v in vc.itag_value_ucontext(user))
             
             for tag in [0, 1, 2, 3, 4, 5]:
-                pt = estimator.prob_tag(tag)
+                pt = est.prob_tag(tag)
                 
                 pitus = []
                 pius = []
                 for item in [0, 1, 2, 3, 4]:
-                    pi = estimator.prob_item(item)
-                    pti = estimator.prob_tag_given_item(item, tag)
-                    pui = estimator.prob_user_given_item(item, user)
+                    pi = est.prob_item(item)
+                    pti = est.prob_tag_given_item(item, tag)
+                    pui = est.prob_user_given_item(item, user)
                     
                     piu = pui * pi / pu
                     pitu = pti * pui * pi / (pu * pt)
@@ -133,22 +83,20 @@ class TestAll(unittest.TestCase):
         self.__init_test(test.SMALL_DEL_FILE)
         smooth_func = smooth.bayes
         lambda_ = 0.3
-        vc = value_calculator.ValueCalculator(self.dbname, 'deli', 
-                                              smooth_func, lambda_)
-        vc.open_reader()
+        est = SmoothEstimator(smooth_func, lambda_, self.annots)
+        recc = ProbabilityReccomender(est)
         
-        estimator = SmoothEstimator(smooth_func, lambda_,
-                                             vc._get_iterator())
+        vc = value_calculator.ValueCalculator(est, recc)
         
         tag_vals = dict((v, k) for k, v in vc.itag_value_gcontext())
         for tag in [0, 1, 2, 3, 4, 5]:
             #Iterative calculation
-            pt = estimator.prob_tag(tag)
+            pt = est.prob_tag(tag)
             
             val = 0
             for item in [0, 1, 2, 3, 4]:
-                pi = estimator.prob_item(item)
-                pti = estimator.prob_tag_given_item(item, tag)
+                pi = est.prob_item(item)
+                pti = est.prob_tag_given_item(item, tag)
                 
                 val += pti * pi * log2(pti / pt)
             val /= pt
@@ -156,13 +104,25 @@ class TestAll(unittest.TestCase):
             #Assert
             self.assertAlmostEquals(tag_vals[tag], val)
 
+    def test_valid_values_items(self):
+        self.__init_test(test.SMALL_DEL_FILE)
+        smooth_func = smooth.bayes
+        lambda_ = 0.1
+        est = SmoothEstimator(smooth_func, lambda_, self.annots)
+        recc = ProbabilityReccomender(est)
+        vc = value_calculator.ValueCalculator(est, recc)
+        
+        for val in sorted(vc.iitem_value(0)):
+            self.assertTrue(val[0] < 0)
+            
     def test_valid_values_user(self):
         self.__init_test(test.SMALL_DEL_FILE)
         smooth_func = smooth.bayes
         lambda_ = 0.1
-        vc = value_calculator.ValueCalculator(self.dbname, 'deli', 
-                                              smooth_func, lambda_)
-        vc.open_reader()
+        est = SmoothEstimator(smooth_func, lambda_, self.annots)
+        recc = ProbabilityReccomender(est)
+        vc = value_calculator.ValueCalculator(est, recc)
+        
         for val in sorted(vc.itag_value_ucontext(0)):
             self.assertTrue(val[0] >= 0)
 
@@ -170,8 +130,9 @@ class TestAll(unittest.TestCase):
         self.__init_test(test.SMALL_DEL_FILE)
         smooth_func = smooth.bayes
         lambda_ = 0.1
-        vc = value_calculator.ValueCalculator(self.dbname, 'deli', 
-                                              smooth_func, lambda_)
-        vc.open_reader()
+        est = SmoothEstimator(smooth_func, lambda_, self.annots)
+        recc = ProbabilityReccomender(est)
+        vc = value_calculator.ValueCalculator(est, recc)
+        
         for val in sorted(vc.itag_value_gcontext()):
             self.assertTrue(val[0] >= 0)

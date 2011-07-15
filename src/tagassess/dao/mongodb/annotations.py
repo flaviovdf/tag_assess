@@ -2,54 +2,12 @@
 '''Classes for reading annotations from MongoDB'''
 from __future__ import division, print_function
 
-from tagassess.dao.base import Base
+from pymongo import ASCENDING
 from tagassess.dao.base import Reader
 from tagassess.dao.base import Writer
-from pymongo import Connection, ASCENDING
+from tagassess.dao.mongodb import BaseMongo, MongoDBException
 
 FIELDS = {u'user':1, u'item':1, u'tag':1, u'date':1, '_id':0}
-
-class MongoDBAnnotationsException(Exception):
-    '''Signals errors when dealing with mongodb'''
-    pass
-
-class BaseMongo(Base):
-    '''
-    Contains base open and close connection methods
-    for MongoDB
-    '''
-    def __init__(self, database_name, connection_host=None, 
-                 connection_port=None):
-        super(BaseMongo, self).__init__()
-        self.connection_host = connection_host
-        self.connection_port = connection_port
-        self.database_name = database_name
-        self.opened = False
-        self.connection = None
-        self.database = None
-        self.table = None
-        
-    def open(self):
-        if not self.opened:
-            self.connection = Connection(self.connection_host, 
-                                         self.connection_port)
-            self.database = self.connection[self.database_name]
-            self.opened = True
-            self.table = None
-
-    def close(self):
-        if self.opened:
-            self.connection.disconnect()
-            self.database = None
-            self.connection = None
-            self.opened = False
-            self.table = None
-
-    def change_table(self, tname, **kwargs):
-        if tname not in self.database.collection_names():
-            raise MongoDBAnnotationsException('Collection does not exist')
-        
-        self.table = self.database[tname]
 
 class AnnotReader(BaseMongo, Reader):
     '''
@@ -79,7 +37,7 @@ class AnnotWriter(BaseMongo, Writer):
 
     def create_table(self, tname, **kwargs):
         if tname in self.database.collection_names():
-            raise MongoDBAnnotationsException('Collection exists')
+            raise MongoDBException('Collection exists')
         
         self.table = self.database[tname]
         self.table.ensure_index([("user", ASCENDING), ("item", ASCENDING), 

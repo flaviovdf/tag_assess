@@ -65,7 +65,7 @@ class ContiguousID(Mapping):
             The value to boost by
         '''
         
-        for key in self.mem.keys(): #This creates a copy
+        for key in self.mem.keys(): #This creates a copy, concurrent safe.
             self.mem[key] = self.mem[key] + boost_val
     
     def __iter__(self):

@@ -92,6 +92,17 @@ def delicious_flickr_parser(line):
 
     return (user, item, tag, date)
 
+def json_parser(json):
+    '''
+    Utility method for iterating over an already created table.
+
+    Arguments
+    ---------
+    json: dict
+        an annotation
+    '''
+    return json['user'], json['item'], json['tag'], json['date']
+
 def to_json(user, item, tag, date):
     '''
     Creates a JSON dict for storing

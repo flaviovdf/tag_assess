@@ -12,15 +12,15 @@ __date__ = '26/05/2011'
 
 from tagassess import data_parser
 from tagassess.dao.mongodb.annotations import AnnotWriter
+from tagassess.dao.mongodb.keyval import KeyValStore
 
-import os
 import sys
 
 def main(args=[]):
 
-    if len(args) < 5:
-        print('Usage %s %s %s %s %s'
-              %(args[0], '<annotation_file>', '<database_name>', '<ids_folder>',
+    if len(args) < 4:
+        print('Usage %s %s %s %s'
+              %(args[0], '<annotation_file>', '<database_name>',
                 '<ftype = {flickr, delicious, bibsonomy, connotea, citeulike}'),
                 file=sys.stderr)
         return 1
@@ -33,9 +33,8 @@ def main(args=[]):
     
     infpath = args[1]
     database_name = args[2]
-    idsfold = args[3]
 
-    func_name = args[4]
+    func_name = args[3]
     if func_name not in func_map:
         print('ftype %s unknown'%func_name)
         return 1
@@ -55,18 +54,19 @@ def main(args=[]):
         user_ids = parser.user_ids
         item_ids = parser.item_ids
         tag_ids = parser.tag_ids
-
-        with open(os.path.join(idsfold, func_name + '.user'), 'w') as userf:
-            for user in sorted(user_ids, key=user_ids.__getitem__):
-                print(user[1], user_ids[user], file=userf)
-
-        with open(os.path.join(idsfold, func_name + '.items'), 'w') as itemsf:
-            for item in sorted(item_ids, key=item_ids.__getitem__):
-                print(item[1], item_ids[item], file=itemsf)
-
-        with open(os.path.join(idsfold, func_name + '.tags'), 'w') as tagsf:
-            for tag in sorted(tag_ids, key=tag_ids.__getitem__):
-                print(tag[1], tag_ids[tag], file=tagsf)
+    
+        with KeyValStore(database_name) as keyval:
+            keyval.create_table(func_name + '_user_ids')
+            for user, uid in user_ids.items():
+                keyval.put(uid, user[1].strip(), no_check = True)
+    
+            keyval.create_table(func_name + '_item_ids')
+            for item, iid in item_ids.items():
+                keyval.put(iid, item[1].strip(), no_check = True)
+    
+            keyval.create_table(func_name + '_tag_ids')
+            for tag, tid in tag_ids.items():
+                keyval.put(tid, tag[1].strip(), no_check = True)
     finally:
         if table_file: 
             table_file.close()

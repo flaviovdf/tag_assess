@@ -9,6 +9,9 @@ __date__ = '26/05/2011'
 
 from tagassess import smooth
 from tagassess import value_calculator
+from tagassess.dao.mongodb.annotations import AnnotReader
+from tagassess.probability_estimates import SmoothEstimator
+from tagassess.recommenders import ProbabilityReccomender
 
 import argparse
 import traceback
@@ -16,13 +19,15 @@ import traceback
 import sys
 
 def real_main(database, table, smooth_func, lambda_, user):
-    vc = value_calculator.ValueCalculator(database, table, 
-                                          smooth_func, lambda_)
-    vc.open_reader()
+    with AnnotReader(database) as reader:
+        reader.change_table(table)
+        est = SmoothEstimator(smooth_func, lambda_, reader.iterate())
+        recc = ProbabilityReccomender(est)
+        vc = value_calculator.ValueCalculator(est, recc)
     
-    itag_value = vc.itag_value_ucontext(user)
-    for tag_val, tag in sorted(itag_value, reverse=True):
-        print(tag, tag_val)
+        itag_value = vc.itag_value_ucontext(user)
+        for tag_val, tag in sorted(itag_value, reverse=True):
+            print(tag, tag_val)
 
 def create_parser(prog_name):
     parser = argparse.ArgumentParser(prog=prog_name,

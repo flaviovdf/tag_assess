@@ -7,7 +7,7 @@ from tagassess.index_creator import create_double_occurrence_index
 
 import networkx as nx
 
-def iedge_from_annotations(annotation_it, use=1):
+def iedge_from_annotations(annotation_it, use=1, return_sink = True):
     '''
     Returns the edge list for the navigational graph.
     
@@ -19,9 +19,8 @@ def iedge_from_annotations(annotation_it, use=1):
         Indicates whether to use items or users:
             1: Items
             2: Users
-    uniq: bool
-        Indicates if ids in indices are already unique, that is no 
-        tag, sink and user shares the same id.
+    return_sink = bool (defaults to True)
+        Tells whether to return tag to sink edges
     '''
     choices = {1:'item',
                2:'user'}
@@ -29,9 +28,9 @@ def iedge_from_annotations(annotation_it, use=1):
     
     tag_index, sink_index = create_double_occurrence_index(annotation_it, 
                                                            'tag', dest)
-    return iedge_from_indexes(tag_index, sink_index)
+    return iedge_from_indexes(tag_index, sink_index, return_sink)
 
-def iedge_from_indexes(tag_index, sink_index):
+def iedge_from_indexes(tag_index, sink_index, return_sink = True):
     '''
     Returns the edge list for the navigational graph.
     
@@ -41,6 +40,8 @@ def iedge_from_indexes(tag_index, sink_index):
         Tag node to sink nodes index
     sink_index = dict (int to set<int>)
         Sink nodes to tag nodes index
+    return_sink = bool (defaults to True)
+        Tells whether to return tag to sink edges
     '''
     tags = tag_index.keys()
     num_tags = len(tags)
@@ -58,9 +59,10 @@ def iedge_from_indexes(tag_index, sink_index):
                     if o_tag not in seen and tag != o_tag:
                         seen.add(o_tag)
                         yield (tag, o_tag)
-                        
-                new_id = sink + max_tag
-                yield (tag, new_id)
+                
+                if return_sink:
+                    new_id = sink + max_tag
+                    yield (tag, new_id)
     
     return num_tags, num_sinks, edge_generator()
 
