@@ -14,16 +14,18 @@ from tagassess import index_creator
 from tagassess import smooth
 from tagassess import value_calculator
 from tagassess import graph
+
 from tagassess.dao.mongodb.annotations import AnnotReader
 from tagassess.probability_estimates import SmoothEstimator
 from tagassess.recommenders import ProbabilityReccomender
 
 import argparse
 import collections
+import io
 import os
+import sys
 import traceback
 import tempfile
-import sys
 
 def create_graph(annotation_it, user, user_folder):
     ntags, nsinks, iedges = \
@@ -33,19 +35,19 @@ def create_graph(annotation_it, user, user_folder):
     
     tmp_fname = tempfile.mktemp()
     n_edges = 0
-    with open(tmp_fname, 'w') as tmp:
+    with io.open(tmp_fname, 'w') as tmp:
         for source, dest in sorted(iedges):
-            print(source, dest, file=tmp)
+            tmp.write(u'%d %d\n' % (source, dest))
             n_edges += 1
 
-    with open(tmp_fname) as tmp:
+    with io.open(tmp_fname) as tmp:
         out_graph = os.path.join(user_folder, 'navi.graph')
-        with open(out_graph, 'w') as out:
-            print('#Nodes:  %d'%n_nodes, file=out)
-            print('#Edges:  %d'%n_edges, file=out)
-            print('#Directed', file=out)
+        with io.open(out_graph, 'w') as out:
+            out.write(u'#Nodes:  %d\n'%n_nodes)
+            out.write(u'#Edges:  %d\n'%n_edges)
+            out.write(u'#Directed\n')
             for line in tmp:
-                print(line[:-1], file=out)
+                out.write(line)
 
 def compute_tag_values(annotation_it, user, user_folder):
     smooth_func = smooth.bayes
@@ -55,9 +57,9 @@ def compute_tag_values(annotation_it, user, user_folder):
     value_calc = value_calculator.ValueCalculator(est, recc)
     
     itag_value = value_calc.itag_value_ucontext(user)
-    with open(os.path.join(user_folder, 'tag.values'), 'w') as values:
+    with io.open(os.path.join(user_folder, 'tag.values'), 'w') as values:
         for tag_val, tag in sorted(itag_value, reverse=True):
-            print(tag, tag_val, file=values)
+            values.write(u'%d %.5f\n' % (tag, tag_val))
               
 def real_main(database, table, out_folder):
     
@@ -85,10 +87,10 @@ def real_main(database, table, out_folder):
             os.mkdir(user_folder)
             
             #Initial information
-            with open(os.path.join(user_folder, 'info'), 'w') as info:
-                print('#UID: %d' %user, file=info)
-                print('#Relevant  items: %s' %str(relevant), file=info)
-                print('#Annotated items: %s' %str(annotated), file=info)
+            with io.open(os.path.join(user_folder, 'info'), 'w') as info:
+                info.write(u'#UID: %d\n' %user)
+                info.write(u'#Relevant  items: %s\n' %str(relevant))
+                info.write(u'#Annotated items: %s\n' %str(annotated))
             
             #Create Graph
             create_graph(reader.iterate(query = query), user, user_folder)
@@ -97,14 +99,14 @@ def real_main(database, table, out_folder):
             compute_tag_values(reader.iterate(query = query), user, user_folder)
             
             #Compute popularity
-            tag_pop = collections.defaultdict()
+            tag_pop = collections.defaultdict(int)
             for annotation in reader.iterate(query = query):
                 tag = annotation['tag']
                 tag_pop[tag] += 1
                 
-            with open(os.path.join(user_folder, 'tag.pop'), 'w') as pops:
+            with io.open(os.path.join(user_folder, 'tag.pop'), 'w') as pops:
                 for tag in tag_pop:
-                    print(tag, tag_pop, file=pops)
+                    pops.write(u'%d %d\n' % (tag, tag_pop[tag]))
                      
 def create_parser(prog_name):
     parser = argparse.ArgumentParser(prog=prog_name,
