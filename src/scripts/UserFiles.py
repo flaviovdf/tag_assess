@@ -61,7 +61,7 @@ def compute_tag_values(annotation_it, user, user_folder):
     itag_value = value_calc.itag_value_ucontext(user)
     with io.open(os.path.join(user_folder, 'tag.values'), 'w') as values:
         for tag_val, tag in itag_value:
-            values.write(u'%d %.5f\n' % (tag, tag_val))
+            values.write(u'%d %.15f\n' % (tag, tag_val))
               
 def real_main(database, table, out_folder):
     
