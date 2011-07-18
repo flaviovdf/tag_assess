@@ -7,6 +7,8 @@ from __future__ import division, print_function
 __authors__ = ['Flavio Figueiredo - flaviovdf <at> gmail <dot-no-spam> com']
 __date__ = '26/05/2011'
 
+import pyximport; pyximport.install()
+
 from tagassess import smooth
 from tagassess import value_calculator
 from tagassess.dao.mongodb.annotations import AnnotReader

@@ -23,7 +23,8 @@ class SmoothEstimator(ProbabilityEstimator):
         * $P(u)$ and $P(u|i)$ considers users as tags. More specifically, the past
           tags used by the user. So, these two functions will make use of $P(t)$ and $P(t|i)$.
     '''
-    def __init__(self, smooth_func, lambda_, annotation_it, cache = True):
+    def __init__(self, smooth_func, lambda_, annotation_it, cache = True,
+                 max_cache_size = 100):
         super(SmoothEstimator, self).__init__()
         self.n_annotations = 0
         self.smooth_func = smooth_func
@@ -44,6 +45,7 @@ class SmoothEstimator(ProbabilityEstimator):
             self.pti_cache = {}
         else:
             self.pti_cache = None
+        self.max_cache_size = max_cache_size
         
         self.__populate(annotation_it)
         
@@ -146,6 +148,9 @@ class SmoothEstimator(ProbabilityEstimator):
                 return_val = alpha * mle
             
             if self.cache:
+                if len(self.pti_cache) == self.max_cache_size:
+                    self.pti_cache.clear()
+                    
                 self.pti_cache[key] = return_val
             return return_val
     

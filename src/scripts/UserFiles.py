@@ -8,6 +8,8 @@ from __future__ import division, print_function
 __authors__ = ['Flavio Figueiredo - flaviovdf <at> gmail <dot-no-spam> com']
 __date__ = '26/05/2011'
 
+import pyximport; pyximport.install()
+
 from itertools import ifilter
 
 from tagassess import index_creator
@@ -52,7 +54,7 @@ def create_graph(annotation_it, user_folder):
 def compute_tag_values(annotation_it, user, user_folder):
     smooth_func = smooth.bayes
     lambda_ = 0.25
-    est = SmoothEstimator(smooth_func, lambda_, annotation_it, cache = False)
+    est = SmoothEstimator(smooth_func, lambda_, annotation_it)
     recc = ProbabilityReccomender(est)
     value_calc = value_calculator.ValueCalculator(est, recc)
     
@@ -93,7 +95,7 @@ def real_main(database, table, out_folder):
                 info.write(u'#Annotated items: %s\n' %str(annotated))
             
             #Create Graph
-            create_graph(reader.iterate(query = query), user, user_folder)
+            create_graph(reader.iterate(query = query), user_folder)
           
             #Compute tag value
             compute_tag_values(reader.iterate(query = query), user, user_folder)

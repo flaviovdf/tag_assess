@@ -8,6 +8,8 @@ from __future__ import division, print_function
 __authors__ = ['Flavio Figueiredo - flaviovdf <at> gmail <dot-no-spam> com']
 __date__ = '26/05/2011'
 
+import pyximport; pyximport.install()
+
 from tagassess import index_creator
 from tagassess import smooth
 from tagassess import value_calculator
@@ -50,7 +52,7 @@ def create_graph(annotation_it, out_folder):
 def compute_tag_values(annotation_it, idx, out_folder):
     smooth_func = smooth.bayes
     lambda_ = 0.25
-    est = SmoothEstimator(smooth_func, lambda_, annotation_it, cache = False)
+    est = SmoothEstimator(smooth_func, lambda_, annotation_it)
     recc = ProbabilityReccomender(est)
     value_calc = value_calculator.ValueCalculator(est, recc)
     

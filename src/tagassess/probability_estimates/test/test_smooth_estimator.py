@@ -5,6 +5,7 @@
 #pylint: disable-msg=R0915
 #pylint: disable-msg=W0212
 from __future__ import division, print_function
+import pyximport; pyximport.install()
 
 from tagassess import data_parser
 from tagassess import smooth
