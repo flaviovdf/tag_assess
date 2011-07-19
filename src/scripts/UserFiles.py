@@ -51,28 +51,27 @@ def create_graph(annotation_it, user_folder):
             for line in tmp:
                 out.write(line)
 
-def compute_tag_values(annotation_it, user, user_folder):
-    smooth_func = smooth.bayes
-    lambda_ = 0.25
-    est = SmoothEstimator(smooth_func, lambda_, annotation_it)
+def compute_tag_values(est, idx, user, user_folder):
     recc = ProbabilityReccomender(est)
     value_calc = value_calculator.ValueCalculator(est, recc)
     
     itag_value = value_calc.itag_value_ucontext(user)
     with io.open(os.path.join(user_folder, 'tag.values'), 'w') as values:
         for tag_val, tag in itag_value:
-            values.write(u'%d %.15f\n' % (tag, tag_val))
+            mean_prob = est.vect_prob_item([item for item in idx[tag]]).mean()
+            final_val = tag_val * mean_prob
+            values.write(u'%d %.15f\n' % (tag, final_val))
               
 def real_main(database, table, out_folder):
     
     with AnnotReader(database) as reader:
         reader.change_table(table) 
-        idx = index_creator.create_occurrence_index(reader.iterate(),
-                                                     'user', 'item')
+        uitem_idx = index_creator.create_occurrence_index(reader.iterate(),
+                                                          'user', 'item')
         
-        filt = lambda u: len(idx[u]) >= 10
-        for user in ifilter(filt, idx.iterkeys()):
-            items = [item for item in idx[user]]
+        filt = lambda u: len(uitem_idx[u]) >= 10
+        for user in ifilter(filt, uitem_idx.iterkeys()):
+            items = [item for item in uitem_idx[user]]
             half = len(items) // 2
             
             relevant = items[:half]
@@ -88,6 +87,15 @@ def real_main(database, table, out_folder):
             user_folder = os.path.join(out_folder, fname)
             os.mkdir(user_folder)
             
+            #Probability estimator
+            smooth_func = smooth.bayes
+            lambda_ = 0.25
+            est = SmoothEstimator(smooth_func, lambda_, 
+                                  reader.iterate(query = query))
+            
+            if est.prob_user(user) == 0:
+                continue
+            
             #Initial information
             with io.open(os.path.join(user_folder, 'info'), 'w') as info:
                 info.write(u'#UID: %d\n' %user)
@@ -98,7 +106,9 @@ def real_main(database, table, out_folder):
             create_graph(reader.iterate(query = query), user_folder)
           
             #Compute tag value
-            compute_tag_values(reader.iterate(query = query), user, user_folder)
+            idx = index_creator.create_occurrence_index(reader.iterate(), 
+                                                        'tag', 'item')
+            compute_tag_values(est, idx, user, user_folder)
             
             #Compute popularity
             tag_pop = collections.defaultdict(int)
