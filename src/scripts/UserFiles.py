@@ -83,10 +83,6 @@ def real_main(database, table, out_folder):
                              ]
                     }
             
-            fname = 'user_%d' % user
-            user_folder = os.path.join(out_folder, fname)
-            os.mkdir(user_folder)
-            
             #Probability estimator
             smooth_func = smooth.bayes
             lambda_ = 0.25
@@ -95,6 +91,10 @@ def real_main(database, table, out_folder):
             
             if est.prob_user(user) == 0:
                 continue
+            
+            fname = 'user_%d' % user
+            user_folder = os.path.join(out_folder, fname)
+            os.mkdir(user_folder)
             
             #Initial information
             with io.open(os.path.join(user_folder, 'info'), 'w') as info:
