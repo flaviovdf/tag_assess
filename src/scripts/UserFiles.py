@@ -59,8 +59,7 @@ def compute_tag_values(est, idx, user, user_folder):
     with io.open(os.path.join(user_folder, 'tag.values'), 'w') as values:
         for tag_val, tag in itag_value:
             mean_prob = est.vect_prob_item([item for item in idx[tag]]).mean()
-            final_val = tag_val * mean_prob
-            values.write(u'%d %.15f\n' % (tag, final_val))
+            values.write(u'%d %.15f %.15f\n' % (tag, tag_val, mean_prob))
               
 def real_main(database, table, out_folder):
     
