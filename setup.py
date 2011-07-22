@@ -4,6 +4,7 @@
 '''Setup script'''
 
 import glob
+import numpy
 import os
 import sys
 
@@ -54,9 +55,11 @@ def get_extensions():
         module = pyx.replace('.pyx', '').replace('/', '.')
         
         if os.path.exists(pxd):
-            extensions.append(Extension(module, [pyx, pxd]))
+            extensions.append(Extension(module, [pyx, pxd], 
+                include_dirs=[numpy.get_include()]))
         else:
-            extensions.append(Extension(module, [pyx]))
+            extensions.append(Extension(module, [pyx], 
+                include_dirs=[numpy.get_include()]))
     
     return extensions
 
