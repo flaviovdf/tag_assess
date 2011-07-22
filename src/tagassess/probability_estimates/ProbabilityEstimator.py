@@ -5,7 +5,12 @@ Abstract base class for probability estimators
 from __future__ import division, print_function
 
 import abc
+import math
 import numpy as np
+
+def log2(x):
+    '''Computes the log2 of x'''
+    return math.log(x, 2)
 
 class ProbabilityEstimator(object):
     '''Base class for probability estimates'''
@@ -59,23 +64,23 @@ class ProbabilityEstimator(object):
     #Log methods are useful in case of underflows
     def log_prob_tag(self, tag):
         '''Log probability of seeing a given tag. $P(t)$'''
-        return np.log2(self.prob_tag(tag))
+        return log2(self.prob_tag(tag))
     
     def log_prob_tag_given_item(self, item, tag):
         '''Log probability of seeing a given tag for an item. $P(t|i)$'''
-        return np.log2(self.prob_tag_given_item(item, tag))
+        return log2(self.prob_tag_given_item(item, tag))
     
     def log_prob_user(self, user):
         '''Log probability of seeing an user. $P(u)$'''
-        return np.log2(self.prob_user(user))
+        return log2(self.prob_user(user))
     
     def log_prob_user_given_item(self, item, user):
         '''Log probability of seeing an user given an item. $P(u|i)$'''
-        return np.log2(self.prob_user_given_item(item, user))
+        return log2(self.prob_user_given_item(item, user))
     
     def log_prob_item(self, item):
         '''Log probability of seeing a given item. $P(i)$'''
-        return np.log2(self.prob_item(item))
+        return log2(self.prob_item(item))
 
     #Vector methods
     def vect_prob_item(self, items):

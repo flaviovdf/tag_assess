@@ -1,7 +1,7 @@
 '''
 Test functions for tagassess module. This
-package also initializes the small files
-used for testing.
+package initializes the small files
+used for testing and declares utility classes/functions.
 '''
 
 import os
@@ -14,3 +14,19 @@ CONNOTEA_FILE = os.path.join(DATA_DIR, 'connotea.dat')
 DELICIOUS_FILE = os.path.join(DATA_DIR, 'delicious.dat')
 FLICKR_FILE = os.path.join(DATA_DIR, 'flickr.dat')
 SMALL_DEL_FILE = os.path.join(DATA_DIR, '10_annotations_delicious.dat')
+
+#Class for sharing tests with Cython modules
+import unittest
+
+class PyCyUnit(unittest.TestCase):
+    '''
+    This is an abstract class used to share the same
+    test between Python and Cython versions of a module.
+    '''
+    
+    def setUp(self):
+        self.mod_under_test = self.get_module_to_test()
+    
+    def get_module_to_test(self):
+        '''Returns the module under test'''
+        pass

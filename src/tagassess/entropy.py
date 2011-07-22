@@ -6,22 +6,6 @@ from __future__ import division, print_function
 import numpy as np
 import numpy.ma as ma
 
-def __assert_good_probs(prob_array):
-    '''
-    Utility function to guarantee that arrays: sum to 1 and have all
-    values x in prob_array : 0 <= x <= 1
-
-    Arguments
-    ---------
-    prob_array: a numpy one dimensional array
-    '''
-    #Filter elements which are 0 <= x <= 1
-    good_elements = prob_array[(prob_array >= 0) & (prob_array <= 1)]
-    psum = prob_array.sum()
-    
-    eq_length = len(good_elements) == len(prob_array)
-    return psum >= 0.9999999999 and psum <= 1.0000000001 and eq_length
-
 def mask_zeros(func):
     '''
     Defines a decorator which will:
@@ -37,7 +21,6 @@ def mask_zeros(func):
             array = np.asarray(arg)
             masked_array = ma.masked_array(array, array == 0) #Mask zeros.
             array_args.append(masked_array)
-            __assert_good_probs(masked_array)
         return func(*array_args)
     return decorator
 

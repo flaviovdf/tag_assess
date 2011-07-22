@@ -4,9 +4,10 @@
 from __future__ import division, print_function
 
 from collections import defaultdict
+from tagassess import smooth
 from tagassess.probability_estimates import ProbabilityEstimator
 
-import numexpr as ne
+import heapq
 import numpy as np
 
 class SmoothEstimator(ProbabilityEstimator):
@@ -23,11 +24,15 @@ class SmoothEstimator(ProbabilityEstimator):
         * $P(u)$ and $P(u|i)$ considers users as tags. More specifically, the past
           tags used by the user. So, these two functions will make use of $P(t)$ and $P(t|i)$.
     '''
-    def __init__(self, smooth_func, lambda_, annotation_it, cache = True,
-                 max_cache_size = 100):
+    def __init__(self, smooth_method, lambda_, annotation_it, user_profile_size = -1, 
+                 cache = True, max_cache_size = 100):
         super(SmoothEstimator, self).__init__()
+        
+        smooths = {'JM':smooth.jelinek_mercer,
+                   'Bayes':smooth.bayes}
+        
         self.n_annotations = 0
-        self.smooth_func = smooth_func
+        self.smooth_func = smooths[smooth_method]
         self.lambda_ = lambda_
         
         #These will be numpy arrays
@@ -39,6 +44,8 @@ class SmoothEstimator(ProbabilityEstimator):
         #Key error are better than wrong values.
         self.item_tag_freq = {}
         self.user_tags = {}
+        
+        self.profile_size = user_profile_size
         
         self.cache = cache
         if self.cache:
@@ -61,6 +68,7 @@ class SmoothEstimator(ProbabilityEstimator):
         tag_col_dict = defaultdict(int)
         item_col_dict = defaultdict(int)
         item_tag_dict = defaultdict(lambda: defaultdict(int))
+        user_tags_dict = defaultdict(lambda: defaultdict(int))
         
         max_tag = 0
         max_item = 0
@@ -78,18 +86,8 @@ class SmoothEstimator(ProbabilityEstimator):
             tag_col_dict[tag] += 1
             item_col_dict[item] += 1
             item_tag_dict[item][tag] += 1
+            user_tags_dict[user][tag] += 1
             
-            #Updating user utags
-            if user in self.user_tags:
-                utags = self.user_tags[user]
-            else:
-                #If this becomes an overhead, change to set.
-                utags = []
-                self.user_tags[user] = utags
-            
-            if tag not in utags:
-                utags.append(tag)
-
             #Tag, item and user id spaced being defined            
             if tag > max_tag:
                 max_tag = tag
@@ -97,6 +95,7 @@ class SmoothEstimator(ProbabilityEstimator):
             if item > max_item:
                 max_item = item
         
+        #Initializing arrays
         self.tag_col_freq = np.zeros(shape = max_tag + 1)
         for tag in tag_col_dict:
             self.tag_col_freq[tag] = tag_col_dict[tag]
@@ -111,7 +110,17 @@ class SmoothEstimator(ProbabilityEstimator):
             
             for tag in item_tag_dict[item]:
                 self.item_tag_freq[item, tag] = item_tag_dict[item][tag]
-                
+        
+        #User profile
+        for user in user_tags_dict:
+            tags = [(freq, tag) for tag, freq in user_tags_dict[user].items()]
+            if self.profile_size == -1 or self.profile_size > len(tags):
+                aux = tags
+            else:
+                aux = heapq.nlargest(self.profile_size, tags)
+            
+            self.user_tags[user] = np.array([tag[1] for tag in aux])
+        
     def prob_item(self, item):
         '''Probability of seeing a given item. $P(i)$'''
         return self.item_col_mle[item]
@@ -121,7 +130,7 @@ class SmoothEstimator(ProbabilityEstimator):
         items = np.arange(len(self.item_col_mle))
         p_items = self.item_col_mle
         p_tag_items = self.vect_prob_tag_given_item(items, tag)
-        return ne.evaluate('sum(p_items * p_tag_items)')
+        return (p_items * p_tag_items).sum()
     
     def prob_tag_given_item(self, item, tag):
         '''Probability of seeing a given tag for an item. $P(t|i)$'''
@@ -135,17 +144,11 @@ class SmoothEstimator(ProbabilityEstimator):
                 local_freq = 0
             
             sum_local = self.item_local_sums[item]
-            prob, alpha = self.smooth_func(local_freq,
-                                           sum_local,
-                                           self.tag_col_freq[tag],
-                                           self.n_annotations,
-                                           self.lambda_)
-            
-            if local_freq:
-                return_val = prob
-            else:
-                mle = self.tag_col_freq[tag] / self.n_annotations
-                return_val = alpha * mle
+            return_val = self.smooth_func(local_freq,
+                                          sum_local,
+                                          self.tag_col_freq[tag],
+                                          self.n_annotations,
+                                          self.lambda_)
             
             if self.cache:
                 if len(self.pti_cache) == self.max_cache_size:
