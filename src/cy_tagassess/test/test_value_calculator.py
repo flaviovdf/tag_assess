@@ -1,8 +1,6 @@
 # -*- coding: utf8
 from __future__ import division, print_function
 
-import pyximport; pyximport.install()
-
 from tagassess.test.test_value_calculator import TestValueCaculator
 
 class CyTestEntropy(TestValueCaculator):

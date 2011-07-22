@@ -9,12 +9,10 @@ __date__ = '26/05/2011'
 
 #Cython Imports
 try:
-    import pyximport
-    pyximport.install()
-    
     from cy_tagassess import value_calculator
     from cy_tagassess.probability_estimates import SmoothEstimator
 except ImportError: #Fallback to python code
+    print('!!! UNABLE TO IMPORT CYTHON MODULES ''')
     from tagassess import value_calculator
     from tagassess.probability_estimates import SmoothEstimator
 

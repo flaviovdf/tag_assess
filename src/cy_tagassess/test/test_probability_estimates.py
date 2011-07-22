@@ -1,8 +1,6 @@
 # -*- coding: utf8
 from __future__ import division, print_function
 
-import pyximport; pyximport.install()
-
 from tagassess.probability_estimates.test.test_smooth_estimator import TestSmoothEstimator
 
 class CyTestEntropy(TestSmoothEstimator):

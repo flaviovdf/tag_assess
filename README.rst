@@ -10,8 +10,10 @@ Dependencies
 
 * numpy
 * scipy
-* igraph
-* pytables
+* igraph (optional)
+* networkx
+* pytables (optional: depends on cython, pyrex and numexpr)
+* pymongo
 * nosetests
 
 How to use

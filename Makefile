@@ -4,10 +4,17 @@ PYTHON ?= python
 PYLINT_WRAPPER ?= ./py_lintw.sh
 NOSETESTS ?= nosetests
 
-all: clean test
+all: clean build test
 
-clean: 
+build:
+	$(PYTHON) setup.py build_ext --inplace
+
+clean:
+	rm -rf build/
+	rm -rf src/build/
 	find . -name "*.pyc" | xargs rm -f
+	find . -name "*.c" | xargs rm -f
+	find . -name "*.so" | xargs rm -f
 
 test: 
 	$(NOSETESTS)
