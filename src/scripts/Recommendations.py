@@ -7,12 +7,19 @@ from __future__ import division, print_function
 __authors__ = ['Flavio Figueiredo - flaviovdf <at> gmail <dot-no-spam> com']
 __date__ = '26/05/2011'
 
-import pyximport; pyximport.install()
+#Cython Imports
+try:
+    import pyximport
+    pyximport.install()
+    
+    from cy_tagassess import value_calculator
+    from cy_tagassess.probability_estimates import SmoothEstimator
+except ImportError: #Fallback to python code
+    from tagassess import value_calculator
+    from tagassess.probability_estimates import SmoothEstimator
 
-from tagassess import smooth
-from tagassess import value_calculator
+#Regular Imports
 from tagassess.dao.mongodb.annotations import AnnotReader
-from tagassess.probability_estimates import SmoothEstimator
 from tagassess.recommenders import ProbabilityReccomender
 
 import argparse
@@ -27,8 +34,8 @@ def real_main(database, table, smooth_func, lambda_, user):
         recc = ProbabilityReccomender(est)
         vc = value_calculator.ValueCalculator(est, recc)
         
-        iitem_value = vc.iitem_value(user)
-        for item_val, item in sorted(iitem_value, reverse=True):
+        iitem_value = vc.item_value(user)
+        for item, item_val in iitem_value.iteritems():
             print(item, item_val)
 
 def create_parser(prog_name):
@@ -41,9 +48,9 @@ def create_parser(prog_name):
     parser.add_argument('table', type=str,
                         help='table with data')
     
-    parser.add_argument('smooth_func', choices=smooth.name_dict().keys(),
+    parser.add_argument('smooth_func', choices=['JM', 'Bayes'],
                         type=str,
-                        help='Smoothing function to use (JM, Bayes or None)')
+                        help='Smoothing function to use (JM or Bayes)')
 
     parser.add_argument('lambda_', type=float,
                         help='Lambda to use, between [0, 1]')
@@ -59,9 +66,8 @@ def main(args=None):
     parser = create_parser(args[0])
     vals = parser.parse_args(args[1:])
     try:
-        smooth_func = smooth.get_by_name(vals.smooth_func)
         return real_main(vals.database, vals.table, 
-                         smooth_func, vals.lambda_,
+                         vals.smooth_func, vals.lambda_,
                          vals.user)
     except:
         parser.print_help()

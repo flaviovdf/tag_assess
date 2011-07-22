@@ -8,22 +8,29 @@ from __future__ import division, print_function
 __authors__ = ['Flavio Figueiredo - flaviovdf <at> gmail <dot-no-spam> com']
 __date__ = '26/05/2011'
 
-import pyximport; pyximport.install()
+#Cython Imports
+try:
+    import pyximport
+    pyximport.install()
+    
+    from cy_tagassess import value_calculator
+    from cy_tagassess.probability_estimates import SmoothEstimator
+except ImportError: #Fallback to python code
+    from tagassess import value_calculator
+    from tagassess.probability_estimates import SmoothEstimator
 
+#Regular Imports
 from itertools import ifilter
 
 from tagassess import index_creator
-from tagassess import smooth
-from tagassess import value_calculator
 from tagassess import graph
-
 from tagassess.dao.mongodb.annotations import AnnotReader
-from tagassess.probability_estimates import SmoothEstimator
 from tagassess.recommenders import ProbabilityReccomender
 
 import argparse
 import collections
 import io
+import numpy as np
 import os
 import sys
 import traceback
@@ -33,8 +40,6 @@ def create_graph(annotation_it, user_folder):
     ntags, nsinks, iedges = \
      graph.iedge_from_annotations(annotation_it, 1,
                                   False)
-    n_nodes = ntags + nsinks
-    
     tmp_fname = tempfile.mktemp()
     n_edges = 0
     with io.open(tmp_fname, 'w') as tmp:
@@ -45,23 +50,27 @@ def create_graph(annotation_it, user_folder):
     with io.open(tmp_fname) as tmp:
         out_graph = os.path.join(user_folder, 'navi.graph')
         with io.open(out_graph, 'w') as out:
-            out.write(u'#Nodes:  %d\n'%n_nodes)
+            out.write(u'#Nodes:  %d\n'%ntags)
             out.write(u'#Edges:  %d\n'%n_edges)
             out.write(u'#Directed\n')
             for line in tmp:
                 out.write(line)
 
-def compute_tag_values(est, idx, user, user_folder):
+def compute_tag_values(est, idx, user, user_folder, items_to_consider):
     recc = ProbabilityReccomender(est)
     value_calc = value_calculator.ValueCalculator(est, recc)
     
-    itag_value = value_calc.itag_value_ucontext(user)
+    tag_value = value_calc.tag_value_ucontext(user, gamma_items = items_to_consider)
     with io.open(os.path.join(user_folder, 'tag.values'), 'w') as values:
-        for tag_val, tag in itag_value:
-            mean_prob = est.vect_prob_item([item for item in idx[tag]]).mean()
-            values.write(u'%d %.15f %.15f\n' % (tag, tag_val, mean_prob))
+        for tag, tag_val in tag_value.iteritems():
+            items = np.array([item for item in idx[tag]])
+            mean_prob = est.vect_prob_user_given_item(items, user).mean()
+            final_val = tag_val * mean_prob
+            values.write(u'%d %.15f %.15f %.15f\n' % 
+                         (tag, tag_val, mean_prob, final_val))
               
-def real_main(database, table, out_folder):
+def real_main(database, table, smooth_func, lambda_, user_profile_size,
+              out_folder):
     
     with AnnotReader(database) as reader:
         reader.change_table(table) 
@@ -78,18 +87,14 @@ def real_main(database, table, out_folder):
             
             query = {'$or' : [
                               { 'user':{'$ne'  : user} }, 
-                              { 'item':{'$nin' : annotated} }
+                              { 'item':{'$nin' : relevant} }
                              ]
                     }
             
             #Probability estimator
-            smooth_func = smooth.bayes
-            lambda_ = 0.25
             est = SmoothEstimator(smooth_func, lambda_, 
-                                  reader.iterate(query = query))
-            
-            if est.prob_user(user) == 0:
-                continue
+                                  reader.iterate(query = query),
+                                  user_profile_size = user_profile_size)
             
             fname = 'user_%d' % user
             user_folder = os.path.join(out_folder, fname)
@@ -107,7 +112,13 @@ def real_main(database, table, out_folder):
             #Compute tag value
             idx = index_creator.create_occurrence_index(reader.iterate(), 
                                                         'tag', 'item')
-            compute_tag_values(est, idx, user, user_folder)
+            
+            #Items to consider - Gamma items
+            items_to_consider = set(xrange(est.num_items()))
+            items_to_consider.difference_update(set(annotated))
+            
+            compute_tag_values(est, idx, user, user_folder, 
+                               np.array([i for i in items_to_consider]))
             
             #Compute popularity
             tag_pop = collections.defaultdict(int)
@@ -128,7 +139,17 @@ def create_parser(prog_name):
     
     parser.add_argument('table', type=str,
                         help='table with data')
-    
+
+    parser.add_argument('smooth_func', choices=['JM', 'Bayes'],
+                        type=str,
+                        help='Smoothing function to use (JM or Bayes)')
+
+    parser.add_argument('lambda_', type=float,
+                        help='Lambda to use, between [0, 1]')
+
+    parser.add_argument('user_profile_size', type=int,
+                        help='Lambda to use, between [0, 1]')
+
     parser.add_argument('out_folder', type=str,
                         help='folder for filtered graphs')
     
@@ -141,7 +162,9 @@ def main(args=None):
     parser = create_parser(args[0])
     vals = parser.parse_args(args[1:])
     try:
-        return real_main(vals.database, vals.table, vals.out_folder)
+        return real_main(vals.database, vals.table, 
+                         vals.smooth_func, vals.lambda_, 
+                         vals.user_profile_size, vals.out_folder)
     except:
         parser.print_help()
         traceback.print_exc()

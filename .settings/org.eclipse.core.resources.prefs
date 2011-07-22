@@ -1,14 +1,28 @@
-#Mon Jul 18 17:04:22 PDT 2011
+#Thu Jul 21 14:31:09 PDT 2011
 eclipse.preferences.version=1
+encoding//src/cy_tagassess/probability_estimates.pyx=utf8
+encoding//src/cy_tagassess/test/test_entropy.py=utf8
+encoding//src/cy_tagassess/test/test_probability_estimates.py=utf8
+encoding//src/cy_tagassess/test/test_smooth.py=utf8
+encoding//src/cy_tagassess/test/test_value_calculator.py=utf8
+encoding//src/cy_tagassess/value_calculator.pyx=utf8
 encoding//src/scripts/CreateGraph.py=utf8
 encoding//src/scripts/GlobalGraphAndValues.py=utf8
 encoding//src/scripts/Recommendations.py=utf8
 encoding//src/scripts/TagValues.py=utf8
 encoding//src/scripts/UserFiles.py=utf8
+encoding//src/tagassess/data_parser.py=utf8
+encoding//src/tagassess/entropy.py=utf8
+encoding//src/tagassess/graph.py=utf8
 encoding//src/tagassess/probability_estimates/ProbabilityEstimator.py=utf8
 encoding//src/tagassess/probability_estimates/RWEstimator.py=utf8
 encoding//src/tagassess/probability_estimates/SmoothEstimator.py=utf8
+encoding//src/tagassess/probability_estimates/test/test_smooth_estimator.py=utf8
 encoding//src/tagassess/recommenders.py=utf8
-encoding//src/tagassess/smooth.pyx=utf8
+encoding//src/tagassess/smooth.py=utf8
+encoding//src/tagassess/test/test_entropy.py=utf8
+encoding//src/tagassess/test/test_graph.py=utf8
+encoding//src/tagassess/test/test_recommenders.py=utf8
 encoding//src/tagassess/test/test_smooth.py=utf8
+encoding//src/tagassess/test/test_value_calculator.py=utf8
 encoding//src/tagassess/value_calculator.py=utf8
