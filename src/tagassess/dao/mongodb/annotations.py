@@ -15,7 +15,9 @@ class AnnotReader(BaseMongo, Reader):
     '''
     def __init__(self, database_name, connection_host=None, 
                  connection_port=None):
-        super(AnnotReader, self).__init__(database_name)
+        super(AnnotReader, self).__init__(database_name,
+                                          connection_host=connection_host,
+                                          connection_port=connection_port)
         
     def iterate(self, query = None, **kwargs):
         iterable = None
@@ -33,7 +35,9 @@ class AnnotWriter(BaseMongo, Writer):
     '''
     def __init__(self, database_name, connection_host=None, 
                  connection_port=None):
-        super(AnnotWriter, self).__init__(database_name)
+        super(AnnotWriter, self).__init__(database_name,
+                                          connection_host=connection_host,
+                                          connection_port=connection_port)
 
     def create_table(self, tname, **kwargs):
         if tname in self.database.collection_names():

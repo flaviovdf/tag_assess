@@ -53,7 +53,7 @@ def create_graph(annotation_it, out_folder):
                 out.write(line)
 
 def compute_tag_values(smooth_func, lambda_, annotation_it, 
-                       idx, out_folder):
+                       tag_to_item, tag_pops, out_folder):
     est = SmoothEstimator(smooth_func, lambda_, annotation_it)
     recc = ProbabilityReccomender(est)
     value_calc = value_calculator.ValueCalculator(est, recc)
@@ -61,11 +61,11 @@ def compute_tag_values(smooth_func, lambda_, annotation_it,
     tag_value = value_calc.tag_value_gcontext()
     with io.open(os.path.join(out_folder, 'tag.values'), 'w') as values:
         for tag, tag_val in tag_value.iteritems():
-            items = np.array([item for item in idx[tag]])
-            mean_prob = est.vect_prob_item(items).mean()
+            items = np.array([item for item in tag_to_item[tag]])
+            mean_prob = value_calc.mean_prob_item(items)
             final_val = tag_val * mean_prob
-            values.write(u'%d %.15f %.15f %.15f\n' % 
-                         (tag, tag_val, mean_prob, final_val))
+            values.write(u'%d %d %.15f %.15f %.15f\n' % 
+                         (tag, tag_pops[tag], tag_val, mean_prob, final_val))
               
 def real_main(database, table, smooth_func, lambda_,
               out_folder):
@@ -76,21 +76,24 @@ def real_main(database, table, smooth_func, lambda_,
         #Create Graph
         create_graph(reader.iterate(), out_folder)
       
-        #Compute tag value
-        idx = index_creator.create_occurrence_index(reader.iterate(), 
-                                                    'tag', 'item')
-        compute_tag_values(smooth_func, lambda_,
-                           reader.iterate(), idx, out_folder)
-        
         #Compute popularity
         tag_pop = collections.defaultdict(int)
         for annotation in reader.iterate():
             tag = annotation['tag']
             tag_pop[tag] += 1
             
-        with io.open(os.path.join(out_folder, 'tag.pop'), 'w') as pops:
-            for tag in tag_pop:
-                pops.write(u'%d %d\n' % (tag, tag_pop[tag]))
+        #Compute tag value
+        tag_to_item, item_to_tag = \
+            index_creator.create_double_occurrence_index(reader.iterate(), 
+                                                        'tag', 'item')
+        compute_tag_values(smooth_func, lambda_,
+                           reader.iterate(), tag_to_item, tag_pop, out_folder)
+
+        with io.open(os.path.join(out_folder, 'relevant_item.tags'), 'w') as rel:
+            rel.write(u'#ITEM TAG\n')
+            for item in item_to_tag:
+                for tag in item_to_tag[tag]:
+                    rel.write(u'%d %d\n' %(item, tag))  
                      
 def create_parser(prog_name):
     parser = argparse.ArgumentParser(prog=prog_name,

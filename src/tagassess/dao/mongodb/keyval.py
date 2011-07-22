@@ -13,7 +13,9 @@ class KeyValStore(BaseMongo):
     '''
     def __init__(self, database_name, connection_host=None, 
                  connection_port=None):
-        super(KeyValStore, self).__init__(database_name)
+        super(KeyValStore, self).__init__(database_name,
+                                          connection_host=connection_host,
+                                          connection_port=connection_port)
     
     def __getitem__(self, key):
         return self.get(key)

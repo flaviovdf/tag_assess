@@ -29,8 +29,8 @@ class BaseMongo(Base):
         
     def open(self):
         if not self.opened:
-            self.connection = Connection(self.connection_host, 
-                                         self.connection_port)
+            self.connection = Connection(host=self.connection_host, 
+                                         port=self.connection_port)
             self.database = self.connection[self.database_name]
             self.opened = True
             self.table = None

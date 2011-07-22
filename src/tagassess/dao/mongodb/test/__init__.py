@@ -10,6 +10,8 @@ import string
 import subprocess
 import tempfile
 
+PORT = 3223
+
 class MongoManagerException(Exception):
     '''Signals errors when dealing with mongo process'''
     pass
@@ -43,14 +45,16 @@ class MongoManager(object):
             self.err_file = open(os.path.join(self.tmp_dir, 'err'), 'w')
             self.mongo_proc = subprocess.Popen([self.exe, 
                                                 '--dbpath', 
-                                                self.tmp_dir],
+                                                self.tmp_dir,
+                                                '--port',
+                                                str(PORT)],
                                                 stdout=self.out_file,
                                                 stderr=self.err_file)
             
             while self.connection is None:
                 try:
                     #TODO: Maybe change this to be configurable
-                    self.connection = Connection()
+                    self.connection = Connection(port = PORT)
                 except PyMongoError:
                     self.connection = None
         else:

@@ -6,7 +6,7 @@
 from __future__ import print_function, division
 
 from tagassess.dao.mongodb import annotations
-from tagassess.dao.mongodb.test import MongoManager
+from tagassess.dao.mongodb.test import MongoManager, PORT
 from tagassess import data_parser
 from tagassess import test
 
@@ -28,7 +28,7 @@ class TestAnnotWriterReader(unittest.TestCase):
         written_list = []
         n_lines = 0
         with open(fpath) as in_f:
-            with annotations.AnnotWriter('test') as writer:
+            with annotations.AnnotWriter('test', connection_port=PORT) as writer:
                 writer.create_table('bibs')
                 for annot in parser.iparse(in_f, parse_func):
                     written_list.append(tuple(sorted(annot.items())))
@@ -36,7 +36,7 @@ class TestAnnotWriterReader(unittest.TestCase):
                     n_lines += 1
                     
         read_list = []
-        with annotations.AnnotReader('test') as reader:
+        with annotations.AnnotReader('test', connection_port=PORT) as reader:
             reader.change_table('bibs')
             for annot in reader.iterate():
                 read_list.append(tuple(sorted(annot.items())))

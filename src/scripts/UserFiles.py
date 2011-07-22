@@ -28,6 +28,7 @@ from tagassess.recommenders import ProbabilityReccomender
 import argparse
 import collections
 import io
+import multiprocessing
 import numpy as np
 import os
 import sys
@@ -54,80 +55,113 @@ def create_graph(annotation_it, user_folder):
             for line in tmp:
                 out.write(line)
 
-def compute_tag_values(est, idx, user, user_folder, items_to_consider):
+def compute_tag_values(est, tag_to_item, tag_pops, 
+                       user, user_folder, items_to_consider):
     recc = ProbabilityReccomender(est)
     value_calc = value_calculator.ValueCalculator(est, recc)
     
-    tag_value = value_calc.tag_value_ucontext(user, gamma_items = items_to_consider)
+    tag_value = value_calc.tag_value_ucontext(user, 
+                                              gamma_items = items_to_consider)
     with io.open(os.path.join(user_folder, 'tag.values'), 'w') as values:
+        values.write(u'#TAG POP D RHO D*RHO\n')
         for tag, tag_val in tag_value.iteritems():
-            items = np.array([item for item in idx[tag]])
-            mean_prob = est.vect_prob_user_given_item(items, user).mean()
+            
+            #Mean P(I|u)
+            items = np.array([item for item in tag_to_item[tag]])
+            mean_prob = value_calc.mean_prob_item_given_user(user, items)
+            
             final_val = tag_val * mean_prob
-            values.write(u'%d %.15f %.15f %.15f\n' % 
-                         (tag, tag_val, mean_prob, final_val))
-              
-def real_main(database, table, smooth_func, lambda_, user_profile_size,
-              out_folder):
-    
+            
+            values.write(u'%d %d %.15f %.15f %.15f\n' % 
+                         (tag, tag_pops[tag], tag_val, mean_prob, final_val))
+
+def _helper(params):
+    compute_for_user(*params)
+
+def compute_for_user(database, table, user, relevant, annotated, 
+                     smooth_func, lambda_, user_profile_size, out_folder):
     with AnnotReader(database) as reader:
-        reader.change_table(table) 
-        uitem_idx = index_creator.create_occurrence_index(reader.iterate(),
-                                                          'user', 'item')
+        reader.change_table(table)
         
-        filt = lambda u: len(uitem_idx[u]) >= 10
-        for user in ifilter(filt, uitem_idx.iterkeys()):
-            items = [item for item in uitem_idx[user]]
-            half = len(items) // 2
+        #Relevant items by user are left out with this query
+        query = {'$or' : [
+                          { 'user':{'$ne'  : user} }, 
+                          { 'item':{'$nin' : relevant} }
+                         ]
+                }
+        
+        #Probability estimator
+        est = SmoothEstimator(smooth_func, lambda_, 
+                              reader.iterate(query = query),
+                              user_profile_size = user_profile_size)
+        
+        fname = 'user_%d' % user
+        user_folder = os.path.join(out_folder, fname)
+        os.mkdir(user_folder)
+        
+        #Initial information
+        with io.open(os.path.join(user_folder, 'info'), 'w') as info:
+            info.write(u'#UID: %d\n' %user)
             
-            relevant = items[:half]
-            annotated = items[half:]
+            relevant_str = ' '.join([str(i) for i in relevant])
+            annotated_str = ' '.join([str(i) for i in annotated])
             
-            query = {'$or' : [
-                              { 'user':{'$ne'  : user} }, 
-                              { 'item':{'$nin' : relevant} }
-                             ]
-                    }
-            
-            #Probability estimator
-            est = SmoothEstimator(smooth_func, lambda_, 
-                                  reader.iterate(query = query),
-                                  user_profile_size = user_profile_size)
-            
-            fname = 'user_%d' % user
-            user_folder = os.path.join(out_folder, fname)
-            os.mkdir(user_folder)
-            
-            #Initial information
-            with io.open(os.path.join(user_folder, 'info'), 'w') as info:
-                info.write(u'#UID: %d\n' %user)
-                info.write(u'#Relevant  items: %s\n' %str(relevant))
-                info.write(u'#Annotated items: %s\n' %str(annotated))
-            
-            #Create Graph
-            create_graph(reader.iterate(query = query), user_folder)
-          
-            #Compute tag value
-            idx = index_creator.create_occurrence_index(reader.iterate(), 
+            info.write(u'# %d relevant  items: %s\n' %(len(relevant), str(relevant_str)))
+            info.write(u'# %d annotated items: %s\n' %(len(annotated), str(annotated_str)))
+        
+        #Create Graph
+        create_graph(reader.iterate(query = query), user_folder)
+    
+        #Compute popularity
+        tag_pop = collections.defaultdict(int)
+        for annotation in reader.iterate(query = query):
+            tag = annotation['tag']
+            tag_pop[tag] += 1          
+        
+        #Items to consider - Gamma items
+        items_to_consider = set(xrange(est.num_items()))
+        items_to_consider.difference_update(set(annotated))
+        
+        #Compute tag value
+        iterator = reader.iterate(query = query)
+        tag_to_item, item_to_tag = \
+            index_creator.create_double_occurrence_index(iterator, 
                                                         'tag', 'item')
-            
-            #Items to consider - Gamma items
-            items_to_consider = set(xrange(est.num_items()))
-            items_to_consider.difference_update(set(annotated))
-            
-            compute_tag_values(est, idx, user, user_folder, 
-                               np.array([i for i in items_to_consider]))
-            
-            #Compute popularity
-            tag_pop = collections.defaultdict(int)
-            for annotation in reader.iterate(query = query):
-                tag = annotation['tag']
-                tag_pop[tag] += 1
+        
+        compute_tag_values(est, tag_to_item, tag_pop, user, user_folder, 
+                           np.array([i for i in items_to_consider]))
+        
+        with io.open(os.path.join(user_folder, 'relevant_item.tags'), 'w') as rel:
+            rel.write(u'#ITEM TAG\n')
+            for item in relevant:
+                for tag in item_to_tag[tag]:
+                    rel.write(u'%d %d\n' %(item, tag))
                 
-            with io.open(os.path.join(user_folder, 'tag.pop'), 'w') as pops:
-                for tag in tag_pop:
-                    pops.write(u'%d %d\n' % (tag, tag_pop[tag]))
-                     
+def real_main(database, table, smooth_func, lambda_, user_profile_size,
+              out_folder, n_proc):
+    
+    def generator():
+        with AnnotReader(database) as reader:
+            '''Yields parameters for each user'''
+            reader.change_table(table)
+            uitem_idx = index_creator.create_occurrence_index(reader.iterate(),
+                                                              'user', 'item')
+            
+            filt = lambda u: len(uitem_idx[u]) >= 10
+            for user in ifilter(filt, uitem_idx.iterkeys()):
+                items = [item for item in uitem_idx[user]]
+                half = len(items) // 2
+                
+                relevant = items[:half]
+                annotated = items[half:]
+                yield database, table, user, relevant, annotated, \
+                      smooth_func, lambda_, user_profile_size, out_folder
+        
+    pool = multiprocessing.Pool(n_proc)
+    pool.map(_helper, generator(), 50)
+    pool.close()
+    pool.join()
+            
 def create_parser(prog_name):
     parser = argparse.ArgumentParser(prog=prog_name,
                                      description='Filters databases for exp.')
@@ -150,6 +184,9 @@ def create_parser(prog_name):
 
     parser.add_argument('out_folder', type=str,
                         help='folder for filtered graphs')
+
+    parser.add_argument('num_cores', type=int,
+                        help='Number of cores to use')
     
     return parser
     
@@ -162,7 +199,8 @@ def main(args=None):
     try:
         return real_main(vals.database, vals.table, 
                          vals.smooth_func, vals.lambda_, 
-                         vals.user_profile_size, vals.out_folder)
+                         vals.user_profile_size, vals.out_folder,
+                         vals.num_cores)
     except:
         parser.print_help()
         traceback.print_exc()

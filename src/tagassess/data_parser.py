@@ -27,7 +27,10 @@ def citeulike_parser(line):
     user = spl[1]
     date = __convert_str_time(spl[2].split(r'.')[0], '%Y-%m-%d %H:%M:%S')
     tag = spl[3]
-
+    
+    if tag == 'no-tag':
+        raise Exception('Invalid tag no-tag')
+    
     return (user, item, tag, date)
 
 def bibsonomy_parser(line):

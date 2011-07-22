@@ -203,3 +203,27 @@ class TestValueCaculator(PyCyUnit):
         
         for tag, val in vc.tag_value_gcontext().items():
             self.assertTrue(val >= 0)
+    
+    def test_mean_probs(self):
+        value_calculator = self.mod_under_test
+        
+        self.__init_test(test.SMALL_DEL_FILE)
+        smooth_func = 'Bayes'
+        lambda_ = 0.3
+        est = SmoothEstimator(smooth_func, lambda_, self.annots)
+        recc = ProbabilityReccomender(est)
+        
+        vc = value_calculator.ValueCalculator(est, recc)
+        
+        self.assertEquals(vc.mean_prob_item(np.array([0])), est.prob_item(0))
+        self.assertEquals(vc.mean_prob_item(np.array([2, 1])), (est.prob_item(2) + est.prob_item(1))/2)
+        
+        pu = est.prob_user(0)
+        expect = 0
+        for item in [0, 1, 2]:
+            pi = est.prob_item(item)
+            pui = est.prob_user_given_item(item, 0)
+            
+            expect += pi * pui / pu
+        expect /= 3
+        self.assertEquals(expect, vc.mean_prob_item_given_user(0, np.array([0, 1, 2])))

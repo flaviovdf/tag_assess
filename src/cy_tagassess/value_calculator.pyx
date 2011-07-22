@@ -23,8 +23,7 @@ cdef class ValueCalculator(object):
         
     def item_value(self, int user):
         '''
-        Creates a generator for the relevance of each item to the given user.
-        The generator will yield the tuple: (item_relevance, item).
+        Creates a map for the relevance of each item to the given user.
         
         See also
         --------
@@ -42,8 +41,7 @@ cdef class ValueCalculator(object):
     def tag_value_ucontext(self, int user, 
                            np.ndarray[np.int64_t, ndim=1] gamma_items = None):
         '''
-        Creates a generator for the value of each tag to the given user.
-        The generator will yield the tuple: (tag_value, tag).
+        Creates a map for the value of each tag to the given user.
         
         See also
         --------
@@ -62,16 +60,16 @@ cdef class ValueCalculator(object):
         cdef double p_u
         cdef double p_t
 
-        cdef np.ndarray[np.float64_t, ndim=1] p_i
-        cdef np.ndarray[np.float64_t, ndim=1] p_ui
-        cdef np.ndarray[np.float64_t, ndim=1] p_ti
-        cdef np.ndarray[np.float64_t, ndim=1] p_iu
-        cdef np.ndarray[np.float64_t, ndim=1] p_itu
+        cdef np.ndarray[np.float64_t, ndim=1] vp_i
+        cdef np.ndarray[np.float64_t, ndim=1] vp_ui
+        cdef np.ndarray[np.float64_t, ndim=1] vp_ti
+        cdef np.ndarray[np.float64_t, ndim=1] vp_iu
+        cdef np.ndarray[np.float64_t, ndim=1] vp_itu
             
         est = self.est
         
-        p_i = est.vect_prob_item(items)
-        p_ui = est.vect_prob_user_given_item(items, user)
+        vp_i = est.vect_prob_item(items)
+        vp_ui = est.vect_prob_user_given_item(items, user)
         p_u = est.prob_user(user) 
         
         #Computation
@@ -81,24 +79,23 @@ cdef class ValueCalculator(object):
             if p_t == 0:
                 continue
                 
-            p_ti = est.vect_prob_tag_given_item(items, tag)
+            vp_ti = est.vect_prob_tag_given_item(items, tag)
             
-            p_iu = p_ui * p_i / p_u
-            p_itu = p_ti * p_ui * p_i / (p_u * p_t)
+            vp_iu = vp_ui * (vp_i / p_u)
+            vp_itu = vp_ti * vp_ui * (vp_i / (p_u * p_t))
             
             #Renormalization is necessary
-            p_iu /= p_iu.sum()
-            p_itu /= p_itu.sum()
+            vp_iu /= vp_iu.sum()
+            vp_itu /= vp_itu.sum()
             
-            tag_val = entropy.kullback_leiber_divergence(p_itu, p_iu)
+            tag_val = entropy.kullback_leiber_divergence(vp_itu, vp_iu)
             return_val[tag] = tag_val
         return return_val
     
     def tag_value_gcontext(self, 
                            np.ndarray[np.int64_t, ndim=1] gamma_items = None):
         '''
-        Creates a generator for the value of each tag in a global context.
-        The generator will yield the tuple: (tag_value, tag).
+        Creates a map for the value of each tag in a global context.
          
         See also
         --------
@@ -115,12 +112,12 @@ cdef class ValueCalculator(object):
         cdef Py_ssize_t tag = 0                 
         cdef double p_t
 
-        cdef np.ndarray[np.float64_t, ndim=1] p_i
-        cdef np.ndarray[np.float64_t, ndim=1] p_ti
-        cdef np.ndarray[np.float64_t, ndim=1] p_it
+        cdef np.ndarray[np.float64_t, ndim=1] vp_i
+        cdef np.ndarray[np.float64_t, ndim=1] vp_ti
+        cdef np.ndarray[np.float64_t, ndim=1] vp_it
         
         est = self.est
-        p_i = est.vect_prob_item(items)
+        vp_i = est.vect_prob_item(items)
         
         #Computation
         return_val = {}
@@ -129,14 +126,49 @@ cdef class ValueCalculator(object):
             if p_t == 0:
                 continue
                 
-            p_ti = est.vect_prob_tag_given_item(items, tag)
+            vp_ti = est.vect_prob_tag_given_item(items, tag)
             
-            p_it = p_ti * p_i / p_t
+            vp_it = vp_ti * (vp_i / p_t)
             
             #Renormalization is necessary
-            p_it /= p_it.sum()
-            p_i /= p_i.sum()
+            vp_it /= vp_it.sum()
+            vp_i /= vp_i.sum()
             
-            tag_val = entropy.kullback_leiber_divergence(p_it, p_i)
+            tag_val = entropy.kullback_leiber_divergence(vp_it, vp_i)
             return_val[tag] = tag_val
         return return_val
+
+    def mean_prob_item_given_user(self, int user, 
+                                  np.ndarray[np.int64_t, ndim=1] items):
+        '''
+        Computes the average of P(I|u)
+         
+        See also
+        --------
+        tagassess.smooth
+        tagassess.probability_estimates
+        '''
+        cdef double p_u
+        cdef np.ndarray[np.float64_t, ndim=1] vp_i
+        cdef np.ndarray[np.float64_t, ndim=1] vp_ui
+        
+        p_u = self.est.prob_user(user)
+        vp_i = self.est.vect_prob_item(items)
+        vp_ui = self.est.vect_prob_user_given_item(items, user)
+        
+        vp_iu = vp_ui * (vp_i / p_u)
+        return vp_iu.mean()
+    
+    def mean_prob_item(self, np.ndarray[np.int64_t, ndim=1] items):
+        '''
+        Computes the average of P(I)
+         
+        See also
+        --------
+        tagassess.smooth
+        tagassess.probability_estimates
+        '''
+        
+        cdef np.ndarray[np.float64_t, ndim=1] vp_i
+        vp_i = self.est.vect_prob_item(items)
+        return vp_i.mean()

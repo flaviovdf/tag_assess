@@ -7,7 +7,7 @@ from __future__ import print_function, division
 
 from tagassess.dao.mongodb import MongoDBException
 from tagassess.dao.mongodb.keyval import KeyValStore
-from tagassess.dao.mongodb.test import MongoManager
+from tagassess.dao.mongodb.test import MongoManager, PORT
 
 import unittest
 
@@ -22,7 +22,7 @@ class TestKeyVal(unittest.TestCase):
             self.manager.stop_mongo()
     
     def test_get_all(self):
-        with KeyValStore('test') as keyval:
+        with KeyValStore('test', connection_port = PORT) as keyval:
             keyval.create_table('bah')
             keyval[1] = 'a'
             keyval[2] = 'b'
@@ -33,7 +33,7 @@ class TestKeyVal(unittest.TestCase):
             self.assertEquals('b', cache[2])
     
     def test_all(self):
-        with KeyValStore('test') as keyval:
+        with KeyValStore('test', connection_port = PORT) as keyval:
             keyval.create_table('bah')
             self.assertEquals(0, len(keyval))
             
