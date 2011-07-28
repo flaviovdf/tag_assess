@@ -77,6 +77,7 @@ cdef class ValueCalculator(object):
         for tag in range(self.est.num_tags()):
             p_t = est.prob_tag(tag)
             if p_t == 0:
+                return_val[tag] = 0
                 continue
                 
             vp_ti = est.vect_prob_tag_given_item(items, tag)
@@ -124,6 +125,7 @@ cdef class ValueCalculator(object):
         for tag in range(self.est.num_tags()):
             p_t = est.prob_tag(tag)
             if p_t == 0:
+                return_val[tag] = 0
                 continue
                 
             vp_ti = est.vect_prob_tag_given_item(items, tag)

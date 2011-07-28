@@ -212,6 +212,10 @@ class SmoothEstimator(ProbabilityEstimator):
     _vect_log_prob_user_given_item = np.vectorize(log_prob_user_given_item)
     
     #Other methods
+    def tag_pop(self, tag):
+        '''Returns the popularity of a tag'''
+        return self.tag_col_freq[tag]
+    
     def num_items(self):
         '''Number of items'''
         return len(self.item_col_mle)

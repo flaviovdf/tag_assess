@@ -26,7 +26,7 @@ from tagassess.dao.mongodb.annotations import AnnotReader
 from tagassess.recommenders import ProbabilityReccomender
 
 import argparse
-import collections
+import heapq
 import io
 import multiprocessing
 import numpy as np
@@ -35,31 +35,33 @@ import sys
 import traceback
 import tempfile
 
-def create_graph(annotation_it, user_folder):
-    ntags, nsinks, iedges = \
-     graph.iedge_from_annotations(annotation_it, 1,
-                                  False)
+def create_graph(tag_to_item, item_to_tag, user_folder):
+    iedges = \
+     graph.iedge_from_indexes(tag_to_item, item_to_tag, False)[2]
+     
     tmp_fname = tempfile.mktemp()
     n_edges = 0
+    n_tags = 0
     with io.open(tmp_fname, 'w') as tmp:
         for source, dest in sorted(iedges):
             tmp.write(u'%d %d\n' % (source, dest))
             n_edges += 1
+            
+            max_source_dest = max(source, dest)
+            n_tags = max(n_tags, max_source_dest)
+    n_tags += 1
 
     with io.open(tmp_fname) as tmp:
         out_graph = os.path.join(user_folder, 'navi.graph')
         with io.open(out_graph, 'w') as out:
-            out.write(u'#Nodes:  %d\n'%ntags)
+            out.write(u'#Nodes:  %d\n'%n_tags)
             out.write(u'#Edges:  %d\n'%n_edges)
             out.write(u'#Directed\n')
             for line in tmp:
                 out.write(line)
 
-def compute_tag_values(est, tag_to_item, tag_pops, 
+def compute_tag_values(est, value_calc, tag_to_item, 
                        user, user_folder, items_to_consider):
-    recc = ProbabilityReccomender(est)
-    value_calc = value_calculator.ValueCalculator(est, recc)
-    
     tag_value = value_calc.tag_value_ucontext(user, 
                                               gamma_items = items_to_consider)
     with io.open(os.path.join(user_folder, 'tag.values'), 'w') as values:
@@ -67,13 +69,13 @@ def compute_tag_values(est, tag_to_item, tag_pops,
         for tag, tag_val in tag_value.iteritems():
             
             #Mean P(I|u)
-            items = np.array([item for item in tag_to_item[tag]])
+            items = np.array([item for item in tag_to_item[tag]], dtype=np.int64)
             mean_prob = value_calc.mean_prob_item_given_user(user, items)
             
             final_val = tag_val * mean_prob
             
             values.write(u'%d %d %.15f %.15f %.15f\n' % 
-                         (tag, tag_pops[tag], tag_val, mean_prob, final_val))
+                         (tag, est.tag_pop(tag), tag_val, mean_prob, final_val))
 
 def _helper(params):
     compute_for_user(*params)
@@ -94,6 +96,8 @@ def compute_for_user(database, table, user, relevant, annotated,
         est = SmoothEstimator(smooth_func, lambda_, 
                               reader.iterate(query = query),
                               user_profile_size = user_profile_size)
+        recc = ProbabilityReccomender(est)
+        value_calc = value_calculator.ValueCalculator(est, recc)
         
         fname = 'user_%d' % user
         user_folder = os.path.join(out_folder, fname)
@@ -110,31 +114,33 @@ def compute_for_user(database, table, user, relevant, annotated,
             info.write(u'# %d annotated items: %s\n' %(len(annotated), str(annotated_str)))
         
         #Create Graph
-        create_graph(reader.iterate(query = query), user_folder)
-    
-        #Compute popularity
-        tag_pop = collections.defaultdict(int)
-        for annotation in reader.iterate(query = query):
-            tag = annotation['tag']
-            tag_pop[tag] += 1          
-        
-        #Items to consider - Gamma items
-        items_to_consider = set(xrange(est.num_items()))
-        items_to_consider.difference_update(set(annotated))
-        
-        #Compute tag value
-        iterator = reader.iterate(query = query)
         tag_to_item, item_to_tag = \
-            index_creator.create_double_occurrence_index(iterator, 
-                                                        'tag', 'item')
+            index_creator.create_double_occurrence_index(reader.iterate(query = query), 
+                                                         'tag', 'item')
+            
+        create_graph(tag_to_item, item_to_tag, user_folder)
+    
+        #Items to consider <-> Gamma items
+        annotated_set = set(annotated)
+        iestimates = value_calc.item_value(user)
         
-        compute_tag_values(est, tag_to_item, tag_pop, user, user_folder, 
+        #Filters annotated
+        val_to_item = \
+            [(v, k) for k, v in iestimates.items() if k not in annotated_set]
+        
+        #Filter top 10
+        top_10 = heapq.nlargest(10, val_to_item)
+        items_to_consider = set(i for v, i in top_10)
+        
+        print(est.num_items(), items_to_consider)
+        compute_tag_values(est, value_calc, tag_to_item, user, 
+                           user_folder, 
                            np.array([i for i in items_to_consider]))
         
         with io.open(os.path.join(user_folder, 'relevant_item.tags'), 'w') as rel:
             rel.write(u'#ITEM TAG\n')
             for item in relevant:
-                for tag in item_to_tag[tag]:
+                for tag in item_to_tag[item]:
                     rel.write(u'%d %d\n' %(item, tag))
                 
 def real_main(database, table, smooth_func, lambda_, user_profile_size,
@@ -158,7 +164,7 @@ def real_main(database, table, smooth_func, lambda_, user_profile_size,
                       smooth_func, lambda_, user_profile_size, out_folder
         
     pool = multiprocessing.Pool(n_proc)
-    pool.map(_helper, generator(), 50)
+    pool.map(_helper, generator(), chunksize = 50)
     pool.close()
     pool.join()
             
