@@ -62,7 +62,7 @@ def compute_tag_values(smooth_func, lambda_, annotation_it,
     with io.open(os.path.join(out_folder, 'tag.values'), 'w') as values:
         for tag, tag_val in tag_value.iteritems():
             items = np.array([item for item in tag_to_item[tag]])
-            mean_prob = value_calc.mean_prob_item(items)
+            mean_prob = value_calc.prob_items(items).mean()
             final_val = tag_val * mean_prob
             values.write(u'%d %d %.15f %.15f %.15f\n' % 
                          (tag, tag_pops[tag], tag_val, mean_prob, final_val))

@@ -70,7 +70,7 @@ def compute_tag_values(est, value_calc, tag_to_item,
             
             #Mean P(I|u)
             items = np.array([item for item in tag_to_item[tag]], dtype=np.int64)
-            mean_prob = value_calc.mean_prob_item_given_user(user, items)
+            mean_prob = value_calc.prob_items_given_user(user, items).mean()
             
             final_val = tag_val * mean_prob
             

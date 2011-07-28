@@ -140,8 +140,32 @@ cdef class ValueCalculator(object):
             return_val[tag] = tag_val
         return return_val
 
-    def mean_prob_item_given_user(self, int user, 
-                                  np.ndarray[np.int64_t, ndim=1] items):
+    cpdef np.ndarray[np.float64_t, ndim=1] prob_items_given_user_tag(self, 
+        user, tag, np.ndarray[np.int64_t, ndim=1] items):
+        '''
+        Computes the average of P(I|u,t)
+         
+        See also
+        --------
+        tagassess.smooth
+        tagassess.probability_estimates
+        '''
+        cdef double p_t = self.est.prob_tag(tag)
+        cdef double p_u = self.est.prob_user(user)
+        
+        cdef np.ndarray[np.float64_t, ndim=1] vp_i = \
+            self.est.vect_prob_item(items)
+        cdef np.ndarray[np.float64_t, ndim=1] vp_ui = \
+            self.est.vect_prob_user_given_item(items, user)
+        cdef np.ndarray[np.float64_t, ndim=1] vp_ti = \
+            self.est.vect_prob_tag_given_item(items, tag)
+
+        cdef np.ndarray[np.float64_t, ndim=1] vp_itu
+        vp_itu = vp_ti * vp_ui * (vp_i / (p_u * p_t))
+        return vp_itu     
+
+    cpdef np.ndarray[np.float64_t, ndim=1] prob_items_given_user(self, int user,
+            np.ndarray[np.int64_t, ndim=1] items):
         '''
         Computes the average of P(I|u)
          
@@ -159,9 +183,9 @@ cdef class ValueCalculator(object):
         vp_ui = self.est.vect_prob_user_given_item(items, user)
         
         vp_iu = vp_ui * (vp_i / p_u)
-        return vp_iu.mean()
+        return vp_iu
     
-    def mean_prob_item(self, np.ndarray[np.int64_t, ndim=1] items):
+    cpdef np.ndarray[np.float64_t, ndim=1] prob_items(self, np.ndarray[np.int64_t, ndim=1] items):
         '''
         Computes the average of P(I)
          
@@ -173,4 +197,4 @@ cdef class ValueCalculator(object):
         
         cdef np.ndarray[np.float64_t, ndim=1] vp_i
         vp_i = self.est.vect_prob_item(items)
-        return vp_i.mean()
+        return vp_i

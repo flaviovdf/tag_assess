@@ -1,5 +1,5 @@
 # -*- coding: utf8
-'''Estimator based on smoothing methods'''
+'''Probability based on smoothing methods'''
 
 from __future__ import division, print_function
 
@@ -24,16 +24,17 @@ cdef int BAYES = 2
 
 cdef class SmoothEstimator:
     '''
-    Implementation of the approach proposed in:
+    Implementation of a similar approach as proposed in:
     
     Personalization of Tagging Systems, 
     Wang, Jun, Clements Maarten, Yang J., de Vries Arjen P., and Reinders Marcel J. T. , 
     Information Processing and Management, Volume 46, Issue 1, p.58-70, (2010)
     
     In details:
-        * $P(t) and P(i) = Base on MLE.
-        * $P(t|i) = P(t|M_i)$ where, $M_i$ is a smoothed model of the items
-        * $P(u)$ and $P(u|i)$ considers users as tags. More specifically, the past
+        * P(i) = Base on MLE.
+        * P(t|i) = P(t|M_i)$ where, $M_i$ is a smoothed model of the items
+        * P(t) = Sum of P(t|i) * P(i) for every item
+        * P(u) and P(u|i) considers users as tags. More specifically, the past
           tags used by the user. So, these two functions will make use of $P(t)$ and $P(t|i)$.
     '''
     
@@ -110,7 +111,7 @@ cdef class SmoothEstimator:
             item_tag_dict[item][tag] += 1
             user_tags_dict[user][tag] += 1
             
-            #Tag, item and user id spaced being defined            
+            #Tag, item and user id space being defined            
             if tag > max_tag:
                 max_tag = tag
                 

@@ -215,8 +215,8 @@ class TestValueCaculator(PyCyUnit):
         
         vc = value_calculator.ValueCalculator(est, recc)
         
-        self.assertEquals(vc.mean_prob_item(np.array([0])), est.prob_item(0))
-        self.assertEquals(vc.mean_prob_item(np.array([2, 1])), (est.prob_item(2) + est.prob_item(1))/2)
+        self.assertEquals(vc.prob_items(np.array([0])).mean(), est.prob_item(0))
+        self.assertEquals(vc.prob_items(np.array([2, 1])).mean(), (est.prob_item(2) + est.prob_item(1))/2)
         
         pu = est.prob_user(0)
         expect = 0
@@ -226,4 +226,4 @@ class TestValueCaculator(PyCyUnit):
             
             expect += pi * pui / pu
         expect /= 3
-        self.assertEquals(expect, vc.mean_prob_item_given_user(0, np.array([0, 1, 2])))
+        self.assertEquals(expect, vc.prob_items_given_user(0, np.array([0, 1, 2])).mean())
