@@ -60,9 +60,9 @@ def compute_tag_values(smooth_func, lambda_, annotation_it,
     
     tag_value = value_calc.tag_value_gcontext()
     with io.open(os.path.join(out_folder, 'tag.values'), 'w') as values:
-        for tag, tag_val in tag_value.iteritems():
+        for tag, tag_val in enumerate(tag_value):
             items = np.array([item for item in tag_to_item[tag]])
-            mean_prob = value_calc.prob_items(items).mean()
+            mean_prob = value_calc.rnorm_prob_items(items).mean()
             final_val = tag_val * mean_prob
             values.write(u'%d %d %.15f %.15f %.15f\n' % 
                          (tag, tag_pops[tag], tag_val, mean_prob, final_val))

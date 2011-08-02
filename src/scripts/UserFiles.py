@@ -66,11 +66,11 @@ def compute_tag_values(est, value_calc, tag_to_item,
                                               gamma_items = items_to_consider)
     with io.open(os.path.join(user_folder, 'tag.values'), 'w') as values:
         values.write(u'#TAG POP D RHO D*RHO\n')
-        for tag, tag_val in tag_value.iteritems():
+        for tag, tag_val in enumerate(tag_value):
             
             #Mean P(I|u)
             items = np.array([item for item in tag_to_item[tag]], dtype=np.int64)
-            mean_prob = value_calc.prob_items_given_user(user, items).mean()
+            mean_prob = value_calc.rnorm_prob_items_given_user(user, items).mean()
             
             final_val = tag_val * mean_prob
             
@@ -124,15 +124,17 @@ def compute_for_user(database, table, user, relevant, annotated,
         annotated_set = set(annotated)
         iestimates = value_calc.item_value(user)
         
-        #Filters annotated
-        val_to_item = \
-            [(v, k) for k, v in iestimates.items() if k not in annotated_set]
-        
         #Filter top 10
-        top_10 = heapq.nlargest(10, val_to_item)
-        items_to_consider = set(i for v, i in top_10)
+        top_vals = iestimates.argsort()
+        items_to_consider = set()
+        for item in top_vals:
+            if item in annotated_set:
+                continue
+            
+            items_to_consider.add(item)
+            if len(items_to_consider) == 10:
+                break
         
-        print(est.num_items(), items_to_consider)
         compute_tag_values(est, value_calc, tag_to_item, user, 
                            user_folder, 
                            np.array([i for i in items_to_consider]))

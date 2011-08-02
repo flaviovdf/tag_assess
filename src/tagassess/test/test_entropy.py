@@ -25,12 +25,12 @@ class TestEntropy(PyCyUnit):
     Tests entropy by comparing the return
     with an iterative calculation
     '''
-    def get_module_to_test(self):
+    def get_module_to_eval(self):
         from tagassess import entropy
         return entropy
     
     def test_entropy(self):
-        entropy = self.mod_under_test
+        entropy = self.get_module_to_eval()
         probs = np.array([0.1, 0.5, 0.01, 0.07, 0.02, 0.3, 0, 0, 0], dtype='d')
 
         self.assertEquals(entropy.entropy(probs), it_entropy(probs))
@@ -60,7 +60,7 @@ class TestEntropy(PyCyUnit):
             pass
 
     def test_norm_mi(self):
-        entropy = self.mod_under_test
+        entropy = self.get_module_to_eval()
         x_probs = np.array([0.04, 0.16] * 5)
         xy_probs = np.array([0.02, 0.18] * 5)
 
@@ -74,7 +74,7 @@ class TestEntropy(PyCyUnit):
         self.assertEqual(entropy.norm_mutual_information(x_probs, xy_probs), 0)
 
     def test_mi(self):
-        entropy = self.mod_under_test
+        entropy = self.get_module_to_eval()
         x_probs = np.array([0.04, 0.16] * 5)
         xy_probs = np.array([0.02, 0.18] * 5)
 
@@ -85,7 +85,7 @@ class TestEntropy(PyCyUnit):
         self.assertAlmostEqual(entropy.mutual_information(x_probs, xy_probs), mutual_inf)
 
     def test_kl(self):
-        entropy = self.mod_under_test
+        entropy = self.get_module_to_eval()
         x_probs = np.array([0.04, 0.16] * 5)
         xy_probs = np.array([0.02, 0.18] * 5)
         
@@ -97,7 +97,7 @@ class TestEntropy(PyCyUnit):
         self.assertAlmostEqual(entropy.kullback_leiber_divergence(x_probs, xy_probs), dkl)
 
     def test_kl2(self):
-        entropy = self.mod_under_test
+        entropy = self.get_module_to_eval()
         x_probs = np.array([0.04, 0.16] * 5 + [0])
         xy_probs = np.array([0.02, 0.18] * 5 + [0])
         
@@ -109,7 +109,7 @@ class TestEntropy(PyCyUnit):
         self.assertAlmostEqual(entropy.kullback_leiber_divergence(x_probs, xy_probs), dkl)
 
     def test_kl3(self):
-        entropy = self.mod_under_test
+        entropy = self.get_module_to_eval()
         x_probs = np.array([0.25, 0.20, 0, 0.55])
         xy_probs = np.array([0.20, 0, 0.25, 0.55])
         

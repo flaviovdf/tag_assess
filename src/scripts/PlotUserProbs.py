@@ -17,6 +17,7 @@ except ImportError: #Fallback to python code
     from tagassess.probability_estimates import SmoothEstimator
 
 #Regular Imports
+from tagassess import index_creator
 from tagassess.dao.mongodb.annotations import AnnotReader
 from tagassess.recommenders import ProbabilityReccomender
 
@@ -35,14 +36,21 @@ def write_points_file(data, fname):
 def _helper(params):
     compute_for_user(*params)
 
-def compute_for_user(database, table, user, smooth_func, lambda_, 
-                     user_profile_size, out_folder):
+def compute_for_user(database, table, user, relevant, annotated,
+                    smooth_func, lambda_, user_profile_size, out_folder):
     
     with AnnotReader(database) as reader:
         reader.change_table(table)
+        #Relevant items by user are left out with this query
+        query = {'$or' : [
+                          { 'user':{'$ne'  : user} }, 
+                          { 'item':{'$nin' : relevant} }
+                         ]
+                }
+        
         
         #Probability estimator
-        est = SmoothEstimator(smooth_func, lambda_, reader.iterate(),
+        est = SmoothEstimator(smooth_func, lambda_, reader.iterate(query=query),
                               user_profile_size = user_profile_size)
         recc = ProbabilityReccomender(est)
         value_calc = value_calculator.ValueCalculator(est, recc)
@@ -51,26 +59,35 @@ def compute_for_user(database, table, user, smooth_func, lambda_,
         user_folder = os.path.join(out_folder, fname)
         os.mkdir(user_folder)
         
-        items = np.arange(est.num_items(), dtype=np.int64)
+        #Initial information
+        with open(os.path.join(user_folder, 'info'), 'w') as info:
+            print('#UID: %d' %user, file=info)
+            
+            relevant_str = ' '.join([str(i) for i in relevant])
+            annotated_str = ' '.join([str(i) for i in annotated])
+            
+            print('#%d relevant: %s' %(len(relevant), str(relevant_str)), 
+                  file=info)
+            print('#%d annotated: %s' %(len(annotated), str(annotated_str)), 
+                  file=info)
         
-        dict_dkl = value_calc.tag_value_ucontext(user)
-        
-        v_piu = value_calc.prob_items_given_user(user, items)
-        v_dkl = np.array([dict_dkl[tag] for tag in sorted(dict_dkl)])
+        items = np.array(relevant)
+        v_piu = value_calc.rnorm_prob_items_given_user(user, items)
+        v_dkl = value_calc.tag_value_ucontext(user, gamma_items=items)
         
         v_dkl_argsort = v_dkl.argsort()
         top_5_tags = v_dkl_argsort[:5]
         bottom_5_tags = v_dkl_argsort[len(v_dkl) - 5:]
         
         write_points_file(v_piu, os.path.join(user_folder, 'v_piu.dat'))
-        write_points_file(v_dkl, os.path.join(user_folder, 'dkl.dat'))
+        write_points_file(v_dkl, os.path.join(user_folder, 'v_dkl.dat'))
         
         for i, tag in enumerate(top_5_tags):
-            v_pitu = value_calc.prob_items_given_user_tag(user, tag, items)
+            v_pitu = value_calc.rnorm_prob_items_given_user_tag(user, tag, items)
             write_points_file(v_pitu, os.path.join(user_folder, 
-                                                   'v_pitu_tag_%d_top_%d.dat' % (tag, i)))
+                                                   'v_pitu_tag_%d_top_%d.dat' % (tag, i + 1)))
         for i, tag in enumerate(bottom_5_tags):
-            v_pitu = value_calc.prob_items_given_user_tag(user, tag, items)
+            v_pitu = value_calc.rnorm_prob_items_given_user_tag(user, tag, items)
             write_points_file(v_pitu, os.path.join(user_folder, 
                                                    'v_pitu_tag_%d_bottom_%d.dat' % (tag, 5 - i)))
         
@@ -81,9 +98,19 @@ def real_main(database, table, smooth_func, lambda_, user_profile_size,
         with AnnotReader(database) as reader:
             '''Yields parameters for each user'''
             reader.change_table(table)
+            
+            uitem_idx = index_creator.create_occurrence_index(reader.iterate(),
+                                                              'user', 'item')
             for user in user_ids:
+                items = [item for item in uitem_idx[user]]
+                half = len(items) // 2
+                
+                relevant = items[:half]
+                annotated = items[half:]
+                
                 yield database, table, user, \
-                      smooth_func, lambda_, user_profile_size, out_folder
+                      relevant, annotated, smooth_func, lambda_, \
+                      user_profile_size, out_folder
         
     pool = multiprocessing.Pool(n_proc)
     pool.map(_helper, generator())

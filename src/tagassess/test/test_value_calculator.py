@@ -11,15 +11,27 @@ from numpy import log2
 
 from tagassess import data_parser
 from tagassess import test
+from tagassess import value_calculator
 from tagassess.probability_estimates import SmoothEstimator
 from tagassess.recommenders import ProbabilityReccomender
 from tagassess.test import PyCyUnit
 
 class TestValueCaculator(PyCyUnit):
     
-    def get_module_to_test(self):
-        from tagassess import value_calculator
-        return value_calculator
+    def setUp(self):
+        self.annots = []
+    
+    def tearDown(self):
+        self.annots = None
+        
+    def get_module_to_eval(self, *args, **kwargs):
+        annots = args[0]
+        smooth_func = args[1]
+        lambda_ = args[2]
+        
+        est = SmoothEstimator(smooth_func, lambda_, annots)
+        recc = ProbabilityReccomender(est)
+        return est, value_calculator.ValueCalculator(est, recc)
     
     def __init_test(self, annot_file):
         parser = data_parser.Parser()
@@ -27,23 +39,12 @@ class TestValueCaculator(PyCyUnit):
             for annot in parser.iparse(in_f, data_parser.delicious_flickr_parser):
                 self.annots.append(annot)
     
-    def setUp(self):
-        super(TestValueCaculator, self).setUp()
-        self.annots = []
-    
-    def tearDown(self):
-        self.annots = None
-        
     def test_itag_value_user(self):
-        value_calculator = self.mod_under_test
-        
         self.__init_test(test.SMALL_DEL_FILE)
+        
         smooth_func = 'Bayes'
         lambda_ = 0.3
-        est = SmoothEstimator(smooth_func, lambda_, self.annots)
-        recc = ProbabilityReccomender(est)
-        
-        vc = value_calculator.ValueCalculator(est, recc)
+        est, vc = self.get_module_to_eval(self.annots, smooth_func, lambda_)
         
         pus = []
         s_pus = 0.0
@@ -87,15 +88,11 @@ class TestValueCaculator(PyCyUnit):
                 self.assertAlmostEquals(tag_vals[tag], val)
 
     def test_itag_value_user_fiter_items(self):
-        value_calculator = self.mod_under_test
-        
         self.__init_test(test.SMALL_DEL_FILE)
+        
         smooth_func = 'Bayes'
         lambda_ = 0.3
-        est = SmoothEstimator(smooth_func, lambda_, self.annots)
-        recc = ProbabilityReccomender(est)
-        
-        vc = value_calculator.ValueCalculator(est, recc)
+        est, vc = self.get_module_to_eval(self.annots, smooth_func, lambda_)
         
         pus = []
         s_pus = 0.0
@@ -139,15 +136,11 @@ class TestValueCaculator(PyCyUnit):
                 self.assertAlmostEquals(tag_vals[tag], val)
 
     def test_itag_value_global(self):
-        value_calculator = self.mod_under_test
-        
         self.__init_test(test.SMALL_DEL_FILE)
+        
         smooth_func = 'Bayes'
         lambda_ = 0.3
-        est = SmoothEstimator(smooth_func, lambda_, self.annots)
-        recc = ProbabilityReccomender(est)
-        
-        vc = value_calculator.ValueCalculator(est, recc)
+        est, vc = self.get_module_to_eval(self.annots, smooth_func, lambda_)
         
         tag_vals = vc.tag_value_gcontext()
         for tag in [0, 1, 2, 3, 4, 5]:
@@ -166,64 +159,44 @@ class TestValueCaculator(PyCyUnit):
             self.assertAlmostEquals(tag_vals[tag], val)
 
     def test_valid_values_items(self):
-        value_calculator = self.mod_under_test
-        
         self.__init_test(test.SMALL_DEL_FILE)
+        
         smooth_func = 'Bayes'
         lambda_ = 0.1
-        est = SmoothEstimator(smooth_func, lambda_, self.annots)
-        recc = ProbabilityReccomender(est)
-        vc = value_calculator.ValueCalculator(est, recc)
+        est, vc = self.get_module_to_eval(self.annots, smooth_func, lambda_)
         
-        for item, val in vc.item_value(0).items():
+        for val in vc.item_value(0):
             self.assertTrue(val < 0)
             
     def test_valid_values_user(self):
-        value_calculator = self.mod_under_test
-        
         self.__init_test(test.SMALL_DEL_FILE)
+        
         smooth_func = 'Bayes'
         lambda_ = 0.1
-        est = SmoothEstimator(smooth_func, lambda_, self.annots)
-        recc = ProbabilityReccomender(est)
-        vc = value_calculator.ValueCalculator(est, recc)
+        est, vc = self.get_module_to_eval(self.annots, smooth_func, lambda_)
         
-        for tag, val in vc.tag_value_ucontext(0).items():
+        for val in vc.tag_value_ucontext(0):
             self.assertTrue(val >= 0)
 
     def test_valid_values_global(self):
-        value_calculator = self.mod_under_test
-        
         self.__init_test(test.SMALL_DEL_FILE)
+        
         smooth_func = 'Bayes'
         lambda_ = 0.1
-        est = SmoothEstimator(smooth_func, lambda_, self.annots)
-        recc = ProbabilityReccomender(est)
-        vc = value_calculator.ValueCalculator(est, recc)
+        est, vc = self.get_module_to_eval(self.annots, smooth_func, lambda_)
         
-        for tag, val in vc.tag_value_gcontext().items():
+        for val in vc.tag_value_gcontext():
             self.assertTrue(val >= 0)
     
     def test_mean_probs(self):
-        value_calculator = self.mod_under_test
-        
         self.__init_test(test.SMALL_DEL_FILE)
+        
         smooth_func = 'Bayes'
-        lambda_ = 0.3
-        est = SmoothEstimator(smooth_func, lambda_, self.annots)
-        recc = ProbabilityReccomender(est)
+        lambda_ = 0.1
+        est, vc = self.get_module_to_eval(self.annots, smooth_func, lambda_)
         
-        vc = value_calculator.ValueCalculator(est, recc)
+        self.assertEquals(vc.rnorm_prob_items(np.array([0])).mean(), 1)
+        self.assertEquals(vc.rnorm_prob_items_given_user(0, np.array([0])).mean(), 1)
         
-        self.assertEquals(vc.prob_items(np.array([0])).mean(), est.prob_item(0))
-        self.assertEquals(vc.prob_items(np.array([2, 1])).mean(), (est.prob_item(2) + est.prob_item(1))/2)
-        
-        pu = est.prob_user(0)
-        expect = 0
-        for item in [0, 1, 2]:
-            pi = est.prob_item(item)
-            pui = est.prob_user_given_item(item, 0)
-            
-            expect += pi * pui / pu
-        expect /= 3
-        self.assertEquals(expect, vc.prob_items_given_user(0, np.array([0, 1, 2])).mean())
+        self.assertEquals(vc.rnorm_prob_items_given_user(0, np.array([0, 0])).mean(), 0.5)
+        self.assertEquals(vc.rnorm_prob_items_given_user(0, np.array([0, 0])).mean(), 0.5)

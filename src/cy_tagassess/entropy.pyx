@@ -26,12 +26,10 @@ cpdef double entropy(np.ndarray[np.float64_t, ndim=1] probabilities_x) except *:
     '''
     cdef np.float64_t return_val = 0
     cdef Py_ssize_t i = 0
-    cdef np.float64_t log_prob = 0 
     
     for i in range(probabilities_x.shape[0]):
         if probabilities_x[i] > 0:
-            log_prob = log2(probabilities_x[i])
-            return_val -= probabilities_x[i] * log_prob
+            return_val -= probabilities_x[i] * log2(probabilities_x[i])
     
     return return_val
 
@@ -42,7 +40,7 @@ cpdef double mutual_information(
         np.ndarray[np.float64_t, ndim=1] probabilities_xy) except *:
     '''
     Calculates the mutual information between the
-    random variables (X and X|Y):
+    random variables (X and Y):
 
     Arguments
     ---------
@@ -107,7 +105,6 @@ cpdef double kullback_leiber_divergence(
 
     cdef np.float64_t return_val = 0
     cdef Py_ssize_t i = 0
-    cdef np.float64_t log_part = 0
     cdef np.float64_t prob_p = 0
     cdef np.float64_t prob_q = 0
 
@@ -118,6 +115,5 @@ cpdef double kullback_leiber_divergence(
         if prob_p != 0 and prob_q == 0:
             return np.float('inf')
         elif prob_p > 0 and prob_q > 0:
-            log_part = log2(prob_p) - log2(prob_q)
-            return_val += prob_p * log_part
+            return_val += prob_p * (log2(prob_p) - log2(prob_q))
     return return_val

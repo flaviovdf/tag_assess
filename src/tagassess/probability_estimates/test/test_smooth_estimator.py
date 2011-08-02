@@ -16,7 +16,7 @@ from tagassess.test import PyCyUnit
 
 class TestSmoothEstimator(PyCyUnit):
 
-    def get_module_to_test(self):
+    def get_module_to_eval(self):
         from tagassess.probability_estimates import SmoothEstimator
         return SmoothEstimator
 
@@ -34,7 +34,7 @@ class TestSmoothEstimator(PyCyUnit):
         self.annots = None
         
     def test_prob_item(self):
-        SmoothEstimator = self.mod_under_test
+        SmoothEstimator = self.get_module_to_eval()
         
         self.__init_test(test.SMALL_DEL_FILE)
         smooth_func = 'JM'
@@ -67,7 +67,7 @@ class TestSmoothEstimator(PyCyUnit):
         self.assertTrue(np.in1d(estimated, expected).all())
     
     def test_prob_tag(self):
-        SmoothEstimator = self.mod_under_test
+        SmoothEstimator = self.get_module_to_eval()
         
         self.__init_test(test.SMALL_DEL_FILE)
         smooth_func = 'JM'
@@ -108,7 +108,7 @@ class TestSmoothEstimator(PyCyUnit):
         self.assertTrue(np.in1d(estimated, expected).all())
 
     def test_tag_given_item(self):
-        SmoothEstimator = self.mod_under_test
+        SmoothEstimator = self.get_module_to_eval()
         
         self.__init_test(test.SMALL_DEL_FILE)
         smooth_func = 'JM'
@@ -148,7 +148,7 @@ class TestSmoothEstimator(PyCyUnit):
         self.assertTrue(np.in1d(estimated, expected).all())
     
     def test_prob_user(self):
-        SmoothEstimator = self.mod_under_test
+        SmoothEstimator = self.get_module_to_eval()
         
         self.__init_test(test.SMALL_DEL_FILE)
         smooth_func = 'JM'
@@ -171,7 +171,7 @@ class TestSmoothEstimator(PyCyUnit):
         self.assertAlmostEquals(prob, np.log2(expected_prob_ugi))
     
     def test_prob_user_profile_one(self):
-        SmoothEstimator = self.mod_under_test
+        SmoothEstimator = self.get_module_to_eval()
         
         self.__init_test(test.SMALL_DEL_FILE)
         smooth_func = 'JM'
@@ -194,7 +194,7 @@ class TestSmoothEstimator(PyCyUnit):
         self.assertAlmostEquals(prob, np.log2(expected_prob_ugi))
 
     def test_prob_user_profile_two(self):
-        SmoothEstimator = self.mod_under_test
+        SmoothEstimator = self.get_module_to_eval()
         
         self.__init_test(test.SMALL_DEL_FILE)
         smooth_func = 'JM'
@@ -207,7 +207,7 @@ class TestSmoothEstimator(PyCyUnit):
         self.assertEquals(prob, expected_prob_u)
    
     def test_bayes(self):
-        SmoothEstimator = self.mod_under_test
+        SmoothEstimator = self.get_module_to_eval()
         
         self.__init_test(test.SMALL_DEL_FILE)
         

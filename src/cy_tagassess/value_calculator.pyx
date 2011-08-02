@@ -4,8 +4,11 @@
 from __future__ import division, print_function
 
 from cy_tagassess cimport entropy
+from cy_tagassess.probability_estimates cimport SmoothEstimator
+
 from tagassess.recommenders import Recommender
 
+cimport cython
 import numpy as np
 cimport numpy as np
 
@@ -14,187 +17,202 @@ cdef class ValueCalculator(object):
     Class used to compute values. 
     Contains basic value functions and filtering.
     '''
-    cdef object est
+    cdef SmoothEstimator est
     cdef object recc
     
-    def __init__(self, object estimator, object recommender):
+    def __init__(self, SmoothEstimator estimator, object recommender):
         self.est = estimator
         self.recc = recommender
-        
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     def item_value(self, int user):
         '''
-        Creates a map for the relevance of each item to the given user.
+        Creates an array for the relevance of each item to the given user.
         
         See also
         --------
         tagassess.smooth
         tagassess.probability_estimates
         '''
-        cdef Py_ssize_t i = 0
-        
-        return_val = {}
-        for i in range(self.est.num_items()):
-            relevance = self.recc.relevance(user, i)
-            return_val[i] = relevance
+        cdef np.ndarray[np.float64_t, ndim=1] return_val
+        return_val = np.zeros(self.est.num_items(), dtype='d')
+
+        cdef Py_ssize_t item
+        for item in range(return_val.shape[0]):
+            relevance = self.recc.relevance(user, item)
+            return_val[item] = relevance
         return return_val
-
+    
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     def tag_value_ucontext(self, int user, 
-                           np.ndarray[np.int64_t, ndim=1] gamma_items = None):
+            np.ndarray[np.int64_t, ndim=1] gamma_items = None):
         '''
-        Creates a map for the value of each tag to the given user.
+        Creates an array for the value of each tag to the given user.
         
         See also
         --------
         tagassess.smooth
         tagassess.probability_estimates
         '''
-        cdef np.ndarray[np.int64_t, ndim=1] items
-        if gamma_items is not None:
-            items = gamma_items
-        else:
-            items = np.arange(self.est.num_items())
-
-        #Variables
-        cdef Py_ssize_t tag = 0
-        
-        cdef double p_u
-        cdef double p_t
-
-        cdef np.ndarray[np.float64_t, ndim=1] vp_i
-        cdef np.ndarray[np.float64_t, ndim=1] vp_ui
-        cdef np.ndarray[np.float64_t, ndim=1] vp_ti
+        cdef np.ndarray[np.float64_t, ndim=1] return_val
+        return_val = np.zeros(self.est.num_tags(), dtype='d')
+       
         cdef np.ndarray[np.float64_t, ndim=1] vp_iu
         cdef np.ndarray[np.float64_t, ndim=1] vp_itu
-            
-        est = self.est
-        
-        vp_i = est.vect_prob_item(items)
-        vp_ui = est.vect_prob_user_given_item(items, user)
-        p_u = est.prob_user(user) 
-        
-        #Computation
-        return_val = {}
-        for tag in range(self.est.num_tags()):
-            p_t = est.prob_tag(tag)
-            if p_t == 0:
-                return_val[tag] = 0
-                continue
-                
-            vp_ti = est.vect_prob_tag_given_item(items, tag)
-            
-            vp_iu = vp_ui * (vp_i / p_u)
-            vp_itu = vp_ti * vp_ui * (vp_i / (p_u * p_t))
-            
-            #Renormalization is necessary
-            vp_iu /= vp_iu.sum()
-            vp_itu /= vp_itu.sum()
+        cdef double tag_val
+        cdef Py_ssize_t tag
+        for tag in range(return_val.shape[0]):
+            vp_iu = self.rnorm_prob_items_given_user(user, gamma_items)
+            vp_itu = self.rnorm_prob_items_given_user_tag(user, tag, 
+                                                          gamma_items)
             
             tag_val = entropy.kullback_leiber_divergence(vp_itu, vp_iu)
             return_val[tag] = tag_val
         return return_val
     
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     def tag_value_gcontext(self, 
-                           np.ndarray[np.int64_t, ndim=1] gamma_items = None):
+            np.ndarray[np.int64_t, ndim=1] gamma_items = None):
         '''
-        Creates a map for the value of each tag in a global context.
+        Creates an array for the value of each tag in a global context.
          
         See also
         --------
         tagassess.smooth
         tagassess.probability_estimates
         '''
-        #Variables
-        cdef np.ndarray[np.int64_t, ndim=1] items
-        if gamma_items is not None:
-            items = gamma_items
-        else:
-            items = np.arange(self.est.num_items())
+        cdef np.ndarray[np.float64_t, ndim=1] return_val
+        return_val = np.zeros(self.est.num_tags(), dtype='d')
         
-        cdef Py_ssize_t tag = 0                 
-        cdef double p_t
-
-        cdef np.ndarray[np.float64_t, ndim=1] vp_i
-        cdef np.ndarray[np.float64_t, ndim=1] vp_ti
+        cdef np.ndarray[np.float64_t, ndim=1] vp_i = \
+                self.rnorm_prob_items(gamma_items)
+        
         cdef np.ndarray[np.float64_t, ndim=1] vp_it
-        
-        est = self.est
-        vp_i = est.vect_prob_item(items)
-        
-        #Computation
-        return_val = {}
-        for tag in range(self.est.num_tags()):
-            p_t = est.prob_tag(tag)
-            if p_t == 0:
-                return_val[tag] = 0
-                continue
-                
-            vp_ti = est.vect_prob_tag_given_item(items, tag)
-            
-            vp_it = vp_ti * (vp_i / p_t)
-            
-            #Renormalization is necessary
-            vp_it /= vp_it.sum()
-            vp_i /= vp_i.sum()
+        cdef double tag_val
+        cdef Py_ssize_t tag
+        for tag in range(return_val.shape[0]):
+            vp_it = self.rnorm_prob_items_given_tag(tag, gamma_items)
             
             tag_val = entropy.kullback_leiber_divergence(vp_it, vp_i)
             return_val[tag] = tag_val
         return return_val
 
-    cpdef np.ndarray[np.float64_t, ndim=1] prob_items_given_user_tag(self, 
-        user, tag, np.ndarray[np.int64_t, ndim=1] items):
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cpdef np.ndarray[np.float64_t, ndim=1] rnorm_prob_items_given_user(self, int user, 
+            np.ndarray[np.int64_t, ndim=1] gamma_items):
         '''
-        Computes the average of P(I|u,t)
+        Computes P(I|u)
          
         See also
         --------
         tagassess.smooth
         tagassess.probability_estimates
         '''
+        cdef np.ndarray[np.int64_t, ndim=1] items
+        if gamma_items is None:
+            items = np.arange(self.est.num_items())
+        else:
+            items = gamma_items
+        
+        cdef double p_u = self.est.prob_user(user)
+        
+        cdef np.ndarray[np.float64_t, ndim=1] vp_i = \
+                self.est.vect_prob_item(items)
+        cdef np.ndarray[np.float64_t, ndim=1] vp_ui = \
+                self.est.vect_prob_user_given_item(items, user)
+        
+        vp_iu = vp_ui * (vp_i / p_u)
+        vp_iu = vp_iu / vp_iu.sum()
+        return vp_iu
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cpdef np.ndarray[np.float64_t, ndim=1] rnorm_prob_items_given_user_tag(self,
+            int user, int tag, np.ndarray[np.int64_t, ndim=1] gamma_items):
+        '''
+        Computes P(I|u,t)
+         
+        See also
+        --------
+        tagassess.smooth
+        tagassess.probability_estimates
+        '''
+        cdef np.ndarray[np.int64_t, ndim=1] items
+        if gamma_items is None:
+            items = np.arange(self.est.num_items())
+        else:
+            items = gamma_items
+        
         cdef double p_t = self.est.prob_tag(tag)
         cdef double p_u = self.est.prob_user(user)
         
         cdef np.ndarray[np.float64_t, ndim=1] vp_i = \
-            self.est.vect_prob_item(items)
+                self.est.vect_prob_item(items)
         cdef np.ndarray[np.float64_t, ndim=1] vp_ui = \
-            self.est.vect_prob_user_given_item(items, user)
+                self.est.vect_prob_user_given_item(items, user)
         cdef np.ndarray[np.float64_t, ndim=1] vp_ti = \
-            self.est.vect_prob_tag_given_item(items, tag)
+                self.est.vect_prob_tag_given_item(items, tag)
 
-        cdef np.ndarray[np.float64_t, ndim=1] vp_itu
-        vp_itu = vp_ti * vp_ui * (vp_i / (p_u * p_t))
-        return vp_itu     
-
-    cpdef np.ndarray[np.float64_t, ndim=1] prob_items_given_user(self, int user,
-            np.ndarray[np.int64_t, ndim=1] items):
-        '''
-        Computes the average of P(I|u)
-         
-        See also
-        --------
-        tagassess.smooth
-        tagassess.probability_estimates
-        '''
-        cdef double p_u
-        cdef np.ndarray[np.float64_t, ndim=1] vp_i
-        cdef np.ndarray[np.float64_t, ndim=1] vp_ui
+        cdef np.ndarray[np.float64_t, ndim=1] vp_itu = \
+                vp_ti * vp_ui * (vp_i / (p_u * p_t))
         
-        p_u = self.est.prob_user(user)
-        vp_i = self.est.vect_prob_item(items)
-        vp_ui = self.est.vect_prob_user_given_item(items, user)
-        
-        vp_iu = vp_ui * (vp_i / p_u)
-        return vp_iu
+        vp_itu = vp_itu / vp_itu.sum()
+        return vp_itu
     
-    cpdef np.ndarray[np.float64_t, ndim=1] prob_items(self, np.ndarray[np.int64_t, ndim=1] items):
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cpdef np.ndarray[np.float64_t, ndim=1] rnorm_prob_items_given_tag(self, 
+            int tag, np.ndarray[np.int64_t, ndim=1] gamma_items):
         '''
-        Computes the average of P(I)
+        Computes P(I|t)
          
         See also
         --------
         tagassess.smooth
         tagassess.probability_estimates
         '''
+        cdef np.ndarray[np.int64_t, ndim=1] items
+        if gamma_items is None:
+            items = np.arange(self.est.num_items())
+        else:
+            items = gamma_items
         
-        cdef np.ndarray[np.float64_t, ndim=1] vp_i
-        vp_i = self.est.vect_prob_item(items)
+        cdef double p_t = self.est.prob_tag(tag)
+        
+        cdef np.ndarray[np.float64_t, ndim=1] vp_i = \
+                self.est.vect_prob_item(items)
+        cdef np.ndarray[np.float64_t, ndim=1] vp_ti = \
+                self.est.vect_prob_tag_given_item(items, tag)
+        
+        cdef np.ndarray[np.float64_t, ndim=1] vp_it = \
+                vp_ti * (vp_i / p_t)
+
+        vp_it = vp_it / vp_it.sum()
+        return vp_it
+    
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cpdef np.ndarray[np.float64_t, ndim=1] rnorm_prob_items(self, 
+           np.ndarray[np.int64_t, ndim=1] gamma_items):
+        '''
+        Computes P(I)
+         
+        See also
+        --------
+        tagassess.smooth
+        tagassess.probability_estimates
+        '''
+        cdef np.ndarray[np.int64_t, ndim=1] items
+        if gamma_items is None:
+            items = np.arange(self.est.num_items())
+        else:
+            items = gamma_items
+            
+        cdef np.ndarray[np.float64_t, ndim=1] vp_i = \
+                self.est.vect_prob_item(items)
+        vp_i = vp_i / vp_i.sum()
         return vp_i

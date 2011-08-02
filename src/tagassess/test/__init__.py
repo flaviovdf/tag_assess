@@ -23,10 +23,6 @@ class PyCyUnit(unittest.TestCase):
     This is an abstract class used to share the same
     test between Python and Cython versions of a module.
     '''
-    
-    def setUp(self):
-        self.mod_under_test = self.get_module_to_test()
-    
-    def get_module_to_test(self):
+    def get_module_to_eval(self, *args, **kwargs):
         '''Returns the module under test'''
         pass
