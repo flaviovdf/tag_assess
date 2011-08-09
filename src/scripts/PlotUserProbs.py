@@ -71,7 +71,7 @@ def compute_for_user(database, table, user, relevant, annotated,
             print('#%d annotated: %s' %(len(annotated), str(annotated_str)), 
                   file=info)
         
-        items = np.array(relevant)
+        items = np.array(relevant, dtype='l')
         v_piu = value_calc.rnorm_prob_items_given_user(user, items)
         v_dkl = value_calc.tag_value_ucontext(user, gamma_items=items)
         
