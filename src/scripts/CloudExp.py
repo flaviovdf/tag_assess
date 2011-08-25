@@ -126,6 +126,7 @@ def real_main(database, table, user_folder):
               'Pop_Size Pop_Precision Pop_Recall Pop_Coverage')
         
         #Queries from size 1 to 3
+        #TODO: Make this a parameter
         max_cloud_size = 20
         for query_size in xrange(1, 4):
             
