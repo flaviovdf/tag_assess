@@ -1,4 +1,11 @@
 # -*- coding: utf8
+'''
+This script an be used to compare multiple tag clouds based on the 
+following metrics:
+   * Precision
+   * Recall
+   * Coverage
+'''
 from __future__ import division, print_function
 
 __authors__ = ['Flavio Figueiredo - flaviovdf <at> gmail <dot-no-spam> com']
@@ -31,7 +38,8 @@ def get_possible_queries(relevant_items_f):
 
 def get_values_map(tag_values_f):
     '''Reads tag values'''
-        
+    
+    #TODO: Add other methods, such as TF*IDF and graph based ones.
     pop_map = {}
     dkl_map = {}
     
@@ -74,25 +82,46 @@ def build_cloud(tag_value_map, items, item_to_tag, max_size):
     
     return set(cloud)
 
-def summarize_cloud(relevant_items, cloud, tag_to_item, tags_to_cover):
-    '''Summarizes the cloud according to: precision, recall and coverage'''
+def avg_precision(relevant_items, cloud, tag_to_item):
+    '''Average precision for all tags in the cloud'''
     
     sum_precision = 0
+    for tag in cloud:
+        reachable = tag_to_item[tag]
+        intersect_tag_relevant = \
+          reachable.intersection(relevant_items)
+        
+        precision = len(intersect_tag_relevant) / len(reachable)
+        sum_precision += precision
+
+    return sum_precision / len(cloud)
+
+def avg_recall(relevant_items, cloud, tag_to_item):
+    '''Average recall for all tags in the cloud'''
+    
     sum_recall = 0
     for tag in cloud:
         reachable = tag_to_item[tag]
-        intersect = reachable.intersection(relevant_items)
+        intersect_tag_relevant = \
+          reachable.intersection(relevant_items)
         
-        sum_precision += len(intersect) / len(reachable)
-        sum_recall += len(intersect) / len(relevant_items)
-        
-    avg_precision = sum_precision / len(cloud)
-    avg_recall = sum_recall / len(cloud)
+        recall = len(intersect_tag_relevant) / len(relevant_items) 
+        sum_recall += recall
+
+    return sum_recall / len(cloud)
     
+def coverage(cloud, tags_to_cover):
+    '''Summarizes cloud according to coverage'''
+
     intersect_coverage = tags_to_cover.intersection(cloud)
-    coverage = len(intersect_coverage) / len(tags_to_cover)
+    return  len(intersect_coverage) / len(tags_to_cover)
+
+def summarize_cloud(relevant_items, cloud, tag_to_item, tags_to_cover):
+    '''Summarizes the cloud according to: precision, recall and coverage'''
     
-    return coverage, avg_precision, avg_recall
+    return coverage(cloud, tags_to_cover), \
+           avg_precision(relevant_items, cloud, tag_to_item), \
+           avg_recall(relevant_items, cloud, tag_to_item)
 
 def real_main(database, table, user_folder):
     info_f = os.path.join(user_folder, 'info')
@@ -122,7 +151,7 @@ def real_main(database, table, user_folder):
 
         
         print('#Query_size Query_Precision Query_Recall ' + \
-              'Dkl_Size Dkl_Precision Dkl_Recall Dkl_Coverage' + \
+              'Dkl_Size Dkl_Precision Dkl_Recall Dkl_Coverage ' + \
               'Pop_Size Pop_Precision Pop_Recall Pop_Coverage')
         
         #Queries from size 1 to 3
