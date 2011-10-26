@@ -17,7 +17,7 @@ def main(database, table):
     with AnnotReader(database) as reader:
         reader.change_table(table)
         print('tag', 'item', 'user', 'date', sep=',')
-        for row in table:
+        for row in reader.iterate():
             print(row['tag'], row['item'], row['user'], row['date'], sep=',')
 
 def create_parser(prog_name):
