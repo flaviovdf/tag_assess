@@ -32,9 +32,14 @@ class ValueCalculator(object):
             return_val[item] = relevance
         return return_val
     
-    def tag_value_ucontext(self, user, gamma_items = None):
+    def tag_value_personalized(self, user, gamma_items = None):
         '''
         Creates an array for the value of each tag to the given user.
+        In details, this computes:
+        
+        D( P(i | t, u) || P(i | u) ),
+        
+        where D is the kullback-leiber divergence.
         
         See also
         --------
@@ -51,10 +56,16 @@ class ValueCalculator(object):
             return_val[tag] = tag_val
         return return_val
     
-    def tag_value_gcontext(self, gamma_items = None):
+    def tag_value_item_search(self, gamma_items = None):
         '''
         Creates an array for the value of each tag in a global context.
-         
+        
+        In details, this computes:
+        
+        D( P(i | t) || P(i) ),
+        
+        where D is the kullback-leiber divergence.
+        
         See also
         --------
         tagassess.smooth
@@ -67,6 +78,31 @@ class ValueCalculator(object):
             vp_it = self.rnorm_prob_items_given_tag(tag, gamma_items)
             
             tag_val = entropy.kullback_leiber_divergence(vp_it, vp_i)
+            return_val[tag] = tag_val
+        return return_val
+
+    def tag_value_per_user_search(self, user, gamma_items = None):
+        '''
+        Creates an array for the value of each tag in a global context.
+        
+        In details, this computes:
+        
+        D( P(i | t) || P(i | u) ),
+        
+        where D is the kullback-leiber divergence.
+        
+        See also
+        --------
+        tagassess.smooth
+        tagassess.probability_estimates
+        '''
+        
+        return_val = np.zeros(self.est.num_items())
+        for tag in xrange(len(return_val)):
+            vp_iu = self.rnorm_prob_items_given_user(user, gamma_items)
+            vp_it = self.rnorm_prob_items_given_tag(tag, gamma_items)
+            
+            tag_val = entropy.kullback_leiber_divergence(vp_it, vp_iu)
             return_val[tag] = tag_val
         return return_val
 

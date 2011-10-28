@@ -216,6 +216,10 @@ class SmoothEstimator(ProbabilityEstimator):
     def tag_pop(self, tag):
         '''Returns the popularity of a tag'''
         return self.tag_col_freq[tag]
+
+    def item_tag_pop(self, item, tag):
+        '''Returns the popularity of a tag on an item'''
+        return self.item_tag_freq[item, tag]
     
     def num_items(self):
         '''Number of items'''

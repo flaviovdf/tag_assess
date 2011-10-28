@@ -80,3 +80,5 @@ cdef class SmoothEstimator:
             np.ndarray[np.int64_t, ndim=1] items, int tag)
    
     cpdef double tag_pop(self, int tag)
+
+    cpdef double item_tag_pop(self, int item, int tag)

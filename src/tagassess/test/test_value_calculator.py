@@ -39,7 +39,7 @@ class TestValueCaculator(PyCyUnit):
             for annot in parser.iparse(in_f, data_parser.delicious_flickr_parser):
                 self.annots.append(annot)
     
-    def test_itag_value_user(self):
+    def test_itag_value_personalized(self):
         self.__init_test(test.SMALL_DEL_FILE)
         
         smooth_func = 'Bayes'
@@ -59,7 +59,7 @@ class TestValueCaculator(PyCyUnit):
         
         for user in [0, 1, 2]:
             pu = pus[user]
-            tag_vals = vc.tag_value_ucontext(user)
+            tag_vals = vc.tag_value_personalized(user)
             
             for tag in [0, 1, 2, 3, 4, 5]:
                 pt = est.prob_tag(tag)
@@ -87,7 +87,7 @@ class TestValueCaculator(PyCyUnit):
                 #Assert
                 self.assertAlmostEquals(tag_vals[tag], val)
 
-    def test_itag_value_user_fiter_items(self):
+    def test_itag_value_personalized_filter(self):
         self.__init_test(test.SMALL_DEL_FILE)
         
         smooth_func = 'Bayes'
@@ -107,7 +107,7 @@ class TestValueCaculator(PyCyUnit):
         
         for user in [0, 1, 2]:
             pu = pus[user]
-            tag_vals = vc.tag_value_ucontext(user, np.array([0, 1, 2]))
+            tag_vals = vc.tag_value_personalized(user, np.array([0, 1, 2]))
             
             for tag in [0, 1, 2, 3, 4, 5]:
                 pt = est.prob_tag(tag)
@@ -135,14 +135,14 @@ class TestValueCaculator(PyCyUnit):
                 #Assert
                 self.assertAlmostEquals(tag_vals[tag], val)
 
-    def test_itag_value_global(self):
+    def test_itag_value_item_search(self):
         self.__init_test(test.SMALL_DEL_FILE)
         
         smooth_func = 'Bayes'
         lambda_ = 0.3
         est, vc = self.get_module_to_eval(self.annots, smooth_func, lambda_)
         
-        tag_vals = vc.tag_value_gcontext()
+        tag_vals = vc.tag_value_item_search()
         for tag in [0, 1, 2, 3, 4, 5]:
             #Iterative calculation
             pt = est.prob_tag(tag)
@@ -168,24 +168,34 @@ class TestValueCaculator(PyCyUnit):
         for val in vc.item_value(0):
             self.assertTrue(val < 0)
             
-    def test_valid_values_user(self):
+    def test_valid_values_personalized(self):
         self.__init_test(test.SMALL_DEL_FILE)
         
         smooth_func = 'Bayes'
         lambda_ = 0.1
         est, vc = self.get_module_to_eval(self.annots, smooth_func, lambda_)
         
-        for val in vc.tag_value_ucontext(0):
+        for val in vc.tag_value_personalized(0):
             self.assertTrue(val >= 0)
 
-    def test_valid_values_global(self):
+    def test_valid_values_per_user(self):
         self.__init_test(test.SMALL_DEL_FILE)
         
         smooth_func = 'Bayes'
         lambda_ = 0.1
         est, vc = self.get_module_to_eval(self.annots, smooth_func, lambda_)
         
-        for val in vc.tag_value_gcontext():
+        for val in vc.tag_value_per_user_search(0):
+            self.assertTrue(val >= 0)
+
+    def test_valid_values_item_search(self):
+        self.__init_test(test.SMALL_DEL_FILE)
+        
+        smooth_func = 'Bayes'
+        lambda_ = 0.1
+        est, vc = self.get_module_to_eval(self.annots, smooth_func, lambda_)
+        
+        for val in vc.tag_value_item_search():
             self.assertTrue(val >= 0)
     
     def test_mean_probs(self):

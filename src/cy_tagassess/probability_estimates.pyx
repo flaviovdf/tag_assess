@@ -408,6 +408,10 @@ cdef class SmoothEstimator:
     cpdef double tag_pop(self, int tag):
         '''Returns the popularity of a tag'''
         return self.tag_col_freq[tag]
+
+    cpdef double item_tag_pop(self, int item, int tag):
+        '''Returns the popularity of a tag on an item'''
+        return self.item_tag_freq[item, tag]
    
     def  num_items(self):
         '''Number of items'''
