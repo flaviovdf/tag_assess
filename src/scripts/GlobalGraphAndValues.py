@@ -58,7 +58,7 @@ def compute_tag_values(smooth_func, lambda_, annotation_it,
     recc = ProbabilityReccomender(est)
     value_calc = value_calculator.ValueCalculator(est, recc)
     
-    tag_value = value_calc.tag_value_gcontext()
+    tag_value = value_calc.tag_value_item_search()
     with io.open(os.path.join(out_folder, 'tag.values'), 'w') as values:
         for tag, tag_val in enumerate(tag_value):
             items = np.array([item for item in tag_to_item[tag]])

@@ -69,60 +69,6 @@ def get_user_relevant_items(info_f):
 
     return user, relevant_items
 
-def build_cloud(tag_value_map, items, item_to_tag, max_size):
-    '''Returns the set of tags in the cloud'''
-    
-    possible_tags = set()
-    for item in items:
-        for tag in item_to_tag[item]:
-            possible_tags.add(tag)
-
-    cloud = heapq.nlargest(max_size, possible_tags, 
-                           key=lambda tag: tag_value_map[tag])
-    
-    return set(cloud)
-
-def avg_precision(relevant_items, cloud, tag_to_item):
-    '''Average precision for all tags in the cloud'''
-    
-    sum_precision = 0
-    for tag in cloud:
-        reachable = tag_to_item[tag]
-        intersect_tag_relevant = \
-          reachable.intersection(relevant_items)
-        
-        precision = len(intersect_tag_relevant) / len(reachable)
-        sum_precision += precision
-
-    return sum_precision / len(cloud)
-
-def avg_recall(relevant_items, cloud, tag_to_item):
-    '''Average recall for all tags in the cloud'''
-    
-    sum_recall = 0
-    for tag in cloud:
-        reachable = tag_to_item[tag]
-        intersect_tag_relevant = \
-          reachable.intersection(relevant_items)
-        
-        recall = len(intersect_tag_relevant) / len(relevant_items) 
-        sum_recall += recall
-
-    return sum_recall / len(cloud)
-    
-def coverage(cloud, tags_to_cover):
-    '''Summarizes cloud according to coverage'''
-
-    intersect_coverage = tags_to_cover.intersection(cloud)
-    return  len(intersect_coverage) / len(tags_to_cover)
-
-def summarize_cloud(relevant_items, cloud, tag_to_item, tags_to_cover):
-    '''Summarizes the cloud according to: precision, recall and coverage'''
-    
-    return coverage(cloud, tags_to_cover), \
-           avg_precision(relevant_items, cloud, tag_to_item), \
-           avg_recall(relevant_items, cloud, tag_to_item)
-
 def real_main(database, table, user_folder):
     info_f = os.path.join(user_folder, 'info')
     relevant_items_f = os.path.join(user_folder, 'relevant_item.tags')
@@ -144,11 +90,6 @@ def real_main(database, table, user_folder):
                 }
         
         iterator = reader.iterate(query=query)
-        tag_to_item, item_to_tag = \
-            index_creator.create_double_occurrence_index(iterator, 
-                                                          'tag', 
-                                                          'item')
-
         
         print('#Query_size Query_Precision Query_Recall ' + \
               'Dkl_Size Dkl_Precision Dkl_Recall Dkl_Coverage ' + \
@@ -161,17 +102,6 @@ def real_main(database, table, user_folder):
             
             queries = itertools.combinations(possible_queries, query_size)
             for query in queries:
-                
-                #Simple and possibly inefficient AND search
-                query_result = set()
-                for term in query:
-                    if len(query_result) == 0:
-                        query_result.update(tag_to_item[term])
-                    else:
-                        query_result.intersection_update(tag_to_item[term])
-                
-                if len(query_result) == 0:
-                    continue
                 
                 #Query results summary
                 intersect = query_result.intersection(rel_items)

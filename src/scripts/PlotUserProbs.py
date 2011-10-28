@@ -73,7 +73,7 @@ def compute_for_user(database, table, user, relevant, annotated,
         
         items = np.array(relevant, dtype='l')
         v_piu = value_calc.rnorm_prob_items_given_user(user, items)
-        v_dkl = value_calc.tag_value_ucontext(user, gamma_items=items)
+        v_dkl = value_calc.tag_value_personalized(user, gamma_items=items)
         
         v_dkl_argsort = v_dkl.argsort()
         top_5_tags = v_dkl_argsort[:5]
@@ -85,11 +85,13 @@ def compute_for_user(database, table, user, relevant, annotated,
         for i, tag in enumerate(top_5_tags):
             v_pitu = value_calc.rnorm_prob_items_given_user_tag(user, tag, items)
             write_points_file(v_pitu, os.path.join(user_folder, 
-                                                   'v_pitu_tag_%d_top_%d.dat' % (tag, i + 1)))
+                                                   'v_pitu_tag_%d_top_%d.dat'
+                                                   % (tag, i + 1)))
         for i, tag in enumerate(bottom_5_tags):
             v_pitu = value_calc.rnorm_prob_items_given_user_tag(user, tag, items)
             write_points_file(v_pitu, os.path.join(user_folder, 
-                                                   'v_pitu_tag_%d_bottom_%d.dat' % (tag, 5 - i)))
+                                                   'v_pitu_tag_%d_bottom_%d.dat' 
+                                                   % (tag, 5 - i)))
         
 def real_main(database, table, smooth_func, lambda_, user_profile_size,
               out_folder, n_proc, user_ids):

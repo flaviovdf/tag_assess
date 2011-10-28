@@ -34,10 +34,10 @@ import traceback
 
 def compute_tag_values(est, value_calc, tag_to_item, 
                        user, user_folder, items_to_consider):
-    tag_value = value_calc.tag_value_ucontext(user, 
-                                              gamma_items = items_to_consider)
+    tag_value = value_calc.tag_value_personalized(user, 
+                                                gamma_items = items_to_consider)
     with io.open(os.path.join(user_folder, 'tag.values'), 'w') as values:
-        values.write(u'#TAG POP D RHO D*RHO\n')
+        values.write(u'#TAG POP TF IDF TDF_IDF D RHO D*RHO\n')
         for tag, tag_val in enumerate(tag_value):
             
             #Mean P(I|u)
@@ -84,12 +84,15 @@ def compute_for_user(database, table, user, relevant, annotated,
             relevant_str = ' '.join([str(i) for i in relevant])
             annotated_str = ' '.join([str(i) for i in annotated])
             
-            info.write(u'# %d relevant  items: %s\n' %(len(relevant), str(relevant_str)))
-            info.write(u'# %d annotated items: %s\n' %(len(annotated), str(annotated_str)))
+            info.write(u'# %d relevant  items: %s\n' %(len(relevant), 
+                                                       str(relevant_str)))
+            info.write(u'# %d annotated items: %s\n' %(len(annotated), 
+                                                       str(annotated_str)))
         
         #Create Graph
+        iterator = reader.iterate(query = query)
         tag_to_item, item_to_tag = \
-            index_creator.create_double_occurrence_index(reader.iterate(query = query), 
+            index_creator.create_double_occurrence_index(iterator, 
                                                          'tag', 'item')
             
         #Items to consider <-> Gamma items
@@ -101,7 +104,8 @@ def compute_for_user(database, table, user, relevant, annotated,
                            user_folder, 
                            np.array([i for i in items_to_consider]))
         
-        with io.open(os.path.join(user_folder, 'relevant_item.tags'), 'w') as rel:
+        relevant_tags_fpath = os.path.join(user_folder, 'relevant_item.tags')
+        with io.open(relevant_tags_fpath, 'w') as rel:
             rel.write(u'#ITEM TAG\n')
             for item in relevant:
                 for tag in item_to_tag[item]:
