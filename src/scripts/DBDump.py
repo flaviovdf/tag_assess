@@ -11,14 +11,17 @@ __date__ = '23/10/2011'
 
 import argparse
 import sys
+import time
 import traceback
 
 def main(database, table):
     with AnnotReader(database) as reader:
         reader.change_table(table)
-        print('tag', 'item', 'user', 'date', sep=',')
+        print('#tag', 'item', 'user', 'date', sep=',')
         for row in reader.iterate():
-            print(row['tag'], row['item'], row['user'], row['date'], sep=',')
+            timestmp = time.strftime('%Y-%m-%d %H:%M:%S', 
+                                     time.localtime(row['date']))
+            print(row['tag'], row['item'], row['user'], timestmp, sep=',')
 
 def create_parser(prog_name):
     desc = __doc__
