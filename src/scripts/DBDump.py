@@ -4,10 +4,10 @@ This script dumps a Mongo database table to a CSV format.
 '''
 from __future__ import division, print_function
 
-from tagassess.dao.mongodb.annotations import AnnotReader
-
 __authors__ = ['Flavio Figueiredo - flaviovdf <at> gmail <dot-no-spam> com']
 __date__ = '23/10/2011'
+
+from tagassess.dao.mongodb.annotations import AnnotReader
 
 import argparse
 import sys

@@ -36,7 +36,8 @@ class TestValueCaculator(PyCyUnit):
     def __init_test(self, annot_file):
         parser = data_parser.Parser()
         with open(annot_file) as in_f:
-            for annot in parser.iparse(in_f, data_parser.delicious_flickr_parser):
+            for annot in parser.iparse(in_f, 
+                                       data_parser.delicious_flickr_parser):
                 self.annots.append(annot)
     
     def test_itag_value_personalized(self):
@@ -197,16 +198,3 @@ class TestValueCaculator(PyCyUnit):
         
         for val in vc.tag_value_item_search():
             self.assertTrue(val >= 0)
-    
-    def test_mean_probs(self):
-        self.__init_test(test.SMALL_DEL_FILE)
-        
-        smooth_func = 'Bayes'
-        lambda_ = 0.1
-        est, vc = self.get_module_to_eval(self.annots, smooth_func, lambda_)
-        
-        self.assertEquals(vc.rnorm_prob_items(np.array([0])).mean(), 1)
-        self.assertEquals(vc.rnorm_prob_items_given_user(0, np.array([0])).mean(), 1)
-        
-        self.assertEquals(vc.rnorm_prob_items_given_user(0, np.array([0, 0])).mean(), 0.5)
-        self.assertEquals(vc.rnorm_prob_items_given_user(0, np.array([0, 0])).mean(), 0.5)

@@ -27,7 +27,8 @@ cdef class SmoothEstimator:
     Implementation of a similar approach as proposed in:
     
     Personalization of Tagging Systems, 
-    Wang, Jun, Clements Maarten, Yang J., de Vries Arjen P., and Reinders Marcel J. T. , 
+    Wang, Jun, Clements Maarten, Yang J., de Vries Arjen P., and 
+    Reinders Marcel J. T. , 
     Information Processing and Management, Volume 46, Issue 1, p.58-70, (2010)
     
     In details:
@@ -35,10 +36,12 @@ cdef class SmoothEstimator:
         * P(t|i) = P(t|M_i)$ where, $M_i$ is a smoothed model of the items
         * P(t) = Sum of P(t|i) * P(i) for every item
         * P(u) and P(u|i) considers users as tags. More specifically, the past
-          tags used by the user. So, these two functions will make use of $P(t)$ and $P(t|i)$.
+          tags used by the user. So, these two functions will make use of $P(t)$
+           and $P(t|i)$.
     '''
 
-    def __init__(self, smooth_method, lambda_, annotation_it, user_profile_size = -1):
+    def __init__(self, smooth_method, lambda_, annotation_it, 
+                 user_profile_size = -1):
         super(SmoothEstimator, self).__init__()
         
         smooths = {'JM':JM,
@@ -145,13 +148,14 @@ cdef class SmoothEstimator:
 
         if tag < 0 or tag >= self.n_tags:
             return 0.0
-        
+       
+        #Uses OpenMP
         cdef double return_val = 0.0
-        cdef double prob_tag_item
-        
+        cdef Py_ssize_t item
         for item in range(self.n_items):
-            prob_tag_item = self.prob_tag_given_item(item, tag)
-            return_val += self.item_col_mle[item] * prob_tag_item
+            return_val += self.item_col_mle[item] * \
+                          self.prob_tag_given_item(item, tag)
+
         return return_val
     
     @cython.boundscheck(False)
@@ -203,8 +207,8 @@ cdef class SmoothEstimator:
         cdef np.ndarray[np.int64_t, ndim=1] utags = \
                 self.user_tags[user]
 
-        cdef Py_ssize_t i
         cdef double return_val = 1.0
+        cdef Py_ssize_t i
         for i in range(utags.shape[0]):
             return_val *= self.prob_tag(utags[i])
         return return_val
@@ -223,8 +227,8 @@ cdef class SmoothEstimator:
         cdef np.ndarray[np.int64_t, ndim=1] utags = \
                 self.user_tags[user]
         
-        cdef Py_ssize_t i
         cdef double return_val = 1.0
+        cdef Py_ssize_t i
         for i in range(utags.shape[0]):
             return_val *= self.prob_tag_given_item(item, utags[i])
         return return_val
@@ -413,7 +417,7 @@ cdef class SmoothEstimator:
         '''Returns the popularity of a tag on an item'''
         return self.item_tag_freq[item, tag]
    
-    def  num_items(self):
+    def num_items(self):
         '''Number of items'''
         return self.n_items
     

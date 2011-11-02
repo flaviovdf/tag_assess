@@ -18,18 +18,20 @@ __date__ = '01/11/2011'
 
 try:
     from cy_tagassess.probability_estimates import SmoothEstimator
+    from cy_tagassess.value_calculator import ValueCalculator
 except ImportError:
     print('!!! UNABLE TO IMPORT CYTHON MODULES ''')
     from tagassess.probability_estimates import SmoothEstimator
+    from tagassess.value_calculator import ValueCalculator
 
 from tagassess.dao.mongodb.annotations import AnnotReader
 
 import argparse
-import numpy as np
+import random
 import sys
 import traceback
 
-def compute_probabilites(estimator, tag):
+def compute_probabilites(value_calculator, tag, items):
     '''
     Compute the probabilities we want to print out:
         * p(t) t a tag
@@ -38,29 +40,32 @@ def compute_probabilites(estimator, tag):
         * p(i|t) for all i in I (items)
         * the popularity of the tag
     '''
-    items = np.arange(estimator.num_items())
+    estimator = value_calculator.est
     
     prob_tag = estimator.prob_tag(tag)
-    vprob_item = estimator.vect_prob_item(items)
+    vprob_item = value_calculator.rnorm_prob_items(items)
     vprob_tag_given_item = estimator.vect_prob_tag_given_item(items, tag)
-    
-    #We have to compute P(i|t) for all items, the estimator deals with p(t|i)
-    #only
-    vprob_item_given_tag = vprob_tag_given_item * (vprob_item / prob_tag)
-
+    vprob_item_given_tag = value_calculator.rnorm_prob_items_given_tag(items)
     pop_tag = estimator.tag_pop(tag)
+
     return (prob_tag, vprob_item, vprob_tag_given_item, 
             vprob_item_given_tag, pop_tag)
     
 def main(database, table, smooth_func, lambda_):
     with AnnotReader(database) as reader:
         reader.change_table(table)
-        est = SmoothEstimator(smooth_func, lambda_, reader.iterate())
+        
+        estimator = SmoothEstimator(smooth_func, lambda_, reader.iterate())
+        calculator = ValueCalculator(estimator, None)
+        
+        items = range(estimator.num_items())
+        random.shuffle(items)
+        gamma_items = items[:100]
         
         print('#tag', 'item', 'p(t)', 'p(i)', 'p(t|i)','p(i|t)', 'pop_tag', 
               sep=',')
-        for tag in xrange(est.num_tags()):
-            return_value = compute_probabilites(est, tag)
+        for tag in xrange(estimator.num_tags()):
+            return_value = compute_probabilites(calculator, tag, gamma_items)
             prob_tag = return_value[0]
             vprob_item = return_value[1]
             vprob_tag_given_item = return_value[2]

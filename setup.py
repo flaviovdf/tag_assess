@@ -55,11 +55,14 @@ def get_extensions():
         module = pyx.replace('.pyx', '').replace('/', '.')
         
         if os.path.exists(pxd):
-            extensions.append(Extension(module, [pyx, pxd], 
-                include_dirs=[numpy.get_include()]))
+            ext_files = [pyx, pxd]
         else:
-            extensions.append(Extension(module, [pyx], 
-                include_dirs=[numpy.get_include()]))
+            ext_files = [pyx]
+
+        extension = Extension(module, ext_files, 
+                              include_dirs=[numpy.get_include()])
+        
+        extensions.append(extension)
     
     return extensions
 

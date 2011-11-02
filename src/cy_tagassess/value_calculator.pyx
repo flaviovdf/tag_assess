@@ -5,7 +5,6 @@ from __future__ import division, print_function
 
 from cy_tagassess cimport entropy
 from cy_tagassess.probability_estimates cimport SmoothEstimator
-
 from tagassess.recommenders import Recommender
 
 cimport cython
@@ -144,7 +143,6 @@ cdef class ValueCalculator(object):
             return_val[tag] = tag_val
         return return_val
         
-        
     @cython.boundscheck(False)
     @cython.wraparound(False)
     cpdef np.ndarray[np.float64_t, ndim=1] rnorm_prob_items_given_user(self, int user, 
@@ -164,14 +162,21 @@ cdef class ValueCalculator(object):
             items = gamma_items
         
         cdef double p_u = self.est.prob_user(user)
-        
         cdef np.ndarray[np.float64_t, ndim=1] vp_i = \
                 self.est.vect_prob_item(items)
         cdef np.ndarray[np.float64_t, ndim=1] vp_ui = \
                 self.est.vect_prob_user_given_item(items, user)
         
-        vp_iu = vp_ui * (vp_i / p_u)
-        vp_iu = vp_iu / vp_iu.sum()
+        cdef np.ndarray[np.float64_t, ndim=1] vp_iu = np.ndarray(items.shape[0])
+        cdef Py_ssize_t i
+        cdef double sum_probs = 0
+        for i in range(items.shape[0]):
+            vp_iu[i] = vp_ui[i] * vp_i[i] / p_u
+            sum_probs += vp_iu[i]
+        
+        for i in range(items.shape[0]):
+            vp_iu[i] = vp_iu[i] / sum_probs
+
         return vp_iu
 
     @cython.boundscheck(False)
@@ -203,9 +208,16 @@ cdef class ValueCalculator(object):
                 self.est.vect_prob_tag_given_item(items, tag)
 
         cdef np.ndarray[np.float64_t, ndim=1] vp_itu = \
-                vp_ti * vp_ui * (vp_i / (p_u * p_t))
-        
-        vp_itu = vp_itu / vp_itu.sum()
+                np.ndarray(items.shape[0])
+        cdef Py_ssize_t i
+        cdef double sum_probs = 0
+        for i in range(items.shape[0]):
+            vp_itu[i] = vp_ti[i] * vp_ui[i] * (vp_i[i] / (p_u * p_t))
+            sum_probs += vp_itu[i]
+
+        for i in range(items.shape[0]):
+            vp_itu[i] = vp_itu[i] / sum_probs
+
         return vp_itu
     
     @cython.boundscheck(False)
@@ -233,10 +245,16 @@ cdef class ValueCalculator(object):
         cdef np.ndarray[np.float64_t, ndim=1] vp_ti = \
                 self.est.vect_prob_tag_given_item(items, tag)
         
-        cdef np.ndarray[np.float64_t, ndim=1] vp_it = \
-                vp_ti * (vp_i / p_t)
+        cdef np.ndarray[np.float64_t, ndim=1] vp_it = np.ndarray(items.shape[0])
+        cdef Py_ssize_t i
+        cdef double sum_probs = 0
+        for i in range(items.shape[0]):
+            vp_it[i] = vp_ti[i] * vp_i[i] / p_t 
+            sum_probs += vp_it[i]
+        
+        for i in range(items.shape[0]):
+            vp_it[i] = vp_it[i] / sum_probs
 
-        vp_it = vp_it / vp_it.sum()
         return vp_it
     
     @cython.boundscheck(False)
@@ -259,5 +277,10 @@ cdef class ValueCalculator(object):
             
         cdef np.ndarray[np.float64_t, ndim=1] vp_i = \
                 self.est.vect_prob_item(items)
-        vp_i = vp_i / vp_i.sum()
+
+        cdef Py_ssize_t i
+        cdef double sum_probs = sum(vp_i)
+        for i in range(items.shape[0]):
+            vp_i[i] = vp_i[i] / sum_probs
+
         return vp_i

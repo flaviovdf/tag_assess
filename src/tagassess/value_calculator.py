@@ -109,7 +109,15 @@ class ValueCalculator(object):
     def rnorm_prob_items_given_user(self, user, gamma_items = None):
         '''
         Computes P(I|u)
-         
+        
+        Arguments
+        ---------
+        user: int
+            The user to consider
+        gamma_items: iterable of ints
+            The item ids to consider, if None all possible items will be
+            considered
+        
         See also
         --------
         tagassess.smooth
@@ -131,6 +139,16 @@ class ValueCalculator(object):
     def rnorm_prob_items_given_user_tag(self, user, tag, gamma_items = None):
         '''
         Computes P(I|u,t)
+         
+        Arguments
+        ---------
+        user: int
+            The user to consider
+        tag: int
+            The tag to consider
+        gamma_items: iterable of ints
+            The item ids to consider, if None all possible items will be
+            considered
          
         See also
         --------
@@ -156,7 +174,15 @@ class ValueCalculator(object):
     def rnorm_prob_items_given_tag(self, tag, gamma_items = None):
         '''
         Computes P(I|t)
-         
+        
+        Arguments
+        ---------
+        tag: int
+            The tag to consider
+        gamma_items: iterable of ints
+            The item ids to consider, if None all possible items will be
+            considered
+        
         See also
         --------
         tagassess.smooth
@@ -178,7 +204,13 @@ class ValueCalculator(object):
     def rnorm_prob_items(self, gamma_items = None):
         '''
         Computes P(I)
-         
+        
+        Arguments
+        ---------
+        gamma_items: iterable of ints
+            The item ids to consider, if None all possible items will be
+            considered
+        
         See also
         --------
         tagassess.smooth
