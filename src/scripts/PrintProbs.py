@@ -23,6 +23,7 @@ except ImportError:
     from tagassess.probability_estimates import SmoothEstimator
     from tagassess.value_calculator import ValueCalculator
 
+from collections import Counter
 from tagassess.dao.mongodb.annotations import AnnotReader
 
 import argparse
@@ -30,7 +31,7 @@ import numpy as np
 import sys
 import traceback
 
-def main(database, table, smooth_func, lambda_):
+def main(database, table, smooth_func, lambda_, min_tag_freq):
     with AnnotReader(database) as reader:
         reader.change_table(table)
         
@@ -39,9 +40,19 @@ def main(database, table, smooth_func, lambda_):
         
         gamma_items = np.arange(estimator.num_items())
         
+        tags_to_consider = []
+        if min_tag_freq < 0: #All tags
+            tags_to_consider = range(estimator.num_tags())
+        else:
+            counter = Counter(annot['tag'] for annot in reader.iterate())
+            for tag, pop in counter.iteritems():
+                if pop >= min_tag_freq:
+                    tags_to_consider.append(tag)
+        
+        print('#total_tags =', len(tags_to_consider))
         print('#tag_id', 'item', 'p(t)', 'p(i|t)', 'pop_tag', 
               'pop_tag_on_item', sep='|')
-        for tag in xrange(estimator.num_tags()):
+        for tag in tags_to_consider:
             
             prob_tag = estimator.prob_tag(tag)
             pop_tag = estimator.tag_pop(tag)
@@ -68,6 +79,9 @@ def create_parser(prog_name):
     parser.add_argument('lambda_', type=float,
                         help='Lambda to use, between [0, 1]')
 
+    parser.add_argument('--min_tag_freq', type=float, default=-1,
+                        help='Ignore tags with frequency less than this value')
+
     return parser
 
 def entry_point(args=None):
@@ -81,7 +95,7 @@ def entry_point(args=None):
     
     try:
         return main(values.database, values.table, values.smooth_func, 
-                    values.lambda_)
+                    values.lambda_, values.min_tag_freq)
     except:
         traceback.print_exc()
         parser.print_usage(file=sys.stderr)
