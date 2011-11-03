@@ -27,30 +27,9 @@ except ImportError:
 from tagassess.dao.mongodb.annotations import AnnotReader
 
 import argparse
-import random
 import sys
 import traceback
 
-def compute_probabilites(value_calculator, tag, items):
-    '''
-    Compute the probabilities we want to print out:
-        * p(t) t a tag
-        * p(i) i is an item
-        * p(t|i) for all i in I (items)
-        * p(i|t) for all i in I (items)
-        * the popularity of the tag
-    '''
-    estimator = value_calculator.est
-    
-    prob_tag = estimator.prob_tag(tag)
-    vprob_item = value_calculator.rnorm_prob_items(items)
-    vprob_tag_given_item = estimator.vect_prob_tag_given_item(items, tag)
-    vprob_item_given_tag = value_calculator.rnorm_prob_items_given_tag(items)
-    pop_tag = estimator.tag_pop(tag)
-
-    return (prob_tag, vprob_item, vprob_tag_given_item, 
-            vprob_item_given_tag, pop_tag)
-    
 def main(database, table, smooth_func, lambda_):
     with AnnotReader(database) as reader:
         reader.change_table(table)
@@ -58,24 +37,20 @@ def main(database, table, smooth_func, lambda_):
         estimator = SmoothEstimator(smooth_func, lambda_, reader.iterate())
         calculator = ValueCalculator(estimator, None)
         
-        items = range(estimator.num_items())
-        random.shuffle(items)
-        gamma_items = items[:100]
+        gamma_items = range(estimator.num_items())
         
-        print('#tag', 'item', 'p(t)', 'p(i)', 'p(t|i)','p(i|t)', 'pop_tag', 
-              sep=',')
+        print('#tag_id', 'item', 'p(t)', 'p(i|t)', 'pop_tag', 
+              'pop_tag_on_item', sep='|')
         for tag in xrange(estimator.num_tags()):
-            return_value = compute_probabilites(calculator, tag, gamma_items)
-            prob_tag = return_value[0]
-            vprob_item = return_value[1]
-            vprob_tag_given_item = return_value[2]
-            vprob_item_given_tag = return_value[3]
-            pop_tag = return_value[4]
-                
-            for item in xrange(len(vprob_item)):
-                print(tag, item, prob_tag, vprob_item[item],
-                      vprob_tag_given_item[item], vprob_item_given_tag[item], 
-                      pop_tag, sep=',')
+            
+            prob_tag = estimator.prob_tag(tag)
+            pop_tag = estimator.tag_pop(tag)
+            v_prob_it = calculator.rnorm_prob_items_given_tag(tag, gamma_items)
+            
+            for item in gamma_items:
+                pop_tag_on_item = estimator.item_tag_pop(item, tag)
+                print(tag, item, prob_tag, v_prob_it[item], pop_tag, 
+                      pop_tag_on_item, sep='|')
                 
 def create_parser(prog_name):
     desc = __doc__

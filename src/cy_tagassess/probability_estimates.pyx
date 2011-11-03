@@ -149,7 +149,6 @@ cdef class SmoothEstimator:
         if tag < 0 or tag >= self.n_tags:
             return 0.0
        
-        #Uses OpenMP
         cdef double return_val = 0.0
         cdef Py_ssize_t item
         for item in range(self.n_items):
