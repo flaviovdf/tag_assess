@@ -1,14 +1,8 @@
 #-*- coding: utf8
 '''
 For a given annotation table in the database, a smooth function and 
-a lambda value; this script prints out:
-
-for every t in tags
-    * p(t) t is the given `tag`
-    * the popularity of the tag
-    for every i in items
-        * p(i|t) for all i in I (items)
-        * the popularity of the tag on the item
+a lambda value; this will compute the probability of the item on a 
+given tag and insert it on a Mongo database.
 '''
 from __future__ import division, print_function
 
@@ -24,6 +18,9 @@ except ImportError:
     from tagassess.value_calculator import ValueCalculator
 
 from collections import Counter
+from pymongo import ASCENDING
+from pymongo import Connection
+
 from tagassess.dao.mongodb.annotations import AnnotReader
 
 import argparse
@@ -31,15 +28,16 @@ import numpy as np
 import sys
 import traceback
 
-def main(database, table, smooth_func, lambda_, min_tag_freq):
+def main(database, table, smooth_func, lambda_, db_name, tname, min_tag_freq):
+    
     with AnnotReader(database) as reader:
         reader.change_table(table)
         
+        #Builds value calculator
         estimator = SmoothEstimator(smooth_func, lambda_, reader.iterate())
         calculator = ValueCalculator(estimator, None)
         
-        gamma_items = np.arange(estimator.num_items())
-        
+        #Determine tags which will be considered
         tags_to_consider = []
         if min_tag_freq < 0: #All tags
             tags_to_consider = range(estimator.num_tags())
@@ -48,20 +46,33 @@ def main(database, table, smooth_func, lambda_, min_tag_freq):
             for tag, pop in counter.iteritems():
                 if pop >= min_tag_freq:
                     tags_to_consider.append(tag)
-        
-        print('#total_tags =', len(tags_to_consider))
-        print('#tag_id', 'item', 'p(t)', 'p(i|t)', 'pop_tag', 
-              'pop_tag_on_item', sep='|')
-        for tag in tags_to_consider:
+                    
+        #Dumps probabilities
+        connection = None
+        database = None
+        try:
+            connection = Connection()
+            database = connection[db_name]
             
-            prob_tag = estimator.prob_tag(tag)
-            pop_tag = estimator.tag_pop(tag)
-            v_prob_it = calculator.rnorm_prob_items_given_tag(tag, gamma_items)
+            if tname in database.collection_names():
+                print('Table already exists', file=sys.stderr)
+                return 2
             
-            for item in gamma_items:
-                pop_tag_on_item = estimator.item_tag_pop(item, tag)
-                print(tag, item, prob_tag, v_prob_it[item], pop_tag, 
-                      pop_tag_on_item, sep='|')
+            table = database[tname]
+            table.ensure_index([('tag', ASCENDING), ('item', ASCENDING)])
+            
+            gamma_items = np.arange(estimator.num_items())
+            for tag in tags_to_consider:
+                v_prob_it = calculator.rnorm_prob_items_given_tag(tag, 
+                                                                  gamma_items)
+                for item in gamma_items:
+                    prob = v_prob_it[item]
+                    table.insert({'tag':tag, 'item':item, 'prob_it':prob})
+                
+        finally:
+            if connection:
+                connection.disconnect()
+                
                 
 def create_parser(prog_name):
     desc = __doc__
@@ -79,6 +90,12 @@ def create_parser(prog_name):
     parser.add_argument('lambda_', type=float,
                         help='Lambda to use, between [0, 1]')
 
+    parser.add_argument('db_name', type=str,
+                        help='database to use')
+    
+    parser.add_argument('tname', type=str,
+                        help='table to create with probabilities')
+    
     parser.add_argument('--min_tag_freq', type=float, default=-1,
                         help='Ignore tags with frequency less than this value')
 
@@ -95,7 +112,8 @@ def entry_point(args=None):
     
     try:
         return main(values.database, values.table, values.smooth_func, 
-                    values.lambda_, values.min_tag_freq)
+                    values.lambda_, values.db_name, values.dname, 
+                    values.min_tag_freq)
     except:
         traceback.print_exc()
         parser.print_usage(file=sys.stderr)
