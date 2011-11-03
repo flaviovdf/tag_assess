@@ -61,12 +61,10 @@ def main(database, table, smooth_func, lambda_, db_name, tname, min_tag_freq):
             table = database[tname]
             table.ensure_index([('tag', ASCENDING), ('item', ASCENDING)])
             
-            gamma_items = np.arange(estimator.num_items())
             for tag in tags_to_consider:
-                v_prob_it = calculator.rnorm_prob_items_given_tag(tag, 
-                                                                  gamma_items)
-                for item in gamma_items:
-                    prob = v_prob_it[item]
+                v_prob_it = calculator.rnorm_prob_items_given_tag(tag)
+                for item in xrange(v_prob_it):
+                    prob = float(v_prob_it[item])
                     table.insert({'tag':tag, 'item':item, 'prob_it':prob})
                 
         finally:
