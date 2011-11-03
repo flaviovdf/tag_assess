@@ -112,7 +112,7 @@ def entry_point(args=None):
     
     try:
         return main(values.database, values.table, values.smooth_func, 
-                    values.lambda_, values.db_name, values.dname, 
+                    values.lambda_, values.db_name, values.tname, 
                     values.min_tag_freq)
     except:
         traceback.print_exc()
