@@ -4,12 +4,11 @@ For a given annotation table in the database, a smooth function and
 a lambda value; this script prints out:
 
 for every t in tags
+    * p(t) t is the given `tag`
+    * the popularity of the tag
     for every i in items
-        * p(t) t is the given `tag`
-        * p(i) i is an item
-        * p(t|i) for all i in I (items)
         * p(i|t) for all i in I (items)
-        * the popularity of the tag
+        * the popularity of the tag on the item
 '''
 from __future__ import division, print_function
 
@@ -27,6 +26,7 @@ except ImportError:
 from tagassess.dao.mongodb.annotations import AnnotReader
 
 import argparse
+import numpy as np
 import sys
 import traceback
 
@@ -37,7 +37,7 @@ def main(database, table, smooth_func, lambda_):
         estimator = SmoothEstimator(smooth_func, lambda_, reader.iterate())
         calculator = ValueCalculator(estimator, None)
         
-        gamma_items = range(estimator.num_items())
+        gamma_items = np.arange(estimator.num_items())
         
         print('#tag_id', 'item', 'p(t)', 'p(i|t)', 'pop_tag', 
               'pop_tag_on_item', sep='|')
