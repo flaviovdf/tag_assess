@@ -410,7 +410,7 @@ cdef class SmoothEstimator:
     #Other methods
     cpdef double tag_pop(self, int tag):
         '''Returns the popularity of a tag'''
-        if tag not in self.tag_col_freq[tag]:
+        if tag not in self.tag_col_freq:
             return 0
             
         return self.tag_col_freq[tag]
