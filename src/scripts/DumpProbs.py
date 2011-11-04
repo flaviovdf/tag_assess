@@ -18,8 +18,6 @@ except ImportError:
     from tagassess.value_calculator import ValueCalculator
 
 from collections import Counter
-from pymongo import ASCENDING
-from pymongo import Connection
 
 from tagassess.dao.mongodb.annotations import AnnotReader
 
@@ -28,7 +26,7 @@ import numpy as np
 import sys
 import traceback
 
-def main(database, table, smooth_func, lambda_, db_name, tname, min_tag_freq):
+def main(database, table, smooth_func, lambda_, min_tag_freq):
     
     with AnnotReader(database) as reader:
         reader.change_table(table)
@@ -50,23 +48,13 @@ def main(database, table, smooth_func, lambda_, db_name, tname, min_tag_freq):
         #Dumps probabilities
         connection = None
         database = None
-        try:
-            connection = Connection()
-            database = connection[db_name]
-            
-            if tname in database.collection_names():
-                print('Table already exists', file=sys.stderr)
-                return 2
-            
-            table = database[tname]
-            table.ensure_index([('tag', ASCENDING), ('item', ASCENDING)])
-            
+        try:            
             items = np.arange(estimator.num_items())
             for tag in tags_to_consider:
                 v_prob_it = calculator.rnorm_prob_items_given_tag(tag, items)
-                for item in xrange(v_prob_it):
+                for item in xrange(len(v_prob_it)):
                     prob = float(v_prob_it[item])
-                    table.insert({'tag':tag, 'item':item, 'prob_it':prob})
+                    print({'tag':tag, 'item':item, 'prob_it':prob})
                 
         finally:
             if connection:
@@ -89,12 +77,6 @@ def create_parser(prog_name):
     parser.add_argument('lambda_', type=float,
                         help='Lambda to use, between [0, 1]')
 
-    parser.add_argument('db_name', type=str,
-                        help='database to use')
-    
-    parser.add_argument('tname', type=str,
-                        help='table to create with probabilities')
-    
     parser.add_argument('--min_tag_freq', type=float, default=-1,
                         help='Ignore tags with frequency less than this value')
 
@@ -111,8 +93,7 @@ def entry_point(args=None):
     
     try:
         return main(values.database, values.table, values.smooth_func, 
-                    values.lambda_, values.db_name, values.tname, 
-                    values.min_tag_freq)
+                    values.lambda_, values.min_tag_freq)
     except:
         traceback.print_exc()
         parser.print_usage(file=sys.stderr)
