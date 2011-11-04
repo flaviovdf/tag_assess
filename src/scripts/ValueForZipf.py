@@ -6,6 +6,7 @@ profile based on a zip-f distribution.
 
 from __future__ import division, print_function
 
+from collections import defaultdict
 from pymongo import Connection
 
 from cy_tagassess import entropy
@@ -18,19 +19,26 @@ import sys
 import traceback
 
 def main(annotations_dbname, annotations_tname, probabilities_dbname, 
-         probabilities_tname, alpha):
+         probabilities_tname, alpha, min_tag_freq):
 
     #Determine the items annotated by each tag
     tag_to_item = {}
     items = set()
     with AnnotReader(annotations_dbname) as reader:
         reader.change_table(annotations_tname)
-        items.update(row['item'] for row in reader.iterate())
-    
+        
+        tag_pop = defaultdict(int)
+        for row in reader.iterate():
+            items.add(row['item'])
+            tag_pop[row['tag']] += 1 
+                
         #The index is created with sets, numpy has problems with this
+        #we also need to filter the tags which were filtered in the 
+        #probabilities database
         aux_index = create_occurrence_index(reader.iterate(), 'tag', 'item')
         for tag_id in aux_index:
-            tag_to_item[tag_id] = np.array([item for item in aux_index[tag_id]])
+            if min_tag_freq == -1 or tag_pop[tag_id] >= min_tag_freq:
+                tag_to_item[tag_id] = np.array([i for i in aux_index[tag_id]])
     
     connection = None
     try:
@@ -76,6 +84,10 @@ def create_parser(prog_name):
 
     parser.add_argument('alpha', type=float,
                         help='Parameter for the zip-f function')
+    
+    parser.add_argument('--min_tag_freq', type=float, default=-1,
+                        help='Ignore tags with frequency less than this value')
+    
     return parser
 
 def entry_point(args=None):
@@ -90,7 +102,7 @@ def entry_point(args=None):
     try:
         return main(values.annotations_dbname, values.annotations_tname, 
                     values.probabilities_dbname, values.probabilities_tname, 
-                    values.alpha)
+                    values.alpha, values.min_tag_freq)
     except:
         traceback.print_exc()
         parser.print_usage(file=sys.stderr)
