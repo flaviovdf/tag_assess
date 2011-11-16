@@ -77,7 +77,7 @@ def create_parser(prog_name):
     parser.add_argument('lambda_', type=float,
                         help='Lambda to use, between [0, 1]')
 
-    parser.add_argument('--min_tag_freq', type=float, default=-1,
+    parser.add_argument('--min_tag_freq', type=float, default=1,
                         help='Ignore tags with frequency less than this value')
 
     return parser
