@@ -12,7 +12,7 @@ two distributions.
 Also, we compute two variants of the average value of items retrieved by a tag:
 
     * rho = mean(prob(i|s) for every i in I^t)
-    * surprisal = mean(1.0 / -log2(prob(i|s)) for every i in I^t)
+    * surprisal = mean(-log2(prob(i|s)) for every i in I^t)
 '''
 from __future__ import division, print_function
 
@@ -85,6 +85,8 @@ def main(database, table, smooth_func, lambda_, alpha, min_tag_freq=1):
         #Value of each tag
         estimator = SmoothEstimator(smooth_func, lambda_, reader.iterate())
         prob_tags = estimator.vect_prob_tag(tags_array)
+        print('#tag_id', 'rho', 'surprisal', 'dkl', 'dkl*rho', 'dkl/surprisal',
+              'n_items')
         for tag_id in tag_to_item:
             
             #Probabilities
@@ -99,9 +101,10 @@ def main(database, table, smooth_func, lambda_, alpha, min_tag_freq=1):
             dkl = entropy.kullback_leiber_divergence(prob_item_seeker_tag, 
                                                      seeker_profile)
             rho = np.mean(prob_items_tagged)
-            surprisal = np.mean(1.0 / -np.log2(prob_items_tagged)) 
+            surprisal = np.mean(-np.log2(prob_items_tagged))
             
-            print(tag_id, rho, surprisal, dkl, rho * dkl, surprisal * dkl)
+            print(tag_id, rho, surprisal, dkl, rho * dkl, dkl / surprisal,
+                  len(prob_items_tagged))
 
 def create_parser(prog_name):
     desc = __doc__
