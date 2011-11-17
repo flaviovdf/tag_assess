@@ -1,18 +1,18 @@
 # -*- coding: utf8
 '''
-This script plot the value of each individual tags when considering a user
+This script prints the value of each individual tags when considering a user
 profile based on a zip-f distribution. We will compute:
 
-    * p(i|s) from a zip-f based random number generator
-    * p(i|t,s) = p(i|s) * (p(t|i) / p(i)) - Appendix A of draft
+    * $p(i|s)$ from a zip-f based random number generator
+    * $p(i|t,s) = p(i|s) * (p(t|i) / p(t))$ - Appendix A of draft
 
 With this, we can compute the Kullback-Leibler divergence between these
 two distributions.
 
 Also, we compute two variants of the average value of items retrieved by a tag:
 
-    * rho = mean(prob(I^t|s))
-    * new_rho = mean(1.0 / -log2(prob(I^t|s)))
+    * rho = mean(prob(i|s) for every i in I^t)
+    * surprisal = mean(1.0 / -log2(prob(i|s)) for every i in I^t)
 '''
 from __future__ import division, print_function
 
@@ -63,8 +63,9 @@ def fetch_tags_and_items(reader, min_tag_freq=1):
         if min_tag_freq == -1 or tag_pop[tag_id] >= min_tag_freq:
             tags.append(tag_id)
             tag_to_item[tag_id] = np.array([i for i in temp_index[tag_id]])
-    
-    return np.arange(len(items)), np.array(sorted(tags)), tag_to_item
+            
+    return np.arange(len(items)), np.array(sorted(tags), dtype='int64'), \
+            tag_to_item
                 
 def main(database, table, smooth_func, lambda_, alpha, min_tag_freq=1):
 
@@ -87,9 +88,9 @@ def main(database, table, smooth_func, lambda_, alpha, min_tag_freq=1):
         for tag_id in tag_to_item:
             
             #Probabilities
-            prob_tags_item = estimator.vect_prob_tag_given_item(items_array, 
+            prob_tag_items = estimator.vect_prob_tag_given_item(items_array, 
                                                                 tag_id)
-            prob_item_seeker_tag = (prob_tags_item / prob_tags[tag_id]) * \
+            prob_item_seeker_tag = (prob_tag_items / prob_tags[tag_id]) * \
                     seeker_profile
             prob_item_seeker_tag /= prob_item_seeker_tag.sum() #Renormalize
             prob_items_tagged = seeker_profile[tag_to_item[tag_id]]
@@ -98,9 +99,9 @@ def main(database, table, smooth_func, lambda_, alpha, min_tag_freq=1):
             dkl = entropy.kullback_leiber_divergence(prob_item_seeker_tag, 
                                                      seeker_profile)
             rho = np.mean(prob_items_tagged)
-            new_rho = np.mean(1.0 / -np.log2(prob_items_tagged)) 
+            surprisal = np.mean(1.0 / -np.log2(prob_items_tagged)) 
             
-            print(tag_id, rho, new_rho, dkl, rho * dkl, new_rho * dkl)
+            print(tag_id, rho, surprisal, dkl, rho * dkl, surprisal * dkl)
 
 def create_parser(prog_name):
     desc = __doc__
