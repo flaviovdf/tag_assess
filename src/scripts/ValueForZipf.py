@@ -1,6 +1,6 @@
 # -*- coding: utf8
 '''
-This script prints the value of each individual tags when considering a user
+This script saves the value of each individual tags when considering a user
 profile based on a zip-f distribution. We will compute:
 
     * $p(i|s)$ from a zip-f based random number generator
@@ -29,6 +29,7 @@ from tagassess.index_creator import create_occurrence_index
 
 import argparse
 import numpy as np
+import os
 import sys
 import traceback
 
@@ -67,7 +68,47 @@ def fetch_tags_and_items(reader, min_tag_freq=1):
     return np.arange(len(items)), np.array(sorted(tags), dtype='int64'), \
             tag_to_item
                 
-def main(database, table, smooth_func, lambda_, alpha, min_tag_freq=1):
+
+def tag_values(estimator, tags_array, items_array, tag_to_item, alpha, outfile):
+    '''
+    Saves the value of each individual tag.
+    '''
+    
+    #Generates user profile based on zipf and computes value
+    n_items = items_array.shape[0]
+    seeker_profile = np.array(np.random.zipf(alpha, n_items), 
+                              dtype='float64')
+    seeker_profile /= seeker_profile.sum()
+    
+    print('#tag_id', 'rho', 'surprisal', 'dkl', 'dkl*rho', 'dkl/surprisal',
+          'n_items', file=outfile)
+    prob_tags = estimator.vect_prob_tag(tags_array)
+    for tag_id in tag_to_item:
+        
+        #Probabilities
+        prob_tag_items = estimator.vect_prob_tag_given_item(items_array, 
+                                                            tag_id)
+        prob_item_seeker_tag = (prob_tag_items / prob_tags[tag_id]) * \
+                seeker_profile
+        prob_item_seeker_tag /= prob_item_seeker_tag.sum() #Renormalize
+        prob_items_tagged = seeker_profile[tag_to_item[tag_id]]
+        
+        #Metrics
+        dkl = entropy.kullback_leiber_divergence(prob_item_seeker_tag, 
+                                                 seeker_profile)
+        rho = np.mean(prob_items_tagged)
+        surprisal = np.mean(-np.log2(prob_items_tagged))
+        
+        print(tag_id, rho, surprisal, dkl, rho * dkl, dkl / surprisal,
+              len(prob_items_tagged), file=outfile)
+
+
+def main(database, table, smooth_func, lambda_, alpha, 
+         output_folder, min_tag_freq=1):
+
+    assert os.path.isdir(output_folder), '%s is not a directory' % output_folder
+    tag_value_fpath = os.path.join(output_folder, 'tag.values');
+    item_tag_fpath = os.path.join(output_folder, 'item_tag.pairs');
 
     with AnnotReader(database) as reader:
         reader.change_table(table)
@@ -75,36 +116,19 @@ def main(database, table, smooth_func, lambda_, alpha, min_tag_freq=1):
         #Determine the items annotated by each tag and array of all items
         items_array, tags_array, tag_to_item = \
                 fetch_tags_and_items(reader, min_tag_freq)
-        n_items = items_array.shape[0]
-
-        #Generates user profile based on zipf and computes value
-        seeker_profile = np.array(np.random.zipf(alpha, n_items), 
-                                  dtype='float64')
-        seeker_profile /= seeker_profile.sum()
         
         #Value of each tag
         estimator = SmoothEstimator(smooth_func, lambda_, reader.iterate())
-        prob_tags = estimator.vect_prob_tag(tags_array)
-        print('#tag_id', 'rho', 'surprisal', 'dkl', 'dkl*rho', 'dkl/surprisal',
-              'n_items')
-        for tag_id in tag_to_item:
-            
-            #Probabilities
-            prob_tag_items = estimator.vect_prob_tag_given_item(items_array, 
-                                                                tag_id)
-            prob_item_seeker_tag = (prob_tag_items / prob_tags[tag_id]) * \
-                    seeker_profile
-            prob_item_seeker_tag /= prob_item_seeker_tag.sum() #Renormalize
-            prob_items_tagged = seeker_profile[tag_to_item[tag_id]]
-            
-            #Metrics
-            dkl = entropy.kullback_leiber_divergence(prob_item_seeker_tag, 
-                                                     seeker_profile)
-            rho = np.mean(prob_items_tagged)
-            surprisal = np.mean(-np.log2(prob_items_tagged))
-            
-            print(tag_id, rho, surprisal, dkl, rho * dkl, dkl / surprisal,
-                  len(prob_items_tagged))
+        with open(tag_value_fpath, 'w') as tag_value_file:
+            tag_values(estimator, tags_array, items_array, tag_to_item, alpha,
+                       tag_value_file)
+        
+        #Item tag pairs
+        with open(item_tag_fpath, 'w') as item_tag_file:
+            print('#tag_id', 'item_id', file=item_tag_file)
+            for tag_id in tag_to_item:
+                for item_id in tag_to_item[tag_id]:
+                    print(tag_id, item_id, file=item_tag_file)
 
 def create_parser(prog_name):
     desc = __doc__
@@ -124,6 +148,9 @@ def create_parser(prog_name):
 
     parser.add_argument('alpha', type=float,
                         help='Parameter for the zip-f function')
+
+    parser.add_argument('output_folder', type=str,
+                        help='Folder to save files to')
     
     parser.add_argument('--min_tag_freq', type=float, default=-1,
                         help='Ignore tags with frequency less than this value')
@@ -141,7 +168,8 @@ def entry_point(args=None):
     
     try:
         return main(values.database, values.table, values.smooth_func,
-                    values.lambda_, values.alpha, values.min_tag_freq)
+                    values.lambda_, values.alpha, values.output_folder,
+                    values.min_tag_freq)
     except:
         traceback.print_exc()
         parser.print_usage(file=sys.stderr)
