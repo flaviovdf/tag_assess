@@ -83,13 +83,12 @@ def tag_values(estimator, tags_array, items_array, tag_to_item, alpha, outfile):
     print('#tag_id', 'rho', 'surprisal', 'dkl', 'dkl*rho', 'dkl/surprisal',
           'n_items', file=outfile)
     prob_tags = estimator.vect_prob_tag(tags_array)
-    for tag_id in tag_to_item:
+    for i, tag_id in enumerate(tags_array):
         
         #Probabilities
         prob_tag_items = estimator.vect_prob_tag_given_item(items_array, 
                                                             tag_id)
-        prob_item_seeker_tag = (prob_tag_items / prob_tags[tag_id]) * \
-                seeker_profile
+        prob_item_seeker_tag = (prob_tag_items / prob_tags[i]) * seeker_profile
         prob_item_seeker_tag /= prob_item_seeker_tag.sum() #Renormalize
         prob_items_tagged = seeker_profile[tag_to_item[tag_id]]
         
@@ -116,7 +115,7 @@ def main(database, table, smooth_func, lambda_, alpha,
         #Determine the items annotated by each tag and array of all items
         items_array, tags_array, tag_to_item = \
                 fetch_tags_and_items(reader, min_tag_freq)
-        
+                
         #Value of each tag
         estimator = SmoothEstimator(smooth_func, lambda_, reader.iterate())
         with open(tag_value_fpath, 'w') as tag_value_file:
