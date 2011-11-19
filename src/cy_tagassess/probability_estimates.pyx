@@ -102,15 +102,15 @@ cdef class SmoothEstimator:
         self.n_users = len(user_tags_dict)
         
         self._tag_col_freq = np.zeros(self.n_tags)
-        self.tag_col_freq = <np.int64_t*> self._tag_col_freq.data
+        self.tag_col_freq = <np.int_t*> self._tag_col_freq.data
         for tag in tag_col_dict:
             self.tag_col_freq[tag] = tag_col_dict[tag]
         
         self._item_col_mle = np.zeros(self.n_items, dtype='d')
-        self.item_col_mle = <np.float64_t*> self._item_col_mle.data
+        self.item_col_mle = <np.float_t*> self._item_col_mle.data
         
         self._item_local_sums = np.zeros(shape = self.n_items)
-        self.item_local_sums = <np.int64_t*> self._item_local_sums.data
+        self.item_local_sums = <np.int_t*> self._item_local_sums.data
         
         for item in item_col_dict:
             self.item_col_mle[item] = item_col_dict[item] / self.n_annotations
@@ -203,7 +203,7 @@ cdef class SmoothEstimator:
         if user < 0 or user >= self.n_users:
             return 0.0
         
-        cdef np.ndarray[np.int64_t, ndim=1] utags = \
+        cdef np.ndarray[np.int_t, ndim=1] utags = \
                 self.user_tags[user]
 
         cdef double return_val = 1.0
@@ -223,7 +223,7 @@ cdef class SmoothEstimator:
         if user < 0 or user >= self.n_users:
             return 0.0
 
-        cdef np.ndarray[np.int64_t, ndim=1] utags = \
+        cdef np.ndarray[np.int_t, ndim=1] utags = \
                 self.user_tags[user]
         
         cdef double return_val = 1.0
@@ -252,7 +252,7 @@ cdef class SmoothEstimator:
         Log probability of seeing an user. $P(u)$
         This method is useful when `prob_user` underflows.
         '''
-        cdef np.ndarray[np.int64_t, ndim=1] utags = \
+        cdef np.ndarray[np.int_t, ndim=1] utags = \
                 self.user_tags[user]
 
         cdef Py_ssize_t i
@@ -268,7 +268,7 @@ cdef class SmoothEstimator:
         Log probability of seeing an user given an item. $P(u|i)$.
         This method is useful when `prob_user_given_item` underflows.
         '''
-        cdef np.ndarray[np.int64_t, ndim=1] utags = \
+        cdef np.ndarray[np.int_t, ndim=1] utags = \
                 self.user_tags[user]
         
         cdef Py_ssize_t i
@@ -280,10 +280,10 @@ cdef class SmoothEstimator:
     #Vectorized methods
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cpdef np.ndarray[np.float64_t, ndim=1] vect_prob_user(self, 
-            np.ndarray[np.int64_t, ndim=1] users):
+    cpdef np.ndarray[np.float_t, ndim=1] vect_prob_user(self, 
+            np.ndarray[np.int_t, ndim=1] users):
 
-        cdef np.ndarray[np.float64_t, ndim=1] return_val = \
+        cdef np.ndarray[np.float_t, ndim=1] return_val = \
                 np.ndarray(users.shape[0])
         
         cdef Py_ssize_t i
@@ -293,10 +293,10 @@ cdef class SmoothEstimator:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cpdef np.ndarray[np.float64_t, ndim=1] vect_prob_item(self, 
-            np.ndarray[np.int64_t, ndim=1] items):
+    cpdef np.ndarray[np.float_t, ndim=1] vect_prob_item(self, 
+            np.ndarray[np.int_t, ndim=1] items):
         
-        cdef np.ndarray[np.float64_t, ndim=1] return_val = \
+        cdef np.ndarray[np.float_t, ndim=1] return_val = \
                 np.ndarray(items.shape[0])
         
         cdef Py_ssize_t i
@@ -306,10 +306,10 @@ cdef class SmoothEstimator:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cpdef np.ndarray[np.float64_t, ndim=1] vect_prob_tag(self, 
-            np.ndarray[np.int64_t, ndim=1] tags):
+    cpdef np.ndarray[np.float_t, ndim=1] vect_prob_tag(self, 
+            np.ndarray[np.int_t, ndim=1] tags):
 
-        cdef np.ndarray[np.float64_t, ndim=1] return_val = \
+        cdef np.ndarray[np.float_t, ndim=1] return_val = \
                 np.ndarray(tags.shape[0])
         
         cdef Py_ssize_t i
@@ -319,10 +319,10 @@ cdef class SmoothEstimator:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cpdef np.ndarray[np.float64_t, ndim=1] vect_prob_user_given_item(self,
-            np.ndarray[np.int64_t, ndim=1] items, int user):
+    cpdef np.ndarray[np.float_t, ndim=1] vect_prob_user_given_item(self,
+            np.ndarray[np.int_t, ndim=1] items, int user):
         
-        cdef np.ndarray[np.float64_t, ndim=1] return_val = \
+        cdef np.ndarray[np.float_t, ndim=1] return_val = \
                 np.ndarray(items.shape[0])
         
         cdef Py_ssize_t i
@@ -332,10 +332,10 @@ cdef class SmoothEstimator:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cpdef np.ndarray[np.float64_t, ndim=1] vect_prob_tag_given_item(self,
-            np.ndarray[np.int64_t, ndim=1] items, int tag):
+    cpdef np.ndarray[np.float_t, ndim=1] vect_prob_tag_given_item(self,
+            np.ndarray[np.int_t, ndim=1] items, int tag):
         
-        cdef np.ndarray[np.float64_t, ndim=1] return_val = \
+        cdef np.ndarray[np.float_t, ndim=1] return_val = \
                 np.ndarray(items.shape[0])
         cdef Py_ssize_t i
         for i in range(items.shape[0]):
@@ -345,10 +345,10 @@ cdef class SmoothEstimator:
     #Log vectorized methods
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cpdef np.ndarray[np.float64_t, ndim=1] vect_log_prob_user(self, 
-            np.ndarray[np.int64_t, ndim=1] users):
+    cpdef np.ndarray[np.float_t, ndim=1] vect_log_prob_user(self, 
+            np.ndarray[np.int_t, ndim=1] users):
 
-        cdef np.ndarray[np.float64_t, ndim=1] return_val = \
+        cdef np.ndarray[np.float_t, ndim=1] return_val = \
                 np.ndarray(users.shape[0])
         
         cdef Py_ssize_t i
@@ -358,10 +358,10 @@ cdef class SmoothEstimator:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cpdef np.ndarray[np.float64_t, ndim=1] vect_log_prob_item(self, 
-            np.ndarray[np.int64_t, ndim=1] items):
+    cpdef np.ndarray[np.float_t, ndim=1] vect_log_prob_item(self, 
+            np.ndarray[np.int_t, ndim=1] items):
         
-        cdef np.ndarray[np.float64_t, ndim=1] return_val = \
+        cdef np.ndarray[np.float_t, ndim=1] return_val = \
                 np.ndarray(items.shape[0])
         
         cdef Py_ssize_t i
@@ -371,10 +371,10 @@ cdef class SmoothEstimator:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cpdef np.ndarray[np.float64_t, ndim=1] vect_log_prob_tag(self, 
-            np.ndarray[np.int64_t, ndim=1] tags):
+    cpdef np.ndarray[np.float_t, ndim=1] vect_log_prob_tag(self, 
+            np.ndarray[np.int_t, ndim=1] tags):
 
-        cdef np.ndarray[np.float64_t, ndim=1] return_val = \
+        cdef np.ndarray[np.float_t, ndim=1] return_val = \
                 np.ndarray(tags.shape[0])
         
         cdef Py_ssize_t i
@@ -384,10 +384,10 @@ cdef class SmoothEstimator:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cpdef np.ndarray[np.float64_t, ndim=1] vect_log_prob_user_given_item(self,
-            np.ndarray[np.int64_t, ndim=1] items, int user):
+    cpdef np.ndarray[np.float_t, ndim=1] vect_log_prob_user_given_item(self,
+            np.ndarray[np.int_t, ndim=1] items, int user):
         
-        cdef np.ndarray[np.float64_t, ndim=1] return_val = \
+        cdef np.ndarray[np.float_t, ndim=1] return_val = \
                 np.ndarray(items.shape[0])
         
         cdef Py_ssize_t i
@@ -397,10 +397,10 @@ cdef class SmoothEstimator:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cpdef np.ndarray[np.float64_t, ndim=1] vect_log_prob_tag_given_item(self,
-            np.ndarray[np.int64_t, ndim=1] items, int tag):
+    cpdef np.ndarray[np.float_t, ndim=1] vect_log_prob_tag_given_item(self,
+            np.ndarray[np.int_t, ndim=1] items, int tag):
         
-        cdef np.ndarray[np.float64_t, ndim=1] return_val = \
+        cdef np.ndarray[np.float_t, ndim=1] return_val = \
                 np.ndarray(items.shape[0])
         cdef Py_ssize_t i
         for i in range(items.shape[0]):
