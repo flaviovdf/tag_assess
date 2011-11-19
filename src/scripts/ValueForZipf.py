@@ -37,7 +37,7 @@ def fetch_tags_and_items(reader, min_tag_freq=1):
     '''
     This method retrieves an array of every item id, another one for 
     every tag id and a dict mapping tag ids to the items ids annotated
-    by every tag.
+    by every tag. We also return the popularity of each tag.
     
     Arguments
     ---------
@@ -48,7 +48,6 @@ def fetch_tags_and_items(reader, min_tag_freq=1):
         Indicates that we should ignore tags with a frequency lower than
         this argument.
     '''
-    #TODO: We can do all this in one for, change if speed is an issue.
     tag_to_item = {}
     tags = []
     items = set()
@@ -66,10 +65,11 @@ def fetch_tags_and_items(reader, min_tag_freq=1):
             tag_to_item[tag_id] = np.array([i for i in temp_index[tag_id]])
             
     return np.arange(len(items)), np.array(sorted(tags), dtype='int64'), \
-            tag_to_item
+            tag_to_item, tag_pop
                 
 
-def tag_values(estimator, tags_array, items_array, tag_to_item, alpha, outfile):
+def tag_values(estimator, tags_array, items_array, tag_to_item, alpha, 
+               tag_pop, outfile):
     '''
     Saves the value of each individual tag.
     '''
@@ -80,15 +80,17 @@ def tag_values(estimator, tags_array, items_array, tag_to_item, alpha, outfile):
                               dtype='float64')
     seeker_profile /= seeker_profile.sum()
     
+    #Value for each tag
     print('#tag_id', 'rho', 'surprisal', 'dkl', 'dkl*rho', 'dkl/surprisal',
-          'n_items', file=outfile)
+          'n_items', 'prob_tag', 'pop_tag', 'mean_pti', file=outfile)
     prob_tags = estimator.vect_prob_tag(tags_array)
     for i, tag_id in enumerate(tags_array):
         
         #Probabilities
         prob_tag_items = estimator.vect_prob_tag_given_item(items_array, 
                                                             tag_id)
-        prob_item_seeker_tag = (prob_tag_items / prob_tags[i]) * seeker_profile
+        prob_tag = prob_tags[i]
+        prob_item_seeker_tag = (prob_tag_items / prob_tag) * seeker_profile
         prob_item_seeker_tag /= prob_item_seeker_tag.sum() #Renormalize
         prob_items_tagged = seeker_profile[tag_to_item[tag_id]]
         
@@ -97,30 +99,32 @@ def tag_values(estimator, tags_array, items_array, tag_to_item, alpha, outfile):
                                                  seeker_profile)
         rho = np.mean(prob_items_tagged)
         surprisal = np.mean(-np.log2(prob_items_tagged))
-        
+        mean_pti = np.mean(prob_tag_items[tag_to_item[tag_id]])
+        pop_tag = tag_pop[tag_id]
         print(tag_id, rho, surprisal, dkl, rho * dkl, dkl / surprisal,
-              len(prob_items_tagged), file=outfile)
+              len(prob_items_tagged), prob_tag, pop_tag, mean_pti, file=outfile)
 
 
 def main(database, table, smooth_func, lambda_, alpha, 
          output_folder, min_tag_freq=1):
 
     assert os.path.isdir(output_folder), '%s is not a directory' % output_folder
-    tag_value_fpath = os.path.join(output_folder, 'tag.values');
-    item_tag_fpath = os.path.join(output_folder, 'item_tag.pairs');
+    tag_value_fpath = os.path.join(output_folder, 'tag.values')
+    item_tag_fpath = os.path.join(output_folder, 'item_tag.pairs')
+    item_probs_fpath = os.path.join(output_folder, 'item.probs')
 
     with AnnotReader(database) as reader:
         reader.change_table(table)
         
         #Determine the items annotated by each tag and array of all items
-        items_array, tags_array, tag_to_item = \
+        items_array, tags_array, tag_to_item, tag_pop = \
                 fetch_tags_and_items(reader, min_tag_freq)
                 
-        #Value of each tag
+        #Tag Value
         estimator = SmoothEstimator(smooth_func, lambda_, reader.iterate())
         with open(tag_value_fpath, 'w') as tag_value_file:
             tag_values(estimator, tags_array, items_array, tag_to_item, alpha,
-                       tag_value_file)
+                       tag_pop, tag_value_file)
         
         #Item tag pairs
         with open(item_tag_fpath, 'w') as item_tag_file:
@@ -128,6 +132,11 @@ def main(database, table, smooth_func, lambda_, alpha,
             for tag_id in tag_to_item:
                 for item_id in tag_to_item[tag_id]:
                     print(tag_id, item_id, file=item_tag_file)
+
+        with open(item_probs_fpath, 'w') as item_probs_file:
+            print('#item_id', 'prob', file=item_tag_file)
+            for item_id, prob in enumerate(items_array):
+                print(item_id, prob, file=item_probs_file)
 
 def create_parser(prog_name):
     desc = __doc__
