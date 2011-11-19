@@ -134,7 +134,7 @@ def main(database, table, smooth_func, lambda_, alpha,
                     print(tag_id, item_id, file=item_tag_file)
 
         with open(item_probs_fpath, 'w') as item_probs_file:
-            print('#item_id', 'prob', file=item_tag_file)
+            print('#item_id', 'prob', file=item_probs_file)
             for item_id, prob in enumerate(items_array):
                 print(item_id, prob, file=item_probs_file)
 
