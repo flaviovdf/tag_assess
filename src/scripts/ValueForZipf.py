@@ -68,18 +68,11 @@ def fetch_tags_and_items(reader, min_tag_freq=1):
             tag_to_item, tag_pop
                 
 
-def tag_values(estimator, tags_array, items_array, tag_to_item, alpha, 
+def tag_values(estimator, tags_array, items_array, tag_to_item, seeker_profile, 
                tag_pop, outfile):
     '''
     Saves the value of each individual tag.
     '''
-    
-    #Generates user profile based on zipf and computes value
-    n_items = items_array.shape[0]
-    seeker_profile = np.array(np.random.zipf(alpha, n_items), 
-                              dtype='float64')
-    seeker_profile /= seeker_profile.sum()
-    
     #Value for each tag
     print('#tag_id', 'rho', 'surprisal', 'dkl', 'dkl*rho', 'dkl/surprisal',
           'n_items', 'prob_tag', 'pop_tag', 'mean_pti', file=outfile)
@@ -119,12 +112,18 @@ def main(database, table, smooth_func, lambda_, alpha,
         #Determine the items annotated by each tag and array of all items
         items_array, tags_array, tag_to_item, tag_pop = \
                 fetch_tags_and_items(reader, min_tag_freq)
-                
+        
+            #Generates user profile based on zipf and computes value
+        n_items = items_array.shape[0]
+        seeker_profile = np.array(np.random.zipf(alpha, n_items), 
+                                  dtype='float64')
+        seeker_profile /= seeker_profile.sum()
+        
         #Tag Value
         estimator = SmoothEstimator(smooth_func, lambda_, reader.iterate())
         with open(tag_value_fpath, 'w') as tag_value_file:
-            tag_values(estimator, tags_array, items_array, tag_to_item, alpha,
-                       tag_pop, tag_value_file)
+            tag_values(estimator, tags_array, items_array, tag_to_item, 
+                       seeker_profile, tag_pop, tag_value_file)
         
         #Item tag pairs
         with open(item_tag_fpath, 'w') as item_tag_file:
@@ -135,7 +134,7 @@ def main(database, table, smooth_func, lambda_, alpha,
 
         with open(item_probs_fpath, 'w') as item_probs_file:
             print('#item_id', 'prob', file=item_probs_file)
-            for item_id, prob in enumerate(items_array):
+            for item_id, prob in enumerate(seeker_profile):
                 print(item_id, prob, file=item_probs_file)
 
 def create_parser(prog_name):
