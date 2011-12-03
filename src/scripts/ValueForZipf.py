@@ -94,7 +94,7 @@ def tag_values(estimator, tags_array, items_array, tag_to_item, seeker_profile,
         surprisal = np.mean(1.0 / -np.log2(prob_items_tagged))
         mean_pti = np.mean(prob_tag_items[tag_to_item[tag_id]])
         pop_tag = tag_pop[tag_id]
-        print(tag_id, rho, surprisal, dkl, rho * dkl, dkl / surprisal,
+        print(tag_id, rho, surprisal, dkl, rho * dkl, dkl * surprisal,
               len(prob_items_tagged), prob_tag, pop_tag, mean_pti, file=outfile)
 
 
