@@ -12,7 +12,7 @@ two distributions.
 Also, we compute two variants of the average value of items retrieved by a tag:
 
     * rho = mean(prob(i|s) for every i in I^t)
-    * surprisal = mean(-log2(prob(i|s)) for every i in I^t)
+    * inverse surprisal = mean(1.0 / -log2(prob(i|s)) for every i in I^t)
 '''
 from __future__ import division, print_function
 
@@ -91,7 +91,7 @@ def tag_values(estimator, tags_array, items_array, tag_to_item, seeker_profile,
         dkl = entropy.kullback_leiber_divergence(prob_item_seeker_tag, 
                                                  seeker_profile)
         rho = np.mean(prob_items_tagged)
-        surprisal = np.mean(-np.log2(prob_items_tagged))
+        surprisal = np.mean(1.0 / -np.log2(prob_items_tagged))
         mean_pti = np.mean(prob_tag_items[tag_to_item[tag_id]])
         pop_tag = tag_pop[tag_id]
         print(tag_id, rho, surprisal, dkl, rho * dkl, dkl / surprisal,
@@ -113,10 +113,15 @@ def main(database, table, smooth_func, lambda_, alpha,
         items_array, tags_array, tag_to_item, tag_pop = \
                 fetch_tags_and_items(reader, min_tag_freq)
         
-            #Generates user profile based on zipf and computes value
+        #Generates user profile based on zipf and computes value
         n_items = items_array.shape[0]
-        seeker_profile = np.array(np.random.zipf(alpha, n_items), 
-                                  dtype='float64')
+        seeker_profile = np.zeros(n_items, dtype='float64')
+        n_dists = 10
+        for i in xrange(n_dists):
+            seeker_profile += np.random.zipf(alpha, n_items)
+        
+        #Average it out and transform to probabilities
+        seeker_profile /= n_dists
         seeker_profile /= seeker_profile.sum()
         
         #Tag Value
