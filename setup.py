@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8
 
-'''Setup script'''
+'''
+Setup script.
+'''
 
 import glob
 import numpy
@@ -13,7 +15,6 @@ from distutils.extension import Extension
 from Cython.Distutils import build_ext
 
 SOURCE = 'src/'
-os.chdir(SOURCE)
 
 if sys.version_info[:2] < (2, 7):
     print('Requires Python version 2.7 or later (%d.%d detected).' %
@@ -23,12 +24,14 @@ if sys.version_info[:2] < (2, 7):
 def get_packages():
     '''Appends all packages (based on recursive sub dirs)'''
 
-    packages  = ['tagassess',
-                 'cy_tagassess']
-
-    for package in packages:
+    packages  = ['tagassess']
+    return_val = []
+    while len(packages) > 0:
+        package = packages.pop(0)
+        return_val.append(package)
         base = os.path.join(package, '**/')
         sub_dirs = glob.glob(base)
+
         while len(sub_dirs) != 0:
             for sub_dir in sub_dirs:
                 package_name = sub_dir.replace('/', '.')
@@ -40,39 +43,40 @@ def get_packages():
             base = os.path.join(base, '**/')
             sub_dirs = glob.glob(base)
 
-    return packages
+    return return_val
 
 def get_extensions():
-    '''Get's all .pyx and.pxd files'''
+    '''Get's all .pyx and.pxd files in project subpackages'''
     
-    base = 'cy_tagassess'
+    packages = get_packages()
     extensions = []
 
-    pyx_files = glob.glob(os.path.join(base, '*.pyx'))
-    for pyx in pyx_files:
-        
-        pxd = pyx.replace('pyx', 'pxd')
-        module = pyx.replace('.pyx', '').replace('/', '.')
-        
-        if os.path.exists(pxd):
-            ext_files = [pyx, pxd]
-        else:
-            ext_files = [pyx]
+    for package in packages:
+        dir_ = package.replace('.', '/')
+        pyx_files = glob.glob(os.path.join(dir_, '*.pyx'))
 
-        extension = Extension(module, ext_files, 
-                              include_dirs=[numpy.get_include()])
+        for pyx in pyx_files:
+            pxd = pyx.replace('pyx', 'pxd')
+            module = pyx.replace('.pyx', '').replace('/', '.')
         
-        extensions.append(extension)
-    
+            if os.path.exists(pxd):
+                ext_files = [pyx, pxd]
+            else:
+                ext_files = [pyx]
+
+            extension = Extension(module, ext_files, 
+                                  include_dirs=[numpy.get_include()])
+        
+            extensions.append(extension)
+
     return extensions
 
 if __name__ == "__main__":
+    os.chdir(SOURCE)
     packages = get_packages()
     extensions = get_extensions()
     
-    setup(
-        cmdclass = {'build_ext': build_ext},
-        name             = 'tagassess',
-        packages         = packages,
-        ext_modules      = extensions
-      )
+    setup(cmdclass     = {'build_ext': build_ext},
+          name         = 'tagassess',
+          packages     = packages,
+          ext_modules  = extensions)
