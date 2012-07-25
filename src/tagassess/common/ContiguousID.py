@@ -7,7 +7,9 @@ from collections import Mapping
 
 class ContiguousID(Mapping):
     '''
-    A ContiguousID is a dict in which keys map to integer values where values are contiguous integers.
+    A ContiguousID is a dict in which keys map to integer values where values 
+    are contiguous integers.
+    
     Example:
 
     >>> x = ContiguousID()
@@ -20,8 +22,8 @@ class ContiguousID(Mapping):
     >>> x['c']
     2
 
-    This class does not support setting items, values are automatic determined when the item is first
-    accessed.
+    This class does not support setting items, values are automatic determined 
+    when the item is first accessed.
     '''
 
     def __init__(self):
