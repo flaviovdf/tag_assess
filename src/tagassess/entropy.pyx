@@ -1,20 +1,24 @@
 # -*- coding: utf8
+# cython: cdivision = True
+# cython: boundscheck = False
+# cython: wraparound = False
+
 '''Module which contains functions to calculate entropy related metrics'''
 from __future__ import division, print_function
 
 from math import log
 
-import cython
 import numpy as np
 cimport numpy as np
+np.import_array()
+
+INF = np.inf
 
 #Log2 from C99
 cdef extern from "math.h":
     double log2(double)
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-cpdef double entropy(np.ndarray[np.float_t, ndim=1] probabilities_x) except *:
+cpdef double entropy(np.ndarray[np.float_t, ndim=1] probabilities_x):
     '''
     Calculates the entropy (H) of the input vector which
     represents some random variable X.
@@ -33,11 +37,9 @@ cpdef double entropy(np.ndarray[np.float_t, ndim=1] probabilities_x) except *:
     
     return return_val
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cpdef double mutual_information(
         np.ndarray[np.float_t, ndim=1] probabilities_x, 
-        np.ndarray[np.float_t, ndim=1] probabilities_xy) except *:
+        np.ndarray[np.float_t, ndim=1] probabilities_xy):
     '''
     Calculates the mutual information between the
     random variables (X and Y):
@@ -48,18 +50,17 @@ cpdef double mutual_information(
         Array with the individual probabilities X. Values must be 0 <= x <= 1
 
     probabilities_xy: numpy array or any iterable
-        Array with the individual probabilities for X|Y. Values must be 0 <= x <= 1
+        Array with the individual probabilities for X|Y. Values must be 
+        0 <= x <= 1
     '''
 
     cdef np.float_t h_x = entropy(probabilities_x)
     cdef np.float_t h_xy = entropy(probabilities_xy)
     return h_x - h_xy
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cpdef double norm_mutual_information(
         np.ndarray[np.float_t, ndim=1] probabilities_x, 
-        np.ndarray[np.float_t, ndim=1] probabilities_xy) except *:
+        np.ndarray[np.float_t, ndim=1] probabilities_xy):
     '''
     Calculates the normalized mutual information between the
     random variables (X and X|Y):
@@ -70,7 +71,8 @@ cpdef double norm_mutual_information(
         Array with the individual probabilities X. Values must be 0 <= x <= 1
 
     probabilities_xy: numpy array or any iterable
-        Array with the individual probabilities for X|Y. Values must be 0 <= x <= 1
+        Array with the individual probabilities for X|Y. 
+        Values must be 0 <= x <= 1
     '''
 
     cdef np.float_t h_x = entropy(probabilities_x)
@@ -82,11 +84,9 @@ cpdef double norm_mutual_information(
         
     return normalized_mi
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 cpdef double kullback_leiber_divergence(
         np.ndarray[np.float_t, ndim=1] probabilities_p, 
-        np.ndarray[np.float_t, ndim=1] probabilities_q) except *:
+        np.ndarray[np.float_t, ndim=1] probabilities_q):
     '''
     Calculates the Kullback-Leiber divergence between the distributions
     of two random variables.
@@ -113,7 +113,7 @@ cpdef double kullback_leiber_divergence(
         prob_q = probabilities_q[i]
 
         if prob_p != 0 and prob_q == 0:
-            return np.float('inf')
+            return INF
         elif prob_p > 0 and prob_q > 0:
             return_val += prob_p * (log2(prob_p) - log2(prob_q))
     return return_val

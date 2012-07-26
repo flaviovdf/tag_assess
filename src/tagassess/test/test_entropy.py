@@ -6,10 +6,11 @@
 
 from __future__ import print_function, division
 
-from tagassess.test import PyCyUnit
+from tagassess import entropy
 
-import numpy as np
 import math
+import numpy as np
+import unittest
 
 #Calculates the entropy iteratively.
 def it_entropy(probs):
@@ -20,17 +21,12 @@ def it_entropy(probs):
         ent -= prob * math.log(prob, 2)
     return ent
 
-class TestEntropy(PyCyUnit):
+class TestEntropy(unittest.TestCase):
     '''
     Tests entropy by comparing the return
     with an iterative calculation
     '''
-    def get_module_to_eval(self):
-        from tagassess import entropy
-        return entropy
-    
     def test_entropy(self):
-        entropy = self.get_module_to_eval()
         probs = np.array([0.1, 0.5, 0.01, 0.07, 0.02, 0.3, 0, 0, 0], dtype='d')
 
         self.assertEquals(entropy.entropy(probs), it_entropy(probs))
@@ -60,7 +56,6 @@ class TestEntropy(PyCyUnit):
             pass
 
     def test_norm_mi(self):
-        entropy = self.get_module_to_eval()
         x_probs = np.array([0.04, 0.16] * 5)
         xy_probs = np.array([0.02, 0.18] * 5)
 
@@ -68,13 +63,13 @@ class TestEntropy(PyCyUnit):
         h_y = it_entropy(xy_probs)
 
         mutual_inf = 1 - (h_x - h_y)/h_x
-        self.assertEqual(entropy.norm_mutual_information(x_probs, xy_probs), mutual_inf)
+        self.assertEqual(entropy.norm_mutual_information(x_probs, xy_probs), 
+                         mutual_inf)
 
         x_probs = np.array([1], dtype='d')
         self.assertEqual(entropy.norm_mutual_information(x_probs, xy_probs), 0)
 
     def test_mi(self):
-        entropy = self.get_module_to_eval()
         x_probs = np.array([0.04, 0.16] * 5)
         xy_probs = np.array([0.02, 0.18] * 5)
 
@@ -82,10 +77,10 @@ class TestEntropy(PyCyUnit):
         h_y = it_entropy(xy_probs)
 
         mutual_inf = h_x - h_y
-        self.assertAlmostEqual(entropy.mutual_information(x_probs, xy_probs), mutual_inf)
+        self.assertAlmostEqual(entropy.mutual_information(x_probs, xy_probs), 
+                               mutual_inf)
 
     def test_kl(self):
-        entropy = self.get_module_to_eval()
         x_probs = np.array([0.04, 0.16] * 5)
         xy_probs = np.array([0.02, 0.18] * 5)
         
@@ -94,10 +89,11 @@ class TestEntropy(PyCyUnit):
             div = x_probs[i] / xy_probs[i]
             dkl += x_probs[i] * math.log(div, 2)
             
-        self.assertAlmostEqual(entropy.kullback_leiber_divergence(x_probs, xy_probs), dkl)
+        self.assertAlmostEqual(entropy.kullback_leiber_divergence(x_probs, 
+                                                                  xy_probs), 
+                               dkl)
 
     def test_kl2(self):
-        entropy = self.get_module_to_eval()
         x_probs = np.array([0.04, 0.16] * 5 + [0])
         xy_probs = np.array([0.02, 0.18] * 5 + [0])
         
@@ -106,11 +102,14 @@ class TestEntropy(PyCyUnit):
             div = x_probs[i] / xy_probs[i]
             dkl += x_probs[i] * math.log(div, 2)
             
-        self.assertAlmostEqual(entropy.kullback_leiber_divergence(x_probs, xy_probs), dkl)
+        self.assertAlmostEqual(entropy.kullback_leiber_divergence(x_probs, 
+                                                                  xy_probs), 
+                               dkl)
 
     def test_kl3(self):
-        entropy = self.get_module_to_eval()
         x_probs = np.array([0.25, 0.20, 0, 0.55])
         xy_probs = np.array([0.20, 0, 0.25, 0.55])
         
-        self.assertAlmostEqual(entropy.kullback_leiber_divergence(x_probs, xy_probs), float('inf'))
+        self.assertAlmostEqual(entropy.kullback_leiber_divergence(x_probs, 
+                                                                  xy_probs), 
+                               float('inf'))
