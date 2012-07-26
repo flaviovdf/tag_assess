@@ -6,7 +6,3 @@ Classes that compute:
     * P(u|i) = Probability of an user given an item
     * P(t|i) = Probability of a tag given an item
 '''
-
-from .ProbabilityEstimator import ProbabilityEstimator
-from .RWEstimator import RWEstimator
-from .SmoothEstimator import SmoothEstimator

@@ -1,28 +1,28 @@
 # -*- coding: utf8
+# cython: cdivision = True
+# cython: boundscheck = False
+# cython: wraparound = False
+
 '''Probability based on smoothing methods'''
 
 from __future__ import division, print_function
 
 from collections import defaultdict
 
-from cy_tagassess.smooth cimport bayes
-from cy_tagassess.smooth cimport jelinek_mercer
+from tagassess.probability_estimates.smooth cimport bayes
+from tagassess.probability_estimates.smooth cimport jelinek_mercer
 
 import heapq
-import math
 import numpy as np
 
-cimport cython
+cimport base
 cimport numpy as np
-
-#Log2 from C99
-cdef extern from "math.h":
-    double log2(double)
+np.import_array()
 
 cdef int JM = 1
 cdef int BAYES = 2
 
-cdef class SmoothEstimator:
+cdef class SmoothEstimator(base.ProbabilityEstimator):
     '''
     Implementation of a similar approach as proposed in:
     
@@ -131,9 +131,7 @@ cdef class SmoothEstimator:
             
             self.user_tags[user] = np.array([tag[1] for tag in aux])
     
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cpdef double prob_item(self, int item):
+    cdef double prob_item(self, int item):
         '''Probability of seeing a given item. $P(i)$'''
         
         if item < 0 or item >= self.n_items:
@@ -141,9 +139,7 @@ cdef class SmoothEstimator:
         
         return self.item_col_mle[item]
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)    
-    cpdef double prob_tag(self, int tag):
+    cdef double prob_tag(self, int tag):
         '''Probability of seeing a given tag. $P(t)$'''
 
         if tag < 0 or tag >= self.n_tags:
@@ -157,9 +153,7 @@ cdef class SmoothEstimator:
 
         return return_val
     
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cpdef double prob_tag_given_item(self, int item, int tag):
+    cdef double prob_tag_given_item(self, int item, int tag):
         '''Probability of seeing a given tag for an item. $P(t|i)$'''
         
         if item < 0 or item >= self.n_items:
@@ -195,9 +189,7 @@ cdef class SmoothEstimator:
         
         return prob
     
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cpdef double prob_user(self, int user):
+    cdef double prob_user(self, int user):
         '''Probability of seeing an user. $P(u)$'''
         
         if user < 0 or user >= self.n_users:
@@ -212,9 +204,7 @@ cdef class SmoothEstimator:
             return_val *= self.prob_tag(utags[i])
         return return_val
     
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cpdef double prob_user_given_item(self, int item, int user):
+    cdef double prob_user_given_item(self, int item, int user):
         '''Probability of seeing an user given an item. $P(u|i)$'''
 
         if item < 0 or item >= self.n_items:
@@ -232,181 +222,6 @@ cdef class SmoothEstimator:
             return_val *= self.prob_tag_given_item(item, utags[i])
         return return_val
     
-    #Log methods
-    cpdef double log_prob_tag(self, int tag):
-        '''Log probability of seeing a given tag. $P(t)$'''
-        return log2(self.prob_tag(tag))
-    
-    cpdef double log_prob_tag_given_item(self, int item, int tag):
-        '''Log probability of seeing a given tag for an item. $P(t|i)$'''
-        return log2(self.prob_tag_given_item(item, tag))
-    
-    cpdef double log_prob_item(self, int item):
-        '''Log probability of seeing a given item. $P(i)$'''
-        return log2(self.prob_item(item))
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cpdef double log_prob_user(self, int user):
-        '''
-        Log probability of seeing an user. $P(u)$
-        This method is useful when `prob_user` underflows.
-        '''
-        cdef np.ndarray[np.int_t, ndim=1] utags = \
-                self.user_tags[user]
-
-        cdef Py_ssize_t i
-        cdef double return_val = 0.0
-        for i in range(utags.shape[0]):
-            return_val += self.log_prob_tag(utags[i])
-        return return_val
-    
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cpdef double log_prob_user_given_item(self, int item, int user):
-        '''
-        Log probability of seeing an user given an item. $P(u|i)$.
-        This method is useful when `prob_user_given_item` underflows.
-        '''
-        cdef np.ndarray[np.int_t, ndim=1] utags = \
-                self.user_tags[user]
-        
-        cdef Py_ssize_t i
-        cdef double return_val = 0.0
-        for i in range(utags.shape[0]):
-            return_val += self.log_prob_tag_given_item(item, utags[i])
-        return return_val
-   
-    #Vectorized methods
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cpdef np.ndarray[np.float_t, ndim=1] vect_prob_user(self, 
-            np.ndarray[np.int_t, ndim=1] users):
-
-        cdef np.ndarray[np.float_t, ndim=1] return_val = \
-                np.ndarray(users.shape[0])
-        
-        cdef Py_ssize_t i
-        for i in range(users.shape[0]):
-            return_val[i] = self.prob_user(users[i])
-        return return_val
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cpdef np.ndarray[np.float_t, ndim=1] vect_prob_item(self, 
-            np.ndarray[np.int_t, ndim=1] items):
-        
-        cdef np.ndarray[np.float_t, ndim=1] return_val = \
-                np.ndarray(items.shape[0])
-        
-        cdef Py_ssize_t i
-        for i in range(items.shape[0]):
-            return_val[i] = self.prob_item(items[i])
-        return return_val
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cpdef np.ndarray[np.float_t, ndim=1] vect_prob_tag(self, 
-            np.ndarray[np.int_t, ndim=1] tags):
-
-        cdef np.ndarray[np.float_t, ndim=1] return_val = \
-                np.ndarray(tags.shape[0])
-        
-        cdef Py_ssize_t i
-        for i in range(tags.shape[0]):
-            return_val[i] = self.prob_tag(tags[i])
-        return return_val
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cpdef np.ndarray[np.float_t, ndim=1] vect_prob_user_given_item(self,
-            np.ndarray[np.int_t, ndim=1] items, int user):
-        
-        cdef np.ndarray[np.float_t, ndim=1] return_val = \
-                np.ndarray(items.shape[0])
-        
-        cdef Py_ssize_t i
-        for i in range(items.shape[0]):
-            return_val[i] = self.prob_user_given_item(items[i], user)
-        return return_val
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cpdef np.ndarray[np.float_t, ndim=1] vect_prob_tag_given_item(self,
-            np.ndarray[np.int_t, ndim=1] items, int tag):
-        
-        cdef np.ndarray[np.float_t, ndim=1] return_val = \
-                np.ndarray(items.shape[0])
-        cdef Py_ssize_t i
-        for i in range(items.shape[0]):
-            return_val[i] = self.prob_tag_given_item(items[i], tag)
-        return return_val
-   
-    #Log vectorized methods
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cpdef np.ndarray[np.float_t, ndim=1] vect_log_prob_user(self, 
-            np.ndarray[np.int_t, ndim=1] users):
-
-        cdef np.ndarray[np.float_t, ndim=1] return_val = \
-                np.ndarray(users.shape[0])
-        
-        cdef Py_ssize_t i
-        for i in range(users.shape[0]):
-            return_val[i] = self.log_prob_user(users[i])
-        return return_val
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cpdef np.ndarray[np.float_t, ndim=1] vect_log_prob_item(self, 
-            np.ndarray[np.int_t, ndim=1] items):
-        
-        cdef np.ndarray[np.float_t, ndim=1] return_val = \
-                np.ndarray(items.shape[0])
-        
-        cdef Py_ssize_t i
-        for i in range(items.shape[0]):
-            return_val[i] = self.log_prob_item(items[i])
-        return return_val
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cpdef np.ndarray[np.float_t, ndim=1] vect_log_prob_tag(self, 
-            np.ndarray[np.int_t, ndim=1] tags):
-
-        cdef np.ndarray[np.float_t, ndim=1] return_val = \
-                np.ndarray(tags.shape[0])
-        
-        cdef Py_ssize_t i
-        for i in range(tags.shape[0]):
-            return_val[i] = self.log_prob_tag(tags[i])
-        return return_val
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cpdef np.ndarray[np.float_t, ndim=1] vect_log_prob_user_given_item(self,
-            np.ndarray[np.int_t, ndim=1] items, int user):
-        
-        cdef np.ndarray[np.float_t, ndim=1] return_val = \
-                np.ndarray(items.shape[0])
-        
-        cdef Py_ssize_t i
-        for i in range(items.shape[0]):
-            return_val[i] = self.log_prob_user_given_item(items[i], user)
-        return return_val
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cpdef np.ndarray[np.float_t, ndim=1] vect_log_prob_tag_given_item(self,
-            np.ndarray[np.int_t, ndim=1] items, int tag):
-        
-        cdef np.ndarray[np.float_t, ndim=1] return_val = \
-                np.ndarray(items.shape[0])
-        cdef Py_ssize_t i
-        for i in range(items.shape[0]):
-            return_val[i] = self.log_prob_tag_given_item(items[i], tag)
-        return return_val
-   
     #Other methods
     cpdef double tag_pop(self, int tag):
         '''Returns the popularity of a tag'''
