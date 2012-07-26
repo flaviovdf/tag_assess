@@ -1,11 +1,14 @@
 # -*- coding: utf8
+# cython: cdivision = True
+# cython: boundscheck = False
+# cython: wraparound = False
+
 '''Common functions to be called by scripts for experiments'''
 
 from __future__ import division, print_function
 
-from cy_tagassess cimport entropy
-from cy_tagassess.probability_estimates cimport SmoothEstimator
-from tagassess.recommenders import Recommender
+from tagassess cimport entropy
+from tagassess.probability_estimates.base cimport ProbabilityEstimator
 
 cimport cython
 import numpy as np
@@ -16,33 +19,12 @@ cdef class ValueCalculator(object):
     Class used to compute values. 
     Contains basic value functions and filtering.
     '''
-    cdef SmoothEstimator est
+    cdef ProbabilityEstimator est
     cdef object recc
     
-    def __init__(self, SmoothEstimator estimator, object recommender):
+    def __init__(self, ProbabilityEstimator estimator):
         self.est = estimator
-        self.recc = recommender
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    def item_value(self, int user):
-        '''
-        Creates an array for the relevance of each item to the given user.
-        
-        See also
-        --------
-        tagassess.smooth
-        tagassess.probability_estimates
-        '''
-        cdef np.ndarray[np.float_t, ndim=1] return_val
-        return_val = np.zeros(self.est.num_items(), dtype='d')
-
-        cdef Py_ssize_t item
-        for item in range(return_val.shape[0]):
-            relevance = self.recc.relevance(user, item)
-            return_val[item] = relevance
-        return return_val
-    
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def tag_value_personalized(self, int user, 

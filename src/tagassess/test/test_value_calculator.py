@@ -7,16 +7,16 @@
 from __future__ import print_function, division
 
 import numpy as np
-from numpy import log2
 
 from tagassess import data_parser
+from tagassess.probability_estimates.smooth_estimator import SmoothEstimator
+from tagassess.probability_estimates.base import DecoratorEstimator
 from tagassess import test
 from tagassess import value_calculator
-from tagassess.probability_estimates import SmoothEstimator
-from tagassess.recommenders import ProbabilityReccomender
-from tagassess.test import PyCyUnit
 
-class TestValueCaculator(PyCyUnit):
+import unittest
+
+class TestValueCaculator(unittest.TestCase):
     
     def setUp(self):
         self.annots = []
@@ -24,14 +24,9 @@ class TestValueCaculator(PyCyUnit):
     def tearDown(self):
         self.annots = None
         
-    def get_module_to_eval(self, *args, **kwargs):
-        annots = args[0]
-        smooth_func = args[1]
-        lambda_ = args[2]
-        
+    def build_value_calculator(self, annots, smooth_func, lambda_):
         est = SmoothEstimator(smooth_func, lambda_, annots)
-        recc = ProbabilityReccomender(est)
-        return est, value_calculator.ValueCalculator(est, recc)
+        return DecoratorEstimator(est), value_calculator.ValueCalculator(est)
     
     def __init_test(self, annot_file):
         parser = data_parser.Parser()
@@ -45,7 +40,7 @@ class TestValueCaculator(PyCyUnit):
         
         smooth_func = 'Bayes'
         lambda_ = 0.3
-        est, vc = self.get_module_to_eval(self.annots, smooth_func, lambda_)
+        est, vc = self.build_value_calculator(self.annots, smooth_func, lambda_)
         
         pus = []
         s_pus = 0.0
@@ -83,7 +78,7 @@ class TestValueCaculator(PyCyUnit):
                     n_pitu = pitus[item] / sum(pitus)
                     n_piu = pius[item] / sum(pius)
                     
-                    val += n_pitu * log2(n_pitu / n_piu)
+                    val += n_pitu * np.log2(n_pitu / n_piu)
                 
                 #Assert
                 self.assertAlmostEquals(tag_vals[tag], val)
@@ -93,7 +88,7 @@ class TestValueCaculator(PyCyUnit):
         
         smooth_func = 'Bayes'
         lambda_ = 0.3
-        est, vc = self.get_module_to_eval(self.annots, smooth_func, lambda_)
+        est, vc = self.build_value_calculator(self.annots, smooth_func, lambda_)
         
         pus = []
         s_pus = 0.0
@@ -131,7 +126,7 @@ class TestValueCaculator(PyCyUnit):
                     n_pitu = pitus[item] / sum(pitus)
                     n_piu = pius[item] / sum(pius)
                     
-                    val += n_pitu * log2(n_pitu / n_piu)
+                    val += n_pitu * np.log2(n_pitu / n_piu)
                 
                 #Assert
                 self.assertAlmostEquals(tag_vals[tag], val)
@@ -141,7 +136,7 @@ class TestValueCaculator(PyCyUnit):
         
         smooth_func = 'Bayes'
         lambda_ = 0.3
-        est, vc = self.get_module_to_eval(self.annots, smooth_func, lambda_)
+        est, vc = self.build_value_calculator(self.annots, smooth_func, lambda_)
         
         tag_vals = vc.tag_value_item_search()
         for tag in [0, 1, 2, 3, 4, 5]:
@@ -153,28 +148,18 @@ class TestValueCaculator(PyCyUnit):
                 pi = est.prob_item(item)
                 pti = est.prob_tag_given_item(item, tag)
                 
-                val += pti * pi * log2(pti / pt)
+                val += pti * pi * np.log2(pti / pt)
             val /= pt
             
             #Assert
             self.assertAlmostEquals(tag_vals[tag], val)
 
-    def test_valid_values_items(self):
-        self.__init_test(test.SMALL_DEL_FILE)
-        
-        smooth_func = 'Bayes'
-        lambda_ = 0.1
-        est, vc = self.get_module_to_eval(self.annots, smooth_func, lambda_)
-        
-        for val in vc.item_value(0):
-            self.assertTrue(val < 0)
-            
     def test_valid_values_personalized(self):
         self.__init_test(test.SMALL_DEL_FILE)
         
         smooth_func = 'Bayes'
         lambda_ = 0.1
-        est, vc = self.get_module_to_eval(self.annots, smooth_func, lambda_)
+        est, vc = self.build_value_calculator(self.annots, smooth_func, lambda_)
         
         for val in vc.tag_value_personalized(0):
             self.assertTrue(val >= 0)
@@ -184,7 +169,7 @@ class TestValueCaculator(PyCyUnit):
         
         smooth_func = 'Bayes'
         lambda_ = 0.1
-        est, vc = self.get_module_to_eval(self.annots, smooth_func, lambda_)
+        est, vc = self.build_value_calculator(self.annots, smooth_func, lambda_)
         
         for val in vc.tag_value_per_user_search(0):
             self.assertTrue(val >= 0)
@@ -194,7 +179,7 @@ class TestValueCaculator(PyCyUnit):
         
         smooth_func = 'Bayes'
         lambda_ = 0.1
-        est, vc = self.get_module_to_eval(self.annots, smooth_func, lambda_)
+        est, vc = self.build_value_calculator(self.annots, smooth_func, lambda_)
         
         for val in vc.tag_value_item_search():
             self.assertTrue(val >= 0)
