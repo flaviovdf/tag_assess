@@ -1,10 +1,14 @@
 # -*- coding: utf8
+#cython: cdivision = True
+
 '''Implementation of the Jelinek-Mercer and Bayes smoothing.'''
 
 from __future__ import division, print_function
 
+cdef double NAN = float('nan')
+
 cpdef double jelinek_mercer(int local_freq, int sum_locals, int global_freq, 
-                            int sum_globals, double lambda_) except *:
+                            int sum_globals, double lambda_):
     '''
     Calculates the jelinek mercer smoothing for the given parameters.
     
@@ -24,19 +28,15 @@ cpdef double jelinek_mercer(int local_freq, int sum_locals, int global_freq,
     lambda_: double
         the hyper parameter
     '''
+    if sum_locals == 0 or sum_globals == 0:
+        return NAN
     
-    cdef double local = 0
-    if sum_locals >= 0:
-        local = (1 - lambda_) * local_freq / sum_locals
-    
-    cdef double globl = 0
-    if sum_globals >= 0:
-        globl = lambda_ * global_freq / sum_globals
-    
+    cdef double local = <double>((1 - lambda_) * local_freq) / sum_locals
+    cdef double globl = <double>(lambda_ * global_freq) / sum_globals
     return local + globl
 
 cpdef double bayes(int local_freq, int sum_locals, int global_freq, 
-                   int sum_globals, double lambda_) except *:
+                   int sum_globals, double lambda_):
     '''
     Calculates the bayes smoothing for the given parameters.
     
@@ -56,14 +56,14 @@ cpdef double bayes(int local_freq, int sum_locals, int global_freq,
     lambda_: double
         the hyper parameter
     '''
-    
-    cdef double globl = 0
-    cdef double alpha = 0
-    if sum_globals >= 0:
-        globl = global_freq / sum_globals
+    if (sum_locals + lambda_) == 0 or sum_globals == 0:
+        return NAN
 
+    cdef double globl = <double>(global_freq) / sum_globals
+    cdef double alpha = 0
+    
     if local_freq > 0:    
-        return (local_freq + lambda_ * globl) /  (sum_locals + lambda_)
+        return <double>(local_freq + lambda_ * globl) /  (sum_locals + lambda_)
     else:
         alpha = lambda_ / (sum_locals + lambda_)
         return alpha * globl
