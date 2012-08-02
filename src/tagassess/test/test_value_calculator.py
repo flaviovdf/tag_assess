@@ -35,133 +35,16 @@ class TestValueCaculator(unittest.TestCase):
                                        data_parser.delicious_flickr_parser):
                 self.annots.append(annot)
     
-    def test_itag_value_personalized(self):
-        self.__init_test(test.SMALL_DEL_FILE)
-        
-        smooth_func = 'Bayes'
-        lambda_ = 0.3
-        est, vc = self.build_value_calculator(self.annots, smooth_func, lambda_)
-        
-        pus = []
-        s_pus = 0.0
-        for user in [0, 1, 2]:
-            pu = est.prob_user(user)
-            pus.append(pu)
-            s_pus += pu
-        
-        #Iterative calculation
-        for i, pu in enumerate(pus):
-            pus[i] = pu / s_pus
-        
-        for user in [0, 1, 2]:
-            pu = pus[user]
-            tag_vals = vc.tag_value_personalized(user)
-            
-            for tag in [0, 1, 2, 3, 4, 5]:
-                pt = est.prob_tag(tag)
-                
-                pitus = []
-                pius = []
-                for item in [0, 1, 2, 3, 4]:
-                    pi = est.prob_item(item)
-                    pti = est.prob_tag_given_item(item, tag)
-                    pui = est.prob_user_given_item(item, user)
-                    
-                    piu = pui * pi / pu
-                    pitu = pti * pui * pi / (pu * pt)
-                    
-                    pitus.append(pitu)
-                    pius.append(piu)
-                
-                val = 0
-                for item in [0, 1, 2, 3, 4]:
-                    n_pitu = pitus[item] / sum(pitus)
-                    n_piu = pius[item] / sum(pius)
-                    
-                    val += n_pitu * np.log2(n_pitu / n_piu)
-                
-                #Assert
-                self.assertAlmostEquals(tag_vals[tag], val)
-
-    def test_itag_value_personalized_filter(self):
-        self.__init_test(test.SMALL_DEL_FILE)
-        
-        smooth_func = 'Bayes'
-        lambda_ = 0.3
-        est, vc = self.build_value_calculator(self.annots, smooth_func, lambda_)
-        
-        pus = []
-        s_pus = 0.0
-        for user in [0, 1, 2]:
-            pu = est.prob_user(user)
-            pus.append(pu)
-            s_pus += pu
-        
-        #Iterative calculation
-        for i, pu in enumerate(pus):
-            pus[i] = pu / s_pus
-        
-        for user in [0, 1, 2]:
-            pu = pus[user]
-            tag_vals = vc.tag_value_personalized(user, np.array([0, 1, 2]))
-            
-            for tag in [0, 1, 2, 3, 4, 5]:
-                pt = est.prob_tag(tag)
-                
-                pitus = []
-                pius = []
-                for item in [0, 1, 2]:
-                    pi = est.prob_item(item)
-                    pti = est.prob_tag_given_item(item, tag)
-                    pui = est.prob_user_given_item(item, user)
-                    
-                    piu = pui * pi / pu
-                    pitu = pti * pui * pi / (pu * pt)
-                    
-                    pitus.append(pitu)
-                    pius.append(piu)
-                
-                val = 0
-                for item in [0, 1, 2]:
-                    n_pitu = pitus[item] / sum(pitus)
-                    n_piu = pius[item] / sum(pius)
-                    
-                    val += n_pitu * np.log2(n_pitu / n_piu)
-                
-                #Assert
-                self.assertAlmostEquals(tag_vals[tag], val)
-
-    def test_itag_value_item_search(self):
-        self.__init_test(test.SMALL_DEL_FILE)
-        
-        smooth_func = 'Bayes'
-        lambda_ = 0.3
-        est, vc = self.build_value_calculator(self.annots, smooth_func, lambda_)
-        
-        tag_vals = vc.tag_value_item_search()
-        for tag in [0, 1, 2, 3, 4, 5]:
-            #Iterative calculation
-            pt = est.prob_tag(tag)
-            
-            val = 0
-            for item in [0, 1, 2, 3, 4]:
-                pi = est.prob_item(item)
-                pti = est.prob_tag_given_item(item, tag)
-                
-                val += pti * pi * np.log2(pti / pt)
-            val /= pt
-            
-            #Assert
-            self.assertAlmostEquals(tag_vals[tag], val)
-
     def test_valid_values_personalized(self):
         self.__init_test(test.SMALL_DEL_FILE)
+        
+        items = np.arange(5)
         
         smooth_func = 'Bayes'
         lambda_ = 0.1
         est, vc = self.build_value_calculator(self.annots, smooth_func, lambda_)
         
-        for val in vc.tag_value_personalized(0):
+        for val in vc.tag_value_personalized(0, items):
             self.assertTrue(val >= 0)
 
     def test_valid_values_per_user(self):
@@ -171,7 +54,9 @@ class TestValueCaculator(unittest.TestCase):
         lambda_ = 0.1
         est, vc = self.build_value_calculator(self.annots, smooth_func, lambda_)
         
-        for val in vc.tag_value_per_user_search(0):
+        items = np.arange(5)
+        
+        for val in vc.tag_value_per_user_search(0, items):
             self.assertTrue(val >= 0)
 
     def test_valid_values_item_search(self):
@@ -181,5 +66,7 @@ class TestValueCaculator(unittest.TestCase):
         lambda_ = 0.1
         est, vc = self.build_value_calculator(self.annots, smooth_func, lambda_)
         
-        for val in vc.tag_value_item_search():
+        items = np.arange(5)
+        
+        for val in vc.tag_value_item_search(items):
             self.assertTrue(val >= 0)

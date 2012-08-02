@@ -31,7 +31,9 @@ cdef class SmoothEstimator(base.ProbabilityEstimator):
     cdef dict item_tag_freq
     cdef dict user_tags 
     cdef int profile_size
-    
-    cpdef double tag_pop(self, int tag)
+ 
+    cpdef double prob_item(self, int item)
 
-    cpdef double item_tag_pop(self, int item, int tag)
+    cpdef double prob_tag_given_item(self, int item, int tag)
+    
+    cpdef double prob_user_given_item(self, int item, int user) 

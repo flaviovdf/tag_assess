@@ -14,6 +14,8 @@ from tagassess.probability_estimates.smooth import bayes, jelinek_mercer
 from tagassess import data_parser
 from tagassess import test
 
+from numpy.testing import assert_array_almost_equal
+
 import numpy as np
 import unittest
 
@@ -36,7 +38,7 @@ class TestSmoothEstimator(unittest.TestCase):
         self.__init_test(test.SMALL_DEL_FILE)
         smooth_func = 'JM'
         lamb = 0.5
-        p = DecoratorEstimator(SmoothEstimator(smooth_func, lamb, self.annots))
+        p = SmoothEstimator(smooth_func, lamb, self.annots)
         
         #Item probabilities
         self.assertEquals(p.prob_item(0), 5 / 10)
@@ -45,51 +47,11 @@ class TestSmoothEstimator(unittest.TestCase):
         self.assertEquals(p.prob_item(3), 1 / 10)
         self.assertEquals(p.prob_item(4), 1 / 10)
         
-        #Vect methods
-        expected = np.array([0.5, 0.1, 0.2, 0.1, 0.2])
-        estimated = p.vect_prob_item(np.array(range(5)))
-        self.assertTrue(np.in1d(expected, estimated).all())
-        self.assertTrue(np.in1d(estimated, expected).all())
-
-    def test_prob_tag(self):
-        self.__init_test(test.SMALL_DEL_FILE)
-        smooth_func = 'JM'
-        lamb = 0.5
-        p = DecoratorEstimator(SmoothEstimator(smooth_func, lamb, self.annots))
-
-        prob_t0 = sum(p.prob_tag_given_item(i, 0) * p.prob_item(i) \
-                      for i in xrange(5))
-        prob_t1 = sum(p.prob_tag_given_item(i, 1) * p.prob_item(i) \
-                      for i in xrange(5))
-        prob_t2 = sum(p.prob_tag_given_item(i, 2) * p.prob_item(i) \
-                      for i in xrange(5))
-        prob_t3 = sum(p.prob_tag_given_item(i, 3) * p.prob_item(i) \
-                      for i in xrange(5))
-        prob_t4 = sum(p.prob_tag_given_item(i, 4) * p.prob_item(i) \
-                      for i in xrange(5))
-        prob_t5 = sum(p.prob_tag_given_item(i, 5) * p.prob_item(i) \
-                      for i in xrange(5))
-        
-        self.assertEquals(p.prob_tag(0), prob_t0)
-        self.assertEquals(p.prob_tag(1), prob_t1)
-        self.assertEquals(p.prob_tag(2), prob_t2)
-        self.assertEquals(p.prob_tag(3), prob_t3)
-        self.assertEquals(p.prob_tag(4), prob_t4)
-        self.assertEquals(p.prob_tag(5), prob_t5)
-        
-        #Vect methods
-        expected = np.array([prob_t0, prob_t1, prob_t2, 
-                             prob_t3, prob_t4, prob_t5]).round(5)
-        estimated = p.vect_prob_tag(np.array(range(6))).round(5)
-        
-        self.assertTrue(np.in1d(expected, estimated).all())
-        self.assertTrue(np.in1d(estimated, expected).all())
-
     def test_tag_given_item(self):
         self.__init_test(test.SMALL_DEL_FILE)
         smooth_func = 'JM'
         lamb = 0.5
-        p = DecoratorEstimator(SmoothEstimator(smooth_func, lamb, self.annots))
+        p = SmoothEstimator(smooth_func, lamb, self.annots)
             
         #Tag given item
         prob_i0_t0 = jelinek_mercer(2, 5, 3, 10, lamb)
@@ -104,64 +66,23 @@ class TestSmoothEstimator(unittest.TestCase):
         self.assertEquals(p.prob_tag_given_item(3, 0), prob_i3_t0)
         self.assertEquals(p.prob_tag_given_item(4, 0), prob_i4_t0)
     
-        #Vect methods
-        expected = np.array([prob_i0_t0, prob_i1_t0, prob_i2_t0, prob_i3_t0, 
-                             prob_i4_t0])
-        estimated = p.vect_prob_tag_given_item(np.array(range(5)), 0)
-        self.assertTrue(np.in1d(expected, estimated).all())
-        self.assertTrue(np.in1d(estimated, expected).all())
-
-    def test_prob_user(self):
+    def test_prob_user_given_item(self):
         self.__init_test(test.SMALL_DEL_FILE)
         smooth_func = 'JM'
         lamb = 0.5
-        p = DecoratorEstimator(SmoothEstimator(smooth_func, lamb, self.annots))
+        p = SmoothEstimator(smooth_func, lamb, self.annots, user_profile_size=1)
         
-        #User and user given item
-        prob = p.prob_user(0)
-        expected_prob_u = p.prob_tag(0) * p.prob_tag(1) * p.prob_tag(2) 
-        self.assertEquals(prob, expected_prob_u)
-        
-        prob = p.prob_user_given_item(0, 0)
-        expected_prob_ugi = p.prob_tag_given_item(0, 0) * \
-                            p.prob_tag_given_item(0, 1) * \
-                            p.prob_tag_given_item(0, 2) 
-        self.assertEquals(prob, expected_prob_ugi)
-        
-    def test_prob_user_profile_one(self):
-        self.__init_test(test.SMALL_DEL_FILE)
-        smooth_func = 'JM'
-        lamb = 0.5
-        p = DecoratorEstimator(SmoothEstimator(smooth_func, lamb, self.annots, 
-                                               user_profile_size=1))
-        
-        #User and user given item
-        prob = p.prob_user(0)
-        expected_prob_u = p.prob_tag(0)
-        self.assertEquals(prob, expected_prob_u)
-        
+        #User given item
         prob = p.prob_user_given_item(0, 0)
         expected_prob_ugi = p.prob_tag_given_item(0, 0)
         self.assertEquals(prob, expected_prob_ugi)
         
-    def test_prob_user_profile_two(self):
-        self.__init_test(test.SMALL_DEL_FILE)
-        smooth_func = 'JM'
-        lamb = 0.5
-        p = DecoratorEstimator(SmoothEstimator(smooth_func, lamb, self.annots, 
-                                               user_profile_size=2))
-        
-        #User and user given item
-        prob = p.prob_user(0)
-        expected_prob_u = p.prob_tag(0) * p.prob_tag(2)
-        self.assertEquals(prob, expected_prob_u)
-   
     def test_bayes(self):
         self.__init_test(test.SMALL_DEL_FILE)
         
         smooth_func = 'Bayes'
         lamb = 0.3
-        p = DecoratorEstimator(SmoothEstimator(smooth_func, lamb, self.annots))
+        p = SmoothEstimator(smooth_func, lamb, self.annots)
         
         prob_i0_t0 = bayes(2, 5, 3, 10, lamb)
         prob_i0_t1 = bayes(1, 5, 3, 10, lamb)
@@ -176,6 +97,85 @@ class TestSmoothEstimator(unittest.TestCase):
         self.assertAlmostEquals(p.prob_tag_given_item(0, 3), prob_i0_t3)
         self.assertAlmostEquals(p.prob_tag_given_item(0, 4), prob_i0_t4)
         self.assertAlmostEquals(p.prob_tag_given_item(0, 5), prob_i0_t5)
+
+    def test_prob_items_given_user_and_tag(self):
+        self.__init_test(test.SMALL_DEL_FILE)
         
+        lambda_ = 0.3
+        smooth_func = 'Bayes'
+        p = SmoothEstimator(smooth_func, lambda_, self.annots)
+        decor = DecoratorEstimator(p)
+        
+        for user in [0, 1, 2]:
+            for tag in [0, 1, 2, 3, 4, 5]:
+                pitus = []
+                pius = []
+                for item in [0, 1, 2, 3, 4]:
+                    pi = p.prob_item(item)
+                    pti = p.prob_tag_given_item(item, tag)
+                    pui = p.prob_user_given_item(item, user)
+                    
+                    piu = pui * pi
+                    pitu = pti * pui * pi
+                    
+                    pitus.append(pitu)
+                    pius.append(piu)
+                
+                sum_pitus = sum(pitus)
+                sum_pius = sum(pius)
+                for item in [0, 1, 2, 3, 4]:
+                    pitus[item] = pitus[item] / sum_pitus
+                    pius[item] = pius[item] / sum_pius
+                    
+                #Assert
+                gamma_items = np.array([0, 1, 2, 3, 4])
+                assert_array_almost_equal(pius, 
+                        decor.prob_items_given_user(user, gamma_items))
+                assert_array_almost_equal(pitus, 
+                        decor.prob_items_given_user_tag(user, tag, gamma_items))
+                
+                self.assertAlmostEqual(1, sum(decor.prob_items_given_user(user, 
+                                                            gamma_items)))
+
+                self.assertAlmostEqual(1, 
+                        sum(decor.prob_items_given_user_tag(user, tag, 
+                                                            gamma_items)))             
+
+    def test_prob_item_given_tag(self):
+        self.__init_test(test.SMALL_DEL_FILE)
+        
+        lambda_ = 0.3
+        smooth_func = 'Bayes'
+        p = SmoothEstimator(smooth_func, lambda_, self.annots)
+        decor = DecoratorEstimator(p)
+        
+        for tag in [0, 1, 2, 3, 4, 5]:
+            pis = []
+            pits = []
+            
+            for item in [0, 1, 2, 3, 4]:
+                pi = p.prob_item(item)
+                pti = p.prob_tag_given_item(item, tag)
+                
+                pis.append(pi)
+                pits.append(pti * pi)
+                
+            #Assert
+            pis = np.array(pis)
+            pis /= pis.sum()
+            
+            pits = np.array(pits)
+            pits /= pits.sum()
+            
+            gamma_items = np.array([0, 1, 2, 3, 4])
+            assert_array_almost_equal(pis, decor.prob_items(gamma_items))
+            assert_array_almost_equal(pits, decor.prob_items_given_tag(tag, 
+                                                                gamma_items))
+
+            self.assertAlmostEqual(1, sum(decor.prob_items(gamma_items)))
+            self.assertAlmostEqual(1, 
+                    sum(decor.prob_items_given_tag(tag, gamma_items)))             
+
+
 if __name__ == "__main__":
     unittest.main()

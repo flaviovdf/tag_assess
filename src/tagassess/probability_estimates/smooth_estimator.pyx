@@ -131,7 +131,7 @@ cdef class SmoothEstimator(base.ProbabilityEstimator):
             
             self.user_tags[user] = np.array([tag[1] for tag in aux])
     
-    cdef double prob_item(self, int item):
+    cpdef double prob_item(self, int item):
         '''Probability of seeing a given item. $P(i)$'''
         
         if item < 0 or item >= self.n_items:
@@ -139,21 +139,7 @@ cdef class SmoothEstimator(base.ProbabilityEstimator):
         
         return self.item_col_mle[item]
 
-    cdef double prob_tag(self, int tag):
-        '''Probability of seeing a given tag. $P(t)$'''
-
-        if tag < 0 or tag >= self.n_tags:
-            return 0.0
-       
-        cdef double return_val = 0.0
-        cdef Py_ssize_t item
-        for item in range(self.n_items):
-            return_val += self.item_col_mle[item] * \
-                          self.prob_tag_given_item(item, tag)
-
-        return return_val
-    
-    cdef double prob_tag_given_item(self, int item, int tag):
+    cpdef double prob_tag_given_item(self, int item, int tag):
         '''Probability of seeing a given tag for an item. $P(t|i)$'''
         
         if item < 0 or item >= self.n_items:
@@ -189,22 +175,7 @@ cdef class SmoothEstimator(base.ProbabilityEstimator):
         
         return prob
     
-    cdef double prob_user(self, int user):
-        '''Probability of seeing an user. $P(u)$'''
-        
-        if user < 0 or user >= self.n_users:
-            return 0.0
-        
-        cdef np.ndarray[np.int_t, ndim=1] utags = \
-                self.user_tags[user]
-
-        cdef double return_val = 1.0
-        cdef Py_ssize_t i
-        for i in range(utags.shape[0]):
-            return_val *= self.prob_tag(utags[i])
-        return return_val
-    
-    cdef double prob_user_given_item(self, int item, int user):
+    cpdef double prob_user_given_item(self, int item, int user):
         '''Probability of seeing an user given an item. $P(u|i)$'''
 
         if item < 0 or item >= self.n_items:
@@ -222,32 +193,78 @@ cdef class SmoothEstimator(base.ProbabilityEstimator):
             return_val *= self.prob_tag_given_item(item, utags[i])
         return return_val
     
-    #Other methods
-    cpdef double tag_pop(self, int tag):
-        '''Returns the popularity of a tag'''
-        if tag >= self.n_tags or tag < 0:
-            return 0
+    cdef np.ndarray[np.float_t, ndim=1] prob_items_given_user(self, int user, 
+            np.ndarray[np.int_t, ndim=1] gamma_items):
             
-        return self.tag_col_freq[tag]
+        cdef Py_ssize_t n_items = gamma_items.shape[0]
+        cdef np.ndarray[np.float_t, ndim=1] vp_iu = np.ndarray(n_items)
+        cdef double sum_probs = 0
+        
+        cdef Py_ssize_t item
+        for item from 0 <= item < n_items:
+            vp_iu[item] = self.prob_user_given_item(item, user) * \
+                          self.prob_item(item)
+            sum_probs += vp_iu[item]
+            
+        for item from 0 <= item < n_items:
+            vp_iu[item] = vp_iu[item] / sum_probs
 
-    cpdef double item_tag_pop(self, int item, int tag):
-        '''Returns the popularity of a tag on an item'''
-        if (item, tag) not in self.item_tag_freq:
-            return 0
-        return self.item_tag_freq[item, tag]
-   
-    def num_items(self):
-        '''Number of items'''
-        return self.n_items
+        return vp_iu
+
+    cdef np.ndarray[np.float_t, ndim=1] prob_items_given_user_tag(self,
+            int user, int tag, np.ndarray[np.int_t, ndim=1] gamma_items):
+            
+        cdef Py_ssize_t n_items = gamma_items.shape[0]
+        cdef np.ndarray[np.float_t, ndim=1] vp_itu = np.zeros(n_items)
+        cdef double sum_probs = 0
+        
+        cdef Py_ssize_t item
+        for item from 0 <= item < n_items:
+            vp_itu[item] = self.prob_user_given_item(item, user) * \
+                           self.prob_tag_given_item(item, tag) * \
+                           self.prob_item(item)
+            
+            sum_probs += vp_itu[item]
+
+        for item from 0 <= item < n_items:
+            vp_itu[item] = vp_itu[item] / sum_probs
+
+        return vp_itu
     
-    def num_tags(self):
-        '''Number of tags'''
+    cdef np.ndarray[np.float_t, ndim=1] prob_items_given_tag(self, 
+            int tag, np.ndarray[np.int_t, ndim=1] gamma_items):
+            
+        cdef Py_ssize_t n_items = gamma_items.shape[0]
+        cdef np.ndarray[np.float_t, ndim=1] vp_it = np.ndarray(n_items)
+        cdef double sum_probs = 0
+        
+        cdef int item
+        for item from 0 <= item < n_items:
+            vp_it[item] = self.prob_tag_given_item(item, tag) * \
+                          self.prob_item(item)
+            sum_probs += vp_it[item]
+        
+        for item from 0 <= item < n_items:
+            vp_it[item] = vp_it[item] / sum_probs
+
+        return vp_it
+    
+    cdef np.ndarray[np.float_t, ndim=1] prob_items(self, 
+           np.ndarray[np.int_t, ndim=1] gamma_items):
+           
+        cdef Py_ssize_t n_items = gamma_items.shape[0]
+        cdef np.ndarray[np.float_t, ndim=1] vp_i = np.ndarray(n_items)
+        cdef double sum_probs = 0
+        
+        cdef Py_ssize_t item
+        for item from 0 <= item < n_items:
+            vp_i[item] = self.prob_item(item)
+            sum_probs += vp_i[item]
+        
+        for item from 0 <= item < n_items:
+            vp_i[item] = vp_i[item] / sum_probs
+
+        return vp_i
+    
+    cdef int num_tags(self):
         return self.n_tags
-    
-    def num_users(self):
-        '''Number of users'''
-        return self.n_users
-    
-    def num_annotations(self):
-        '''Number of annotations'''
-        return self.n_annotations

@@ -7,94 +7,95 @@ cimport cython
 cimport numpy as np
 np.import_array()
 
+cdef np.ndarray EMPTY_RV = None
+
 cdef class ProbabilityEstimator:
-    '''Base class for probability estimates'''
+    '''
+    Base class for probability estimates. This class only defines the methods
+    to be implemented by subclasses. 
+    '''
 
-    cdef double prob_item(self, int item):
-        '''Probability of seeing a given item. $P(i)$'''
-        return 0
+    cdef np.ndarray[np.float_t, ndim=1] prob_items_given_user(self, int user, 
+            np.ndarray[np.int_t, ndim=1] gamma_items):
+        '''
+        Computes P(I|u), i.e., returns an array with the probability of each
+        item given the user.
+        
+        We note that this method considers that gamma_items are all of the
+        items that exist, so the vector returned *will* be rescaled to sum to
+        one.
+        
+        Arguments
+        ---------
+        user: int
+            User id
+        gamma_items:
+            Items to consider. 
+        '''
+        
+        return EMPTY_RV
 
-    cdef double prob_tag(self, int tag):
-        '''Probability of seeing a given tag. $P(t)$'''
+    cdef np.ndarray[np.float_t, ndim=1] prob_items_given_user_tag(self,
+            int user, int tag, np.ndarray[np.int_t, ndim=1] gamma_items):
+        '''
+        Computes P(I|u,t), i.e., returns an array with the probability of each
+        item given the user and the tag.
+         
+        We note that this method considers that gamma_items are all of the
+        items that exist, so the vector returned *will* be rescaled to sum to
+        one.
+        
+        Arguments
+        ---------
+        user: int
+            User id
+        tag: int
+            Tag id
+        gamma_items:
+            Items to consider. 
+        '''
+        return EMPTY_RV
+    
+    cdef np.ndarray[np.float_t, ndim=1] prob_items_given_tag(self, 
+            int tag, np.ndarray[np.int_t, ndim=1] gamma_items):
+        '''
+        Computes P(I|t), i.e., returns an array with the probability of each
+        item given the tag.
+        
+        We note that this method considers that gamma_items are all of the
+        items that exist, so the vector returned *will* be rescaled to sum to
+        one.
+        
+        Arguments
+        ---------
+        tag: int
+            User id
+        gamma_items:
+            Items to consider. 
+        '''
+        return EMPTY_RV
+    
+    cdef np.ndarray[np.float_t, ndim=1] prob_items(self, 
+           np.ndarray[np.int_t, ndim=1] gamma_items):
+        '''
+        Computes P(I), i.e., returns an array with the probability of each
+        item.
+
+        We note that this method considers that gamma_items are all of the
+        items that exist, so the vector returned *will* be rescaled to sum to
+        one.
+
+        Arguments
+        ---------
+        gamma_items:
+            Items to consider.
+        '''
+        return EMPTY_RV
+
+    cdef int num_tags(self):
+        '''Get's the total number of tags'''
         return 0
     
-    cdef double prob_tag_given_item(self, int item, int tag):
-        '''Probability of seeing a given tag for an item. $P(t|i)$'''
-        return 0
-    
-    cdef double prob_user(self, int user):
-        '''Probability of seeing an user. $P(u)$'''
-        return 0
-    
-    cdef double prob_user_given_item(self, int item, int user):
-        '''Probability of seeing an user given an item. $P(u|i)$'''
-        return 0
-
-    cdef np.ndarray[np.float_t, ndim=1] vect_prob_user(self, 
-            np.ndarray[np.int_t, ndim=1] users):
-        '''Computers the P(u) for a vector of users'''
-        
-        cdef Py_ssize_t n = users.shape[0]
-        cdef np.ndarray[np.float_t, ndim=1] return_val = np.ndarray(n)
-        
-        cdef Py_ssize_t i
-        for i from 0 <= i < n:
-            return_val[i] = self.prob_user(users[i])
-
-        return return_val
-
-    cdef np.ndarray[np.float_t, ndim=1] vect_prob_item(self, 
-            np.ndarray[np.int_t, ndim=1] items):
-        '''Computers the P(i) for a vector of items'''
-        
-        cdef Py_ssize_t n = items.shape[0]
-        cdef np.ndarray[np.float_t, ndim=1] return_val = np.ndarray(n)
-        
-        cdef Py_ssize_t i
-        for i from 0 <= i < n:
-            return_val[i] = self.prob_item(items[i])
-
-        return return_val
-
-    cdef np.ndarray[np.float_t, ndim=1] vect_prob_tag(self, 
-            np.ndarray[np.int_t, ndim=1] tags):
-        '''Computers the P(t) for a vector of tags'''
-        
-        cdef Py_ssize_t n = tags.shape[0]
-        cdef np.ndarray[np.float_t, ndim=1] return_val = np.ndarray(n)
-        
-        cdef Py_ssize_t i
-        for i from 0 <= i < n:
-            return_val[i] = self.prob_tag(tags[i])
-
-        return return_val
-
-    cdef np.ndarray[np.float_t, ndim=1] vect_prob_user_given_item(self,
-            np.ndarray[np.int_t, ndim=1] items, int user):
-        '''Computers the P(u|i) for a vector of items'''
-        
-        cdef Py_ssize_t n = items.shape[0]
-        cdef np.ndarray[np.float_t, ndim=1] return_val = np.ndarray(n)
-        
-        cdef Py_ssize_t i
-        for i from 0 <= i < n:
-            return_val[i] = self.prob_user_given_item(items[i], user)
-
-        return return_val
-        
-    cdef np.ndarray[np.float_t, ndim=1] vect_prob_tag_given_item(self,
-            np.ndarray[np.int_t, ndim=1] items, int tag):
-        '''Computers the P(t|i) for a vector of items'''
-        
-        cdef Py_ssize_t n = items.shape[0]
-        cdef np.ndarray[np.float_t, ndim=1] return_val = np.ndarray(n)
-        
-        cdef Py_ssize_t i
-        for i from 0 <= i < n:
-            return_val[i] = self.prob_tag_given_item(items[i], tag)
-
-        return return_val
-
 cdef class DecoratorEstimator:
     '''
     This decorator provides the bridge between cython implementations and
@@ -103,38 +104,87 @@ cdef class DecoratorEstimator:
     '''
     
     cdef ProbabilityEstimator decorated_estimator
-
+    
     def __init__(self, ProbabilityEstimator to_decorate):
         self.decorated_estimator = to_decorate
-    
-    def prob_tag(self, int tag):
-        return self.decorated_estimator.prob_tag(tag)
-    
-    def prob_tag_given_item(self, int item, int tag):
-        return self.decorated_estimator.prob_tag_given_item(item, tag)
-    
-    def prob_user(self, int user):
-        return self.decorated_estimator.prob_user(user)
-    
-    def prob_user_given_item(self, int item, int user):
-        return self.decorated_estimator.prob_user_given_item(item, user)
-    
-    def prob_item(self, int item):
-        return self.decorated_estimator.prob_item(item)
 
-    def vect_prob_user(self, np.ndarray[np.int_t, ndim=1] users):
-        return self.decorated_estimator.vect_prob_user(users)
+    def prob_items_given_user(self, int user,
+                               np.ndarray[np.int_t, ndim=1] gamma_items):
+        '''
+        Computes P(I|u), i.e., returns an array with the probability of each
+        item given the user.
+        
+        We note that this method considers that gamma_items are all of the
+        items that exist, so the vector returned *will* be rescaled to sum to
+        one.
+        
+        Arguments
+        ---------
+        user: int
+            User id
+        gamma_items:
+            Items to consider. 
+        '''
+        return self.decorated_estimator.prob_items_given_user(user, gamma_items)
 
-    def vect_prob_item(self, np.ndarray[np.int_t, ndim=1] items):
-        return self.decorated_estimator.vect_prob_item(items)
-
-    def vect_prob_tag(self, np.ndarray[np.int_t, ndim=1] tags):
-        return self.decorated_estimator.vect_prob_tag(tags)
+    def prob_items_given_user_tag(self,
+                                  int user, int tag, 
+                                  np.ndarray[np.int_t, ndim=1] gamma_items):
+        '''
+        Computes P(I|u,t), i.e., returns an array with the probability of each
+        item given the user and the tag.
+         
+        We note that this method considers that gamma_items are all of the
+        items that exist, so the vector returned *will* be rescaled to sum to
+        one.
+        
+        Arguments
+        ---------
+        user: int
+            User id
+        tag: int
+            Tag id
+        gamma_items:
+            Items to consider. 
+        '''
+        return self.decorated_estimator.prob_items_given_user_tag(user, tag,
+                                                                  gamma_items)
     
-    def vect_prob_user_given_item(self, np.ndarray[np.int_t, ndim=1] items, 
-                                  int user):
-        return self.decorated_estimator.vect_prob_user_given_item(items, user)
-            
-    def vect_prob_tag_given_item(self, np.ndarray[np.int_t, ndim=1] items, 
-                                 int tag):
-        return self.decorated_estimator.vect_prob_tag_given_item(items, tag)
+    def prob_items_given_tag(self, int tag, 
+                             np.ndarray[np.int_t, ndim=1] gamma_items):
+        '''
+        Computes P(I|t), i.e., returns an array with the probability of each
+        item given the tag.
+        
+        We note that this method considers that gamma_items are all of the
+        items that exist, so the vector returned *will* be rescaled to sum to
+        one.
+        
+        Arguments
+        ---------
+        tag: int
+            User id
+        gamma_items:
+            Items to consider. 
+        '''
+        return self.decorated_estimator. prob_items_given_tag(tag, gamma_items)
+    
+    def prob_items(self, np.ndarray[np.int_t, ndim=1] gamma_items):
+        '''
+        Computes P(I), i.e., returns an array with the probability of each
+        item.
+
+        We note that this method considers that gamma_items are all of the
+        items that exist, so the vector returned *will* be rescaled to sum to
+        one.
+
+        Arguments
+        ---------
+        gamma_items:
+            Items to consider.
+        '''
+        return self.decorated_estimator.prob_items(gamma_items)
+    
+    def num_tags(self):
+        '''Get's the total number of tags'''
+        return self.decorated_estimator.num_tags()
