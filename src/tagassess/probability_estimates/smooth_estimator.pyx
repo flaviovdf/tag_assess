@@ -195,7 +195,31 @@ cdef class SmoothEstimator(base.ProbabilityEstimator):
     
     cdef np.ndarray[np.float_t, ndim=1] prob_items_given_user(self, int user, 
             np.ndarray[np.int_t, ndim=1] gamma_items):
-            
+        '''
+        Computes P(I|u), i.e., returns an array with the probability of each
+        item given the user.
+        
+        We note that this method considers that gamma_items are all of the
+        items that exist, so the vector returned *will* be rescaled to sum to
+        one.
+
+        In this estimator, we compute this probability as:
+        
+        .. math::
+            p(i|u) & =       & p(u|i)p(i) / p(u) \\
+                   & \propto & p(u|i)p(i)
+        
+        p(u|i) considers users as a query composed of her past tags.
+        Thus, p(u) is the product p(t|i) for every tag used by the user.
+          
+        Arguments
+        ---------
+        user: int
+            User id
+        gamma_items:
+            Items to consider. 
+        '''
+        
         cdef Py_ssize_t n_items = gamma_items.shape[0]
         cdef np.ndarray[np.float_t, ndim=1] vp_iu = np.ndarray(n_items)
         cdef double sum_probs = 0
@@ -213,7 +237,30 @@ cdef class SmoothEstimator(base.ProbabilityEstimator):
 
     cdef np.ndarray[np.float_t, ndim=1] prob_items_given_user_tag(self,
             int user, int tag, np.ndarray[np.int_t, ndim=1] gamma_items):
-            
+        '''
+        Computes P(I|u,t), i.e., returns an array with the probability of each
+        item given the user and the tag.
+         
+        We note that this method considers that gamma_items are all of the
+        items that exist, so the vector returned *will* be rescaled to sum to
+        one.
+        
+        In this estimator, we compute this probability as:
+        
+        .. math::
+            p(i|t,u) & =       & p(i,t,u) / p(t,u) \\
+                     & =       & p(u|i)p(t|i)p(i) / p(t,u) \\
+                     & \propto & p(u|i)p(t|i)p(i)
+        
+        Arguments
+        ---------
+        user: int
+            User id
+        tag: int
+            Tag id
+        gamma_items:
+            Items to consider. 
+        '''
         cdef Py_ssize_t n_items = gamma_items.shape[0]
         cdef np.ndarray[np.float_t, ndim=1] vp_itu = np.zeros(n_items)
         cdef double sum_probs = 0
@@ -233,7 +280,29 @@ cdef class SmoothEstimator(base.ProbabilityEstimator):
     
     cdef np.ndarray[np.float_t, ndim=1] prob_items_given_tag(self, 
             int tag, np.ndarray[np.int_t, ndim=1] gamma_items):
-            
+        '''
+        Computes P(I|t), i.e., returns an array with the probability of each
+        item given the tag.
+        
+        We note that this method considers that gamma_items are all of the
+        items that exist, so the vector returned *will* be rescaled to sum to
+        one.
+        
+        On this estimator p(i | t) is proportional to:
+        
+        ..math:: 
+            p(i | t) \propto  p(t | i)  * p(i)
+        
+        p(t | i) comes from the smoothing method, while p(i) is based on item
+        frequency.
+        
+        Arguments
+        ---------
+        tag: int
+            User id
+        gamma_items:
+            Items to consider. 
+        '''
         cdef Py_ssize_t n_items = gamma_items.shape[0]
         cdef np.ndarray[np.float_t, ndim=1] vp_it = np.ndarray(n_items)
         cdef double sum_probs = 0
@@ -251,7 +320,26 @@ cdef class SmoothEstimator(base.ProbabilityEstimator):
     
     cdef np.ndarray[np.float_t, ndim=1] prob_items(self, 
            np.ndarray[np.int_t, ndim=1] gamma_items):
-           
+        '''
+        Computes P(I), i.e., returns an array with the probability of each
+        item.
+
+        We note that this method considers that gamma_items are all of the
+        items that exist, so the vector returned *will* be rescaled to sum to
+        one.
+
+        For this estimator this probability is proportional to the frequency
+        of the item on the dataset. 
+        
+        ..math:: 
+            p(i) = N_i / N
+
+        Arguments
+        ---------
+        gamma_items:
+            Items to consider.
+        '''
+        
         cdef Py_ssize_t n_items = gamma_items.shape[0]
         cdef np.ndarray[np.float_t, ndim=1] vp_i = np.ndarray(n_items)
         cdef double sum_probs = 0
