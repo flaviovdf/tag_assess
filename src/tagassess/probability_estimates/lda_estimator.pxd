@@ -37,26 +37,33 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
     cdef float[:, ::1] topic_document_prb
     cdef float[:, ::1] topic_term_prb
     
-    #Sparse 3D Tensor as dict. it maps (user, document, term) -> topic
-    cdef dict topic_assignment
+    #Annotations represented as four arrays (user, topic, document, term)
+    cdef int num_annotations
+    cdef int[:] annot_user
+    cdef int[:] annot_topic
+    cdef int[:] annot_document
+    cdef int[:] annot_term
     
-    #Methods
-    cpdef int _gibbs_populate(self, annotation_it)
-    cpdef int _gibbs_sample(self)
-    cpdef int _gibbs_update(self, int user, int document, int term)
-    cpdef int _add_probabilities(self, 
+    #Populate methods
+    cdef void _gibbs_populate(self, annotation_it)
+    cdef void _populate_count_matrices(self, dict user_cnt, dict topic_cnt, 
+                                       dict document_cnt, dict term_cnt,
+                                       dict topic_term, dict topic_document,
+                                       dict user_topic)
+    cdef void _populate_annotations(self, list annotations_list) 
+   
+    #Gibbs sample methods
+    cdef void _gibbs_sample(self)
+    cpdef int _gibbs_update(self, int user, int old_topic, int document, 
+                            int term)
+    cdef void _add_probabilities(self, 
                                   int user, int topic, int document, int term)
-    cpdef int _average_probs(self, int num_runs)
+    cdef void _average_probs(self, int num_runs)
     cpdef int _sample_topic(self, int user, int document, int term)
-        
-    cpdef double _est_prob_topic_given_user(self, int user, int topic)
-    cpdef double _est_prob_document_given_topic(self, int topic, int document)
-    cpdef double _est_prob_term_given_topic(self, int topic, int term)
-    cpdef double _est_posterior_prob(self, int user, int topic, int document,
+       
+    #Probability estimation methods
+    cdef double _est_prob_topic_given_user(self, int user, int topic)
+    cdef double _est_prob_document_given_topic(self, int topic, int document)
+    cdef double _est_prob_term_given_topic(self, int topic, int term)
+    cdef double _est_posterior_prob(self, int user, int topic, int document,
                                      int term)
-    cpdef double prob_topic_given_user(self, int user, int topic)
-    cpdef double prob_document_given_topic(self, int topic, int document)
-    cpdef double prob_term_given_topic(self, int topic, int term)
-
-    cpdef double posterior_prob(self, int user, int topic, int document, 
-                                int term)

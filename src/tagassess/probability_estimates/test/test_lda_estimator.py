@@ -76,6 +76,11 @@ class TestLDAEstimator(unittest.TestCase):
         self.assertEqual(10, len(topic_assigments))
         self.assertEqual(10, estimator._get_topic_counts().sum())
 
+        #Were the topics populated correctly?
+        for annot in annots:
+            aux = (annot['user'], annot['item'], annot['tag'])
+            self.assertTrue(aux in topic_assigments)
+            
         #Simple sanity check on topic assigmnets. Check if topics have valid
         #ids and if count matches count matrix        
         from collections import Counter
@@ -101,19 +106,19 @@ class TestLDAEstimator(unittest.TestCase):
         annots = self.create_annots(test.DELICIOUS_FILE)
         estimator = LDAEstimator(annots, 2, .5, .5, .5, 0, 0)
 
-        for annot, topic in estimator._get_topic_assignments().items():
+        for annot, old_topic in estimator._get_topic_assignments().items():
             user, document, term = annot
             
-            old_ut = estimator._get_user_topic_counts()[user, topic]
-            old_td = estimator._get_topic_document_counts()[topic, document]
-            old_tr = estimator._get_topic_term_counts()[topic, term]
+            old_ut = estimator._get_user_topic_counts()[user, old_topic]
+            old_td = estimator._get_topic_document_counts()[old_topic, document]
+            old_tr = estimator._get_topic_term_counts()[old_topic, term]
             
-            new_topic = estimator._gibbs_update(user, document, term)
-            new_ut = estimator._get_user_topic_counts()[user, topic]
-            new_td = estimator._get_topic_document_counts()[topic, document]
-            new_tr = estimator._get_topic_term_counts()[topic, term]
+            new_topic = estimator._gibbs_update(user, old_topic, document, term)
+            new_ut = estimator._get_user_topic_counts()[user, old_topic]
+            new_td = estimator._get_topic_document_counts()[old_topic, document]
+            new_tr = estimator._get_topic_term_counts()[old_topic, term]
             
-            if topic != new_topic:
+            if old_topic != new_topic:
                 self.assertEqual(new_ut, old_ut - 1)
                 self.assertEqual(new_td, old_td - 1)
                 self.assertEqual(new_tr, old_tr - 1)
@@ -125,17 +130,28 @@ class TestLDAEstimator(unittest.TestCase):
         self.assertEqual(len(estimator._get_topic_assignments()), 
                          estimator._get_topic_counts().sum())
 
-    def test_gibbs_update2(self):
-        annots = self.create_annots(test.SMALL_DEL_FILE)
-        estimator = LDAEstimator(annots, 2, .5, .5, .5, 0, 0)
+    def test_gibbs_sample(self):
         
-        user, document, term = (1, 2, 2)
-        
-        self.assertFalse((1, 2, 2) in estimator._get_topic_assignments())
-        estimator._gibbs_update(user, document, term)
-        self.assertTrue((1, 2, 2) in estimator._get_topic_assignments())
-        self.assertEqual(11, estimator._get_topic_counts().sum())
+        #Runs everything on a large dataset
 
+        annots = self.create_annots(test.DELICIOUS_FILE)
+        estimator = LDAEstimator(annots, 10, .5, .5, .5, 5, 2)
+        
+        ut = estimator._get_user_topic_prb()
+        td = estimator._get_topic_document_prb()
+        tt = estimator._get_topic_term_prb()
+        
+        self.assertTrue(ut.any())
+        self.assertTrue(td.any())
+        self.assertTrue(tt.any())
+        
+        self.assertTrue((ut >= 0).all())
+        self.assertTrue((td >= 0).all())
+        self.assertTrue((tt >= 0).all())
+
+        self.assertTrue((ut <= 1).all())
+        self.assertTrue((td <= 1).all())
+        self.assertTrue((tt <= 1).all())
 
     def test_valid_probabilities(self):
 
