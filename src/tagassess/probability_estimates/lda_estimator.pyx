@@ -12,7 +12,7 @@ cimport numpy as np
 np.import_array()
 
 cdef double NAN = float('nan')
-
+import sys
 cpdef double prior(int joint_count, int global_count, int num_occurences, 
                    double parameter):
     '''
@@ -305,7 +305,7 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
                 if iter >= self.num_burn_in:
                     self._add_probabilities(user, new_topic, document, term)
                     useful_steps += 1
-                            
+            
         #Average out the sums which were considered
         self._average_probs(useful_steps)
         return
@@ -519,8 +519,8 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
         return return_val
 
     #Methods used by the value calculator
-    cdef np.ndarray[np.float_t, ndim=1] prob_items_given_user(self, int user, 
-            np.ndarray[np.int_t, ndim=1] gamma_items):
+    cpdef np.ndarray[np.float_t, ndim=1] prob_items_given_user(self, int user, 
+             np.ndarray[np.int_t, ndim=1] gamma_items):
             
         '''
         Computes P(I|u), i.e., returns an array with the probability of each
@@ -566,11 +566,11 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
             
         return vp_iu
     
-    cdef np.ndarray[np.float_t, ndim=1] prob_items_given_user_tag(self,
+    cpdef np.ndarray[np.float_t, ndim=1] prob_items_given_user_tag(self,
             int user, int tag, np.ndarray[np.int_t, ndim=1] gamma_items):
         pass
 
-    cdef np.ndarray[np.float_t, ndim=1] prob_items_given_tag(self, 
+    cpdef np.ndarray[np.float_t, ndim=1] prob_items_given_tag(self, 
             int tag, np.ndarray[np.int_t, ndim=1] gamma_items):
         '''
         Computes P(I|t), i.e., returns an array with the probability of each
@@ -619,7 +619,7 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
             
         return vp_it
     
-    cdef np.ndarray[np.float_t, ndim=1] prob_items(self, 
+    cpdef np.ndarray[np.float_t, ndim=1] prob_items(self, 
            np.ndarray[np.int_t, ndim=1] gamma_items):
         
         '''
@@ -656,5 +656,5 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
 
         return vp_i
     
-    cdef int num_tags(self):
+    cpdef int num_tags(self):
         return self.num_terms

@@ -10,7 +10,6 @@ import numpy as np
 
 from tagassess import data_parser
 from tagassess.probability_estimates.smooth_estimator import SmoothEstimator
-from tagassess.probability_estimates.base import DecoratorEstimator
 from tagassess import test
 from tagassess import value_calculator
 
@@ -26,7 +25,7 @@ class TestValueCaculator(unittest.TestCase):
         
     def build_value_calculator(self, annots, smooth_func, lambda_):
         est = SmoothEstimator(smooth_func, lambda_, annots)
-        return DecoratorEstimator(est), value_calculator.ValueCalculator(est)
+        return est, value_calculator.ValueCalculator(est)
     
     def __init_test(self, annot_file):
         parser = data_parser.Parser()

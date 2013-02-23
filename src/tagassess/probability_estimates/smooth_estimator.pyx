@@ -186,14 +186,14 @@ cdef class SmoothEstimator(base.ProbabilityEstimator):
 
         cdef np.ndarray[np.int_t, ndim=1] utags = \
                 self.user_tags[user]
-        
+                
         cdef double return_val = 1.0
         cdef Py_ssize_t i
         for i in range(utags.shape[0]):
             return_val *= self.prob_tag_given_item(item, utags[i])
         return return_val
     
-    cdef np.ndarray[np.float_t, ndim=1] prob_items_given_user(self, int user, 
+    cpdef np.ndarray[np.float_t, ndim=1] prob_items_given_user(self, int user, 
             np.ndarray[np.int_t, ndim=1] gamma_items):
         '''
         Computes P(I|u), i.e., returns an array with the probability of each
@@ -235,7 +235,7 @@ cdef class SmoothEstimator(base.ProbabilityEstimator):
 
         return vp_iu
 
-    cdef np.ndarray[np.float_t, ndim=1] prob_items_given_user_tag(self,
+    cpdef np.ndarray[np.float_t, ndim=1] prob_items_given_user_tag(self,
             int user, int tag, np.ndarray[np.int_t, ndim=1] gamma_items):
         '''
         Computes P(I|u,t), i.e., returns an array with the probability of each
@@ -278,7 +278,7 @@ cdef class SmoothEstimator(base.ProbabilityEstimator):
 
         return vp_itu
     
-    cdef np.ndarray[np.float_t, ndim=1] prob_items_given_tag(self, 
+    cpdef np.ndarray[np.float_t, ndim=1] prob_items_given_tag(self, 
             int tag, np.ndarray[np.int_t, ndim=1] gamma_items):
         '''
         Computes P(I|t), i.e., returns an array with the probability of each
@@ -318,7 +318,7 @@ cdef class SmoothEstimator(base.ProbabilityEstimator):
 
         return vp_it
     
-    cdef np.ndarray[np.float_t, ndim=1] prob_items(self, 
+    cpdef np.ndarray[np.float_t, ndim=1] prob_items(self, 
            np.ndarray[np.int_t, ndim=1] gamma_items):
         '''
         Computes P(I), i.e., returns an array with the probability of each
@@ -354,5 +354,5 @@ cdef class SmoothEstimator(base.ProbabilityEstimator):
 
         return vp_i
     
-    cdef int num_tags(self):
+    cpdef int num_tags(self):
         return self.n_tags

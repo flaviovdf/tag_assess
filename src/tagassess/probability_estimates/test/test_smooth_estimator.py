@@ -7,7 +7,6 @@
 
 from __future__ import division, print_function
 
-from tagassess.probability_estimates.base import DecoratorEstimator
 from tagassess.probability_estimates.smooth_estimator import SmoothEstimator
 from tagassess.probability_estimates.smooth import bayes, jelinek_mercer
 
@@ -104,7 +103,6 @@ class TestSmoothEstimator(unittest.TestCase):
         lambda_ = 0.3
         smooth_func = 'Bayes'
         p = SmoothEstimator(smooth_func, lambda_, self.annots)
-        decor = DecoratorEstimator(p)
         
         for user in [0, 1, 2]:
             for tag in [0, 1, 2, 3, 4, 5]:
@@ -130,15 +128,15 @@ class TestSmoothEstimator(unittest.TestCase):
                 #Assert
                 gamma_items = np.array([0, 1, 2, 3, 4])
                 assert_array_almost_equal(pius, 
-                        decor.prob_items_given_user(user, gamma_items))
+                        p.prob_items_given_user(user, gamma_items))
                 assert_array_almost_equal(pitus, 
-                        decor.prob_items_given_user_tag(user, tag, gamma_items))
+                        p.prob_items_given_user_tag(user, tag, gamma_items))
                 
-                self.assertAlmostEqual(1, sum(decor.prob_items_given_user(user, 
+                self.assertAlmostEqual(1, sum(p.prob_items_given_user(user, 
                                                             gamma_items)))
 
                 self.assertAlmostEqual(1, 
-                        sum(decor.prob_items_given_user_tag(user, tag, 
+                        sum(p.prob_items_given_user_tag(user, tag, 
                                                             gamma_items)))             
 
     def test_prob_item_given_tag(self):
@@ -147,7 +145,6 @@ class TestSmoothEstimator(unittest.TestCase):
         lambda_ = 0.3
         smooth_func = 'Bayes'
         p = SmoothEstimator(smooth_func, lambda_, self.annots)
-        decor = DecoratorEstimator(p)
         
         for tag in [0, 1, 2, 3, 4, 5]:
             pis = []
@@ -168,13 +165,13 @@ class TestSmoothEstimator(unittest.TestCase):
             pits /= pits.sum()
             
             gamma_items = np.array([0, 1, 2, 3, 4])
-            assert_array_almost_equal(pis, decor.prob_items(gamma_items))
-            assert_array_almost_equal(pits, decor.prob_items_given_tag(tag, 
+            assert_array_almost_equal(pis, p.prob_items(gamma_items))
+            assert_array_almost_equal(pits, p.prob_items_given_tag(tag, 
                                                                 gamma_items))
 
-            self.assertAlmostEqual(1, sum(decor.prob_items(gamma_items)))
+            self.assertAlmostEqual(1, sum(p.prob_items(gamma_items)))
             self.assertAlmostEqual(1, 
-                    sum(decor.prob_items_given_tag(tag, gamma_items)))             
+                    sum(p.prob_items_given_tag(tag, gamma_items)))             
 
 
 if __name__ == "__main__":

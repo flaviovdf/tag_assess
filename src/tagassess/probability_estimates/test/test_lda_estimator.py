@@ -12,7 +12,6 @@ from math import isnan
 from tagassess import data_parser
 from tagassess import test
 
-from tagassess.probability_estimates.base import DecoratorEstimator
 from tagassess.probability_estimates.lda_estimator import LDAEstimator
 from tagassess.probability_estimates.lda_estimator import prior
 
@@ -163,12 +162,11 @@ class TestLDAEstimator(unittest.TestCase):
         #4 runs, 2 for burn 1
         annots = self.create_annots(test.SMALL_DEL_FILE)
         estimator = LDAEstimator(annots, 2, .1, .2, .3, 2, 0)
-        decor = DecoratorEstimator(estimator)
         
         gamma = np.arange(5)
-        prob_items = decor.prob_items(gamma)
-        prob_items_tag = decor.prob_items_given_tag(0, gamma)
-        prob_items_user = decor.prob_items_given_user(0, gamma)
+        prob_items = estimator.prob_items(gamma)
+        prob_items_tag = estimator.prob_items_given_tag(0, gamma)
+        prob_items_user = estimator.prob_items_given_user(0, gamma)
         
         self.assertTrue(isvalid(prob_items))
         self.assertTrue(isvalid(prob_items_tag))
