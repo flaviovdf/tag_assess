@@ -568,7 +568,50 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
     
     cpdef np.ndarray[np.float_t, ndim=1] prob_items_given_user_tag(self,
             int user, int tag, np.ndarray[np.int_t, ndim=1] gamma_items):
-        pass
+        '''
+        Computes P(I|t, u), i.e., returns an array with the probability of each
+        item given the user and tag.
+        
+        We note that this method considers that gamma_items are all of the
+        items that exist, so the vector returned *will* be rescaled to sum to
+        one.
+
+        In this estimator, we compute this probability as:
+        
+        .. math::
+            p(i|t, u) & \propto & p(i|u) p(t|i, u)
+          
+        Arguments
+        ---------
+        user: int
+            User id
+        tag: int
+            Tag id
+        gamma_items:
+            Items to consider. 
+        '''
+ 
+        cdef Py_ssize_t num_items = gamma_items.shape[0]
+        cdef Py_ssize_t item
+        cdef Py_ssize_t topic
+        
+        cdef np.ndarray[np.float_t, ndim=1] vpi_tu = np.ndarray(num_items)
+        cdef double sum_posterior = 0
+        cdef double sum_probs = 0
+
+        for item from 0 <= item < num_items:
+            sum_posterior = 0
+
+            for topic from 0 <= topic < self.num_topics:
+                sum_posterior += self.posterior_prob(user, topic, item, tag)
+
+            vpi_tu[item] = sum_posterior
+            sum_probs += vpi_tu[item]
+
+        for item from 0 <= item < num_items:
+            vpi_tu[item] /= sum_probs
+
+        return vpi_tu
 
     cpdef np.ndarray[np.float_t, ndim=1] prob_items_given_tag(self, 
             int tag, np.ndarray[np.int_t, ndim=1] gamma_items):

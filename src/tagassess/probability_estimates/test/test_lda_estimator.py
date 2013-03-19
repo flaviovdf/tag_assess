@@ -167,10 +167,12 @@ class TestLDAEstimator(unittest.TestCase):
         prob_items = estimator.prob_items(gamma)
         prob_items_tag = estimator.prob_items_given_tag(0, gamma)
         prob_items_user = estimator.prob_items_given_user(0, gamma)
+        prob_items_user_tag = estimator.prob_items_given_user_tag(0, 0, gamma)
         
         self.assertTrue(isvalid(prob_items))
         self.assertTrue(isvalid(prob_items_tag))
         self.assertTrue(isvalid(prob_items_user))
+        self.assertTrue(isvalid(prob_items_user_tag))
 
 if __name__ == "__main__":
     unittest.main()
