@@ -8,14 +8,8 @@ from __future__ import division, print_function
 __authors__ = ['Flavio Figueiredo - flaviovdf <at> gmail <dot-no-spam> com']
 __date__ = '26/05/2011'
 
-#Cython Imports
-try:
-    from cy_tagassess import value_calculator
-    from cy_tagassess.probability_estimates import SmoothEstimator
-except ImportError: #Fallback to python code
-    print('!!! UNABLE TO IMPORT CYTHON MODULES ''')
-    from tagassess import value_calculator
-    from tagassess.probability_estimates import SmoothEstimator
+from tagassess import value_calculator
+from tagassess.probability_estimates.smooth_estimator import SmoothEstimator
 
 #Regular Imports
 from itertools import ifilter
@@ -23,10 +17,8 @@ from itertools import ifilter
 from tagassess import index_creator
 from tagassess import graph
 from tagassess.dao.mongodb.annotations import AnnotReader
-from tagassess.recommenders import ProbabilityReccomender
 
 import argparse
-import heapq
 import io
 import multiprocessing
 import numpy as np
@@ -98,8 +90,7 @@ def compute_for_user(database, table, user, relevant, annotated,
         est = SmoothEstimator(smooth_func, lambda_, 
                               reader.iterate(query = query),
                               user_profile_size = user_profile_size)
-        recc = ProbabilityReccomender(est)
-        value_calc = value_calculator.ValueCalculator(est, recc)
+        value_calc = value_calculator.ValueCalculator(est)
         
         fname = 'user_%d' % user
         user_folder = os.path.join(out_folder, fname)

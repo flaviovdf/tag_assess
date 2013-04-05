@@ -16,11 +16,10 @@ cimport numpy as np
 
 cdef class ValueCalculator(object):
     '''
-    Class used to compute values. 
+    Class used to compute tag values. 
     Contains basic value functions and filtering.
     '''
     cdef ProbabilityEstimator est
-    cdef object recc
     
     def __init__(self, ProbabilityEstimator estimator):
         self.est = estimator

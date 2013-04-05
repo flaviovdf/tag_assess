@@ -7,18 +7,11 @@ from __future__ import division, print_function
 __authors__ = ['Flavio Figueiredo - flaviovdf <at> gmail <dot-no-spam> com']
 __date__ = '26/05/2011'
 
-#Cython Imports
-try:
-    from cy_tagassess import value_calculator
-    from cy_tagassess.probability_estimates import SmoothEstimator
-except ImportError: #Fallback to python code
-    print('!!! UNABLE TO IMPORT CYTHON MODULES ''')
-    from tagassess import value_calculator
-    from tagassess.probability_estimates import SmoothEstimator
+from tagassess import value_calculator
+from tagassess.probability_estimates.smooth_estimator import SmoothEstimator
 
 #Regular Imports
 from tagassess.dao.mongodb.annotations import AnnotReader
-from tagassess.recommenders import ProbabilityReccomender
 
 import argparse
 import traceback
@@ -29,8 +22,7 @@ def real_main(database, table, smooth_func, lambda_, user):
     with AnnotReader(database) as reader:
         reader.change_table(table)
         est = SmoothEstimator(smooth_func, lambda_, reader.iterate())
-        recc = ProbabilityReccomender(est)
-        vc = value_calculator.ValueCalculator(est, recc)
+        vc = value_calculator.ValueCalculator(est)
         
         iitem_value = vc.item_value(user)
         for item, item_val in iitem_value.iteritems():

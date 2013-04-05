@@ -21,8 +21,8 @@ __date__ = '16/11/2011'
 
 from collections import defaultdict
 
-from cy_tagassess import entropy
-from cy_tagassess.probability_estimates import SmoothEstimator
+from tagassess import entropy
+from tagassess.probability_estimates.smooth_estimator import SmoothEstimator
 
 from tagassess.dao.mongodb.annotations import AnnotReader
 from tagassess.index_creator import create_occurrence_index

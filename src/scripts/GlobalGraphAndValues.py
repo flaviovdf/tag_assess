@@ -8,20 +8,13 @@ from __future__ import division, print_function
 __authors__ = ['Flavio Figueiredo - flaviovdf <at> gmail <dot-no-spam> com']
 __date__ = '26/05/2011'
 
-#Cython Imports
-try:
-    from cy_tagassess import value_calculator
-    from cy_tagassess.probability_estimates import SmoothEstimator
-except ImportError: #Fallback to python code
-    print('!!! UNABLE TO IMPORT CYTHON MODULES ''')
-    from tagassess import value_calculator
-    from tagassess.probability_estimates import SmoothEstimator
+from tagassess import value_calculator
+from tagassess.probability_estimates.smooth_estimator import SmoothEstimator
 
 #Regular imports
 from tagassess import index_creator
 from tagassess import graph
 from tagassess.dao.mongodb.annotations import AnnotReader
-from tagassess.recommenders import ProbabilityReccomender
 
 import argparse
 import collections
@@ -55,8 +48,7 @@ def create_graph(annotation_it, out_folder):
 def compute_tag_values(smooth_func, lambda_, annotation_it, 
                        tag_to_item, tag_pops, out_folder):
     est = SmoothEstimator(smooth_func, lambda_, annotation_it)
-    recc = ProbabilityReccomender(est)
-    value_calc = value_calculator.ValueCalculator(est, recc)
+    value_calc = value_calculator.ValueCalculator(est)
     
     tag_value = value_calc.tag_value_item_search()
     with io.open(os.path.join(out_folder, 'tag.values'), 'w') as values:

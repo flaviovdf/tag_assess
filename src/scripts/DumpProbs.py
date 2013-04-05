@@ -9,13 +9,8 @@ from __future__ import division, print_function
 __authors__ = ['Flavio Figueiredo - flaviovdf <at> gmail <dot-no-spam> com']
 __date__ = '01/11/2011'
 
-try:
-    from cy_tagassess.probability_estimates import SmoothEstimator
-    from cy_tagassess.value_calculator import ValueCalculator
-except ImportError:
-    print('!!! UNABLE TO IMPORT CYTHON MODULES ''')
-    from tagassess.probability_estimates import SmoothEstimator
-    from tagassess.value_calculator import ValueCalculator
+from tagassess.probability_estimates.smooth_estimator import SmoothEstimator
+from tagassess.value_calculator import ValueCalculator
 
 from collections import Counter
 
@@ -33,7 +28,7 @@ def main(database, table, smooth_func, lambda_, min_tag_freq):
         
         #Builds value calculator
         estimator = SmoothEstimator(smooth_func, lambda_, reader.iterate())
-        calculator = ValueCalculator(estimator, None)
+        calculator = ValueCalculator(estimator)
         
         #Determine tags which will be considered
         tags_to_consider = []
