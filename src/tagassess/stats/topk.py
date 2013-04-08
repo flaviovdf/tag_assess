@@ -13,7 +13,7 @@ from __future__ import division, print_function
 
 import itertools
 
-def kendall_tau_distance(data1, data2, k=10, p=0):
+def kendall_tau_distance(data1, data2, k=-1, p=0):
     '''
     Calculates the Kendall-Tau *distance* between two different
     rankings. This distance captures the amount of operations needed
@@ -28,8 +28,9 @@ def kendall_tau_distance(data1, data2, k=10, p=0):
         The first ranking
     data2: list (or any ordered iterable)
         The second ranking
-    k: int (default = 10)
-        The top elements to consider from each ranking
+    k: int (default = -1s)
+        The top elements to consider from each ranking. When -1 it will be set
+        to the size of the smaller list
     p: double [0, 1] (defaults to 0)
         The penalty factor
         
@@ -39,6 +40,13 @@ def kendall_tau_distance(data1, data2, k=10, p=0):
        Ronald Fagin, Ravi Kumar, D. Sivakumar
        SIAM J. Discrete Mathematics 17, 1 (2003). PP/ 134-160
     '''
+    
+    if k > len(data1) or k > len(data2):
+        raise Exception('k is greater than the length of given lists')
+    
+    if k == -1:
+        k = min(len(data1), len(data2))
+    
     #Populates dictionaries with: element -> position
     positions1 = dict(itertools.izip(data1, xrange(1, k + 1)))
     positions2 = dict(itertools.izip(data2, xrange(1, k + 1)))
@@ -66,7 +74,6 @@ def kendall_tau_distance(data1, data2, k=10, p=0):
     sum2 = sum(positions2[i] for i in diff2)
     
     z = len(intersect)
-    p = 0
     unnorm = (k - z) * ((2 + p) * k - p * z + 1 - p) + \
              (intersect_penalty - sum1 - sum2)
     
