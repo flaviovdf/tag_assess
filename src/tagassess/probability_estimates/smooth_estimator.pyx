@@ -105,7 +105,7 @@ cdef class SmoothEstimator(base.ProbabilityEstimator):
         for tag in tag_col_dict:
             self.tag_col_freq[tag] = tag_col_dict[tag]
         
-        self.item_col_mle = np.zeros(self.n_items, dtype='f')
+        self.item_col_mle = np.zeros(self.n_items, dtype='d')
         self.item_local_sums = np.zeros(self.n_items, dtype='i')
         
         for item in item_col_dict:

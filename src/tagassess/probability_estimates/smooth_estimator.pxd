@@ -19,7 +19,7 @@ cdef class SmoothEstimator(base.ProbabilityEstimator):
     
     #These variables are cython memoryviews, think of them as 
     #arrays, you can do memview[a, b].
-    cdef float[::1] item_col_mle
+    cdef double[::1] item_col_mle
     cdef int[::1] tag_col_freq
     cdef int[::1] item_local_sums
     
