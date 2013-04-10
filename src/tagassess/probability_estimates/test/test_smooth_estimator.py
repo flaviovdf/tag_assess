@@ -40,11 +40,11 @@ class TestSmoothEstimator(unittest.TestCase):
         p = SmoothEstimator(smooth_func, lamb, self.annots)
         
         #Item probabilities
-        self.assertEquals(p.prob_item(0), 5 / 10)
-        self.assertEquals(p.prob_item(1), 1 / 10)
-        self.assertEquals(p.prob_item(2), 2 / 10)
-        self.assertEquals(p.prob_item(3), 1 / 10)
-        self.assertEquals(p.prob_item(4), 1 / 10)
+        self.assertAlmostEquals(p.prob_item(0), 5 / 10)
+        self.assertAlmostEquals(p.prob_item(1), 1 / 10)
+        self.assertAlmostEquals(p.prob_item(2), 2 / 10)
+        self.assertAlmostEquals(p.prob_item(3), 1 / 10)
+        self.assertAlmostEquals(p.prob_item(4), 1 / 10)
         
     def test_tag_given_item(self):
         self.__init_test(test.SMALL_DEL_FILE)
