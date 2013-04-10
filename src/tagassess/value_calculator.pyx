@@ -102,8 +102,7 @@ cdef class ValueCalculator(object):
         for i in range(tags.shape[0]):
             tag = tags[i]
             vp_iu = self.est.prob_items_given_user(user, gamma_items)
-            vp_itu = self.est.prob_items_given_user_tag(user, tag, 
-                                                        gamma_items)
+            vp_itu = self.est.prob_items_given_user_tag(user, tag, gamma_items)
             rho = self.calc_rho(tag, vp_iu.argsort()[::-1])
             tag_val = rho * entropy.kullback_leiber_divergence(vp_itu, vp_iu)
             return_val[i] = tag_val
