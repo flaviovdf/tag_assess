@@ -101,16 +101,12 @@ cdef class SmoothEstimator(base.ProbabilityEstimator):
         self.n_items = max_item + 1
         self.n_users = len(user_tags_dict)
         
-        self._tag_col_freq = np.zeros(self.n_tags)
-        self.tag_col_freq = <np.int_t*> self._tag_col_freq.data
+        self.tag_col_freq = np.zeros(self.n_tags, dtype='i')
         for tag in tag_col_dict:
             self.tag_col_freq[tag] = tag_col_dict[tag]
         
-        self._item_col_mle = np.zeros(self.n_items, dtype='d')
-        self.item_col_mle = <np.float_t*> self._item_col_mle.data
-        
-        self._item_local_sums = np.zeros(shape = self.n_items)
-        self.item_local_sums = <np.int_t*> self._item_local_sums.data
+        self.item_col_mle = np.zeros(self.n_items, dtype='f')
+        self.item_local_sums = np.zeros(self.n_items, dtype='i')
         
         for item in item_col_dict:
             self.item_col_mle[item] = item_col_dict[item] / self.n_annotations

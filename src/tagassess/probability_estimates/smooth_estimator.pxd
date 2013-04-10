@@ -17,15 +17,11 @@ cdef class SmoothEstimator(base.ProbabilityEstimator):
     cdef int smooth_func_id
     cdef double lambda_
     
-    #Arrays declared as pointers, ugly cython hack
-    cdef np.ndarray _item_col_mle
-    cdef np.float_t* item_col_mle
-    
-    cdef np.ndarray _tag_col_freq
-    cdef np.int_t* tag_col_freq
-    
-    cdef np.ndarray _item_local_sums
-    cdef np.int_t* item_local_sums
+    #These variables are cython memoryviews, think of them as 
+    #arrays, you can do memview[a, b].
+    cdef float[::1] item_col_mle
+    cdef int[::1] tag_col_freq
+    cdef int[::1] item_local_sums
     
     #Auxiliary dictionaries
     cdef dict item_tag_freq
