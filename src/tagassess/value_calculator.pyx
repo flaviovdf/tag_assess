@@ -106,7 +106,7 @@ cdef class ValueCalculator(object):
                                                         gamma_items)
             rho = self.calc_rho(tag, vp_iu.argsort()[::-1])
             tag_val = rho * entropy.kullback_leiber_divergence(vp_itu, vp_iu)
-            return_val[tag] = tag_val
+            return_val[i] = tag_val
         return return_val
     
     def tag_value_item_search(self, 
@@ -142,5 +142,5 @@ cdef class ValueCalculator(object):
             vp_it = self.est.prob_items_given_tag(tag, gamma_items)
             rho = self.calc_rho(tag, vp_i.argsort()[::-1])
             tag_val = rho * entropy.kullback_leiber_divergence(vp_it, vp_i)
-            return_val[tag] = tag_val
+            return_val[i] = tag_val
         return return_val
