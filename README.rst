@@ -28,12 +28,6 @@ How to install dependencies (ubuntu)
 The part of the guide will assume you use ubuntu or debian. This is only needed to install virtualenv and python dev
 packages. Both can be installed from source or use respective packages for your OS. 
 
-Another option is to use the very good Enthought Canopy python distribution (free for academics). 
-It is a pre-built python with numpy, scipy and cython (plus lots of other goodies) out of the box 
-(cython may be outdated, but you can updat just it). You can probably just install Canopy, activate it and
-do a $ pip install Cython and be ready!
-See https://www.enthought.com/downloads/
-
 * Make sure you have python 2.6+ (but not Python 3+).
 * Install the dependencies. I prefer to use virutalenv for this
 
