@@ -91,6 +91,10 @@ It is a pre-built python with numpy and scipy (plus lots of other goodies) out o
 * Download and install canopy. See https://www.enthought.com/
 * After installing Canopy activate the virtualenv (or you can at install choose for it to be activated always)
 
+::
+
+$ source ~/Enthought/Canopy_64bit/System/bin/activate
+
 * PROTIP: The cython in canopy package manager is old. I recommend using  easy_install or pip to install new versions.
 
 * Instal cython on canopy. pip does not play nice with Canopy, so use easy_install. Basically the same thing.
@@ -115,7 +119,7 @@ How to install the package
 
 ::
 
-git clone https://github.com/flaviovdf/tag_assess.git
+$ git clone https://github.com/flaviovdf/tag_assess.git
 
 * Make sure you are in you previously configured python enviroment
 * Install and be happy. Go to code folder and o
