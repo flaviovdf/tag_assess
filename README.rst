@@ -41,7 +41,7 @@ $ apt-get install python-virtualenv
 
 $ apt-get install python2.7-dev
 
-* Create your virtual env. From here everythun will be local.
+* Create your virtual env. From here everything will be local.
 
 ::
 
@@ -91,7 +91,7 @@ $ source ~/Enthought/Canopy_64bit/System/bin/activate
 
 * PROTIP: The cython in canopy package manager is old. I recommend using  easy_install or pip to install new versions.
 
-* Instal cython on canopy. pip does not play nice with Canopy, so use easy_install. Basically the same thing.
+* Install cython on canopy. pip does not play nice with Canopy, so use easy_install. Basically the same thing.
 
 ::
 
@@ -115,14 +115,14 @@ How to install the package
 
 $ git clone https://github.com/flaviovdf/tag_assess.git
 
-* Make sure you are in you previously configured python enviroment
+* Make sure you are in you previously configured python environment
 * Install and be happy. Go to code folder and o
 
 :: 
 
 $ python setup.py install
 
-* If you don't want to instal you can just build using make. Just run make in the folder
+* If you don't want to install you can just build using make. Just run make in the folder
 * From here you can run unittests
 
 :: 
@@ -130,10 +130,10 @@ $ python setup.py install
 $ nosetests
 
 * If you don't install pytables, networkx or pymongo (with mongodb) some tests will fail. I need to ignore
-  them still if the enviroment is not good for them. These tests can be ignored. They are the one in the 
+  them still if the environment is not good for them. These tests can be ignored. They are the one in the 
   tagassess.dao and tagassess.graph packages. *Other tests should not fail!!!*
 
-* And use the pyrun.sh script to use the package withou installing. Useful when developint
+* And use the pyrun.sh script to use the package withou installing. Useful when developing
 
 :: 
 
