@@ -73,11 +73,13 @@ $ pip install cython
 
 $ pip install nose
 
-* I also suggest having networkx and pytables since some scripts and unittests depend on them
+* I also suggest having networkx and pytables
 
 ::
 
 $ pip install networkx
+$ pip install pyrex
+$ pip install numexpr
 $ pip install pytables
 
 How to install dependencies using Canopy
@@ -97,7 +99,8 @@ It is a pre-built python with numpy and scipy (plus lots of other goodies) out o
 
 $ easy_install Cython
 
-* I also suggest having networkx and pytables since some scripts and unittests depend on them
+* I also suggest having networkx and pytables. Now using enpkg which is how Canopy manages packages. You can also 
+  use the GUI. Or easy_install them for newest versions (not required)
 
 ::
 
@@ -119,14 +122,14 @@ git clone https://github.com/flaviovdf/tag_assess.git
 
 :: 
 
-python setup.py install
+$ python setup.py install
 
 * If you don't want to instal you can just build using make. Just run make in the folder
 * From here you can run unittests
 
 :: 
 
-nosetests
+$ nosetests
 
 * If you don't install pytables, networkx or pymongo (with mongodb) some tests will fail. I need to ignore
   them still if the enviroment is not good for them. These tests can be ignored. They are the one in the 
@@ -136,4 +139,4 @@ nosetests
 
 :: 
 
-./pyrun.sh
+$ ./pyrun.sh
