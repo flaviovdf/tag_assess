@@ -29,7 +29,7 @@ The part of the guide will assume you use ubuntu or debian. This is only needed 
 packages. Both can be installed from source or use respective packages for your OS. 
 
 * Make sure you have python 2.6+ (but not Python 3+).
-* Install the dependencies. I prefer to use virutalenv for this
+* Install the required packages
 
 ::
 
@@ -41,7 +41,7 @@ $ apt-get install python-virtualenv
 
 $ apt-get install python2.7-dev
 
-* Create your virtual env. From here everything will be local.
+* Create your virtual env. From here root will no longer be required.
 
 ::
 
@@ -51,7 +51,7 @@ $ virtualenv --no-site-packages ~/virtualenvs/tagassess/ #or any folder you wish
 
 ::
 
-$ source source ~/virtualenvs/tagassess/bin/activate
+$ source ~/virtualenvs/tagassess/bin/activate
 
 * Install deps in the virtualenv
 
@@ -72,7 +72,7 @@ $ pip install nose
 ::
 
 $ pip install networkx
-$ pip install pyrex
+$ pip install Pyrex
 $ pip install numexpr
 $ pip install pytables
 
@@ -82,16 +82,17 @@ How to install dependencies using Canopy
 Another option is to use the very good Enthought Canopy python distribution (free for academics). 
 It is a pre-built python with numpy and scipy (plus lots of other goodies) out of the box. 
 
-* Download and install canopy. See https://www.enthought.com/
-* After installing Canopy activate the virtualenv (or you can at install choose for it to be activated always)
+* Download and install Canopy. See https://www.enthought.com/
+* After installing Canopy activate the virtualenv (at install time you can choose for it to be activated always)
 
 ::
 
 $ source ~/Enthought/Canopy_64bit/System/bin/activate
 
-* PROTIP: The cython in canopy package manager is old. I recommend using  easy_install or pip to install new versions.
+* PROTIP: The cython in Canopy package manager is old. I recommend using  easy_install or pip to install new versions.
+  Since pip does not play well with Canopy, use easy_install.
 
-* Install cython on canopy. pip does not play nice with Canopy, so use easy_install. Basically the same thing.
+* Install cython on Canopy
 
 ::
 
@@ -129,9 +130,9 @@ $ python setup.py install
 
 $ nosetests
 
-* If you don't install pytables, networkx or pymongo (with mongodb) some tests will fail. I need to ignore
-  them still if the environment is not good for them. These tests can be ignored. They are the one in the 
-  tagassess.dao and tagassess.graph packages. *Other tests should not fail!!!*
+* If you don't install pytables, networkx or pymongo (with mongodb) some tests will fail. I need to add ignore
+  flags on them if the packages are not installed. These failures can be ignored, the affected packages are 
+  tagassess.dao and tagassess.graph. *Other tests should not fail!!!*
 
 * And use the pyrun.sh script to use the package withou installing. Useful when developing
 
