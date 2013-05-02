@@ -117,12 +117,6 @@ How to install the package
 $ git clone https://github.com/flaviovdf/tag_assess.git
 
 * Make sure you are in you previously configured python environment
-* Install and be happy. Go to code folder and o
-
-:: 
-
-$ python setup.py install
-
 * If you don't want to install you can just build using make. Just run make in the folder
 * From here you can run unittests
 
@@ -130,12 +124,18 @@ $ python setup.py install
 
 $ nosetests
 
-* If you don't install pytables, networkx or pymongo (with mongodb) some tests will fail. I need to add ignore
-  flags on them if the packages are not installed. These failures can be ignored, the affected packages are 
-  tagassess.dao and tagassess.graph. *Other tests should not fail!!!*
-
 * And use the pyrun.sh script to use the package withou installing. Useful when developing
 
 :: 
 
 $ ./pyrun.sh
+
+* If you want to install and be happy. Go to code folder and run
+
+:: 
+
+$ python setup.py install
+
+* If you don't install pytables, networkx or pymongo (with mongodb) some tests will fail. I need to add ignore
+  flags on them if the packages are not installed. These failures can be ignored, the affected packages are 
+  tagassess.dao and tagassess.graph. *Other tests should not fail!!!*
