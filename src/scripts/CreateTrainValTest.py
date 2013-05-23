@@ -149,7 +149,6 @@ def sanity_check(reader, user_items_to_filter):
     users = set()
     items = set()
     tags = set()
-    num_original = 0
     for annotation in reader.iterate():
         user = annotation['user']
         item = annotation['item']
@@ -157,22 +156,35 @@ def sanity_check(reader, user_items_to_filter):
         users.add(user)
         items.add(item)
         tags.add(tag)
-        num_original += 1
     
     filtered = FilteredUserItemAnnotations(user_items_to_filter)
-    num_filtered = 0
+    filtered_users = set()
+    filtered_items = set()
+    filtered_tags = set()
     for annotation in filtered.annotations(reader.iterate()):
         user = annotation['user']
         item = annotation['item']
         tag = annotation['tag']
+        
         assert user in users
         assert item in items
         assert tag in tags
         
-        num_filtered += 1
+        if user in user_items_to_filter:
+            assert item not in user_items_to_filter[user]
+        
+        filtered_users.add(user)
+        filtered_items.add(item)
+        filtered_tags.add(tag)
     
-    assert num_filtered < num_original
-
+    assert len(filtered_users) == len(users)
+    assert len(filtered_items) == len(items)
+    assert len(filtered_tags) == len(tags)
+    
+    assert len(filtered_users.symmetric_difference(users)) == 0
+    assert len(filtered_items.symmetric_difference(items)) == 0
+    assert len(filtered_tags.symmetric_difference(tags)) == 0
+    
 def save_dict_to_file(fpath, dict_data):
     '''
     Saves a dict with sets/lists as values to a file. Each line of the file will

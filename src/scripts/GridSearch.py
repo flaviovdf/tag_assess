@@ -165,7 +165,6 @@ def run_one(args):
         random_tags = random_tags[:NUM_RANDOM_TAGS]    
         
         #Gets number of tags and items
-        annotations = annot_filter.annotations(reader.iterate())
         num_items = len(items)
         num_tags = len(tags)
         
