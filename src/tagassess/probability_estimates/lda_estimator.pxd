@@ -3,6 +3,10 @@ cimport base
 import numpy as np
 cimport numpy as np
 
+#TODO: This next line is a workaround due to a cython bug. Remove when cython 
+#      .19 comes out
+cdef public api double __PYX_NAN = float('nan')
+
 cdef class LDAEstimator(base.ProbabilityEstimator):
     
     cdef int num_iterations

@@ -5,6 +5,10 @@
 
 '''Probability based on lda methods'''
 
+from __future__ import division, print_function
+
+from cython.parallel import prange
+
 cimport base
 
 import numpy as np
@@ -12,7 +16,7 @@ cimport numpy as np
 np.import_array()
 
 cdef double NAN = float('nan')
-import sys
+
 cpdef double prior(int joint_count, int global_count, int num_occurences, 
                    double parameter):
     '''
@@ -74,8 +78,12 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
     data mining - WSDM  ’11. doi:10.1145/1935826.1935898
     '''
     def __init__(self, annotation_it, int num_topics, double alpha, double
-                 beta, double gamma, int num_iterations, int num_burn_in):
+                 beta, double gamma, int num_iterations, int num_burn_in,
+                 int seed=0):
         super(LDAEstimator, self).__init__()
+        
+        if seed > 0:
+            np.random.seed(seed)
         
         self.num_topics = num_topics
         self.alpha = alpha
@@ -548,20 +556,18 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
         
         cdef Py_ssize_t item
         cdef Py_ssize_t topic
-        cdef double sum_topic = 0
         cdef double sum_probs = 0
         
-        for item from 0 <= item < num_items:
-            sum_topic = 0
+        for item in prange(num_items, nogil=True, schedule='static'):
+            vp_iu[item] = 0
             for topic from 0 <= topic < self.num_topics:
-                sum_topic += self.prob_topic_given_user(user, topic) * \
-                             self.prob_document_given_topic(topic, item)
+                vp_iu[item] += self.user_topic_prb[user, topic] * \
+                             self.topic_document_prb[topic, item]
                              
                  
-            vp_iu[item] = sum_topic
             sum_probs += vp_iu[item]
         
-        for item from 0 <= item < num_items:
+        for item in prange(num_items, nogil=True, schedule='static'):
             vp_iu[item] /= sum_probs
             
         return vp_iu
@@ -596,19 +602,19 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
         cdef Py_ssize_t topic
         
         cdef np.ndarray[np.float_t, ndim=1] vpi_tu = np.ndarray(num_items)
-        cdef double sum_posterior = 0
         cdef double sum_probs = 0
 
-        for item from 0 <= item < num_items:
-            sum_posterior = 0
+        for item in prange(num_items, nogil=True, schedule='static'):
+            vpi_tu[item] = 0
 
             for topic from 0 <= topic < self.num_topics:
-                sum_posterior += self.posterior_prob(user, topic, item, tag)
+                vpi_tu[item] += self.user_topic_prb[user, topic] * \
+                        self.topic_document_prb[topic, item] * \
+                        self.topic_term_prb[topic, tag]
 
-            vpi_tu[item] = sum_posterior
             sum_probs += vpi_tu[item]
 
-        for item from 0 <= item < num_items:
+        for item in prange(num_items, nogil=True, schedule='static'):
             vpi_tu[item] /= sum_probs
 
         return vpi_tu
@@ -644,20 +650,18 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
         
         cdef Py_ssize_t item
         cdef Py_ssize_t topic
-        cdef double sum_topic = 0
         cdef double sum_probs = 0
         
-        for item from 0 <= item < num_items:
-            sum_topic = 0
+        for item in prange(num_items, nogil=True, schedule='static'):
+            vp_it[item] = 0
             for topic from 0 <= topic < self.num_topics:
-                sum_topic += self.document_cnt[item]* \
-                             self.prob_document_given_topic(topic, item) * \
-                             self.prob_term_given_topic(topic, tag)
+                vp_it[item] += self.document_cnt[item] * \
+                             self.topic_document_prb[topic, item] * \
+                             self.topic_term_prb[topic, tag]
                  
-            vp_it[item] = sum_topic
             sum_probs += vp_it[item]
         
-        for item from 0 <= item < num_items:
+        for item in prange(num_items, nogil=True, schedule='static'):
             vp_it[item] /= sum_probs
             
         return vp_it
@@ -685,16 +689,16 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
             Items to consider.
         '''
         
-        cdef Py_ssize_t n_items = gamma_items.shape[0]
-        cdef np.ndarray[np.float_t, ndim=1] vp_i = np.ndarray(n_items)
+        cdef Py_ssize_t num_items = gamma_items.shape[0]
+        cdef np.ndarray[np.float_t, ndim=1] vp_i = np.ndarray(num_items)
         cdef double sum_probs = 0
         
         cdef Py_ssize_t item
-        for item from 0 <= item < n_items:
+        for item in prange(num_items, nogil=True, schedule='static'):
             vp_i[item] = self.document_cnt[item]
             sum_probs += vp_i[item]
         
-        for item from 0 <= item < n_items:
+        for item in prange(num_items, nogil=True, schedule='static'):
             vp_i[item] = vp_i[item] / sum_probs
 
         return vp_i
