@@ -95,6 +95,27 @@ def delicious_flickr_parser(line):
 
     return (user, item, tag, date)
 
+def library_thing_parser(line):
+    '''
+    Parses a line from LT annotations file. Since the LT file has no time
+    stamps, the date for each annotation is returned as the current time.
+
+    Arguments
+    ---------
+    line: str
+        the line to parse
+    '''
+    spl = line.split()
+
+    #trace is: user, item, rating, tag
+    user = int(spl[0])
+    item = int(spl[1])
+    tag = ' '.join(spl[3:]) #deals with multiple word tags
+    
+    date = time.mktime(time.localtime()) #No date in file, use current date
+    
+    return (user, item, tag, date)
+
 def json_parser(json):
     '''
     Utility method for iterating over an already created table.

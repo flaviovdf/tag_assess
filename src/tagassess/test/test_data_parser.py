@@ -29,6 +29,8 @@ BIBSONOMY_LINE2 = '2       shop    6       1       2005-12-15 19:31:50'
 CITEUL_LINE1 = '4184140|aeb5429a4c20c7360579f53366633144|2009-03-16 17:58:33.792331+00|flavivirus'
 CITEUL_LINE2 = '2820125|e4fc89df8b47cf4eaede9b9f1620c57f|2009-03-16 18:00:04.165438+00|partial-order-reduction'
 
+LT_LINE1 = '1 20110 10 50s'
+
 def convert_time(t):
     return time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(t))
 
@@ -37,21 +39,36 @@ class TestParseFuncs(unittest.TestCase):
     Basic tests for line parser functions
     '''
 
+    def test_lt(self):
+        pre_date = time.mktime(time.localtime())
+        user, item, tag, date = data_parser.library_thing_parser(LT_LINE1)
+        post_date = time.mktime(time.localtime())
+        
+        self.assertEqual(1, user)
+        self.assertEqual(20110, item)
+        self.assertEqual('50s', tag)
+        self.assertEqual('50s', tag)
+        self.assertTrue(date >= pre_date)
+        self.assertTrue(date <= post_date)
+
     def test_delicious_flickr(self):
-        user, item, tag, date = data_parser.delicious_flickr_parser(DELICIOUS_LINE1)
+        user, item, tag, date = \
+                data_parser.delicious_flickr_parser(DELICIOUS_LINE1)
 
         self.assertEqual(2384, user)
         self.assertEqual(125497, item)
         self.assertEqual('tinker', tag)
         self.assertEqual('2003-01-01 01:00:00', convert_time(date))
 
-        user, item, tag, date = data_parser.delicious_flickr_parser(DELICIOUS_LINE2)
+        user, item, tag, date = \
+                data_parser.delicious_flickr_parser(DELICIOUS_LINE2)
         self.assertEqual(2384, user)
         self.assertEqual(674518, item)
         self.assertEqual('hardware', tag)
         self.assertEqual('2011-02-17 11:10:20', convert_time(date))
 
-        user, item, tag, date = data_parser.delicious_flickr_parser(DELICIOUS_LINE3)
+        user, item, tag, date = \
+                data_parser.delicious_flickr_parser(DELICIOUS_LINE3)
         self.assertEqual(1, user)
         self.assertEqual(674518, item)
         self.assertEqual('hardware pc', tag)
@@ -112,7 +129,8 @@ class TestIParse(unittest.TestCase):
         fakef.seek(0)
 
         p = data_parser.Parser()
-        annots = [a for a in p.iparse(fakef, data_parser.delicious_flickr_parser)]
+        annots = [a 
+                  for a in p.iparse(fakef, data_parser.delicious_flickr_parser)]
 
         self.assertEqual(0, annots[0]['user'])
         self.assertEqual(0, annots[0]['item'])
