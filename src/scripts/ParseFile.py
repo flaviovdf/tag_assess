@@ -11,17 +11,18 @@ __authors__ = ['Flavio Figueiredo - flaviovdf <at> gmail <dot-no-spam> com']
 __date__ = '26/05/2011'
 
 from tagassess import data_parser
-from tagassess.dao.mongodb.annotations import AnnotWriter
-from tagassess.dao.mongodb.keyval import KeyValStore
+from tagassess.dao.pytables.annotations import AnnotWriter
 
+import os
 import sys
 
 def main(args=[]):
 
     if len(args) < 4:
-        print('Usage %s %s %s %s'
-              %(args[0], '<annotation_file>', '<database_name>',
-                '<ftype = {flickr, delicious, bibsonomy, connotea, citeulike}'),
+        types = '{flickr, delicious, bibsonomy, connotea, citeulike, lt}'
+        print('Usage %s %s %s %s %s'
+              %(args[0], '<annotation_file>', '<database_file>', '<ids folder>',
+                '<ftype = %s>' % types),
                 file=sys.stderr)
         return 1
 
@@ -29,47 +30,43 @@ def main(args=[]):
                 'citeulike':data_parser.citeulike_parser,
                 'connotea':data_parser.connotea_parser,
                 'delicious':data_parser.delicious_flickr_parser,
-                'flickr':data_parser.delicious_flickr_parser}
+                'flickr':data_parser.delicious_flickr_parser,
+                'lt':data_parser.library_thing_parser}
     
-    infpath = args[1]
-    database_name = args[2]
-
-    func_name = args[3]
+    in_fpath = args[1]
+    db_fpath = args[2]
+    ids_folder = args[3]
+    func_name = args[4]
+    
     if func_name not in func_map:
         print('ftype %s unknown'%func_name)
         return 1
     parse_func = func_map[func_name]
 
-    table_file = None
-    try:
-        #Saving Table to MongoDB
-        parser = data_parser.Parser()
-        with open(infpath) as annotf, AnnotWriter(database_name) as writer:
-            writer.create_table(func_name)
-            
-            for annotation in parser.iparse(annotf, parse_func, sys.stderr):
-                writer.append_row(annotation)
+    #Saving Table to PyTables
+    parser = data_parser.Parser()
+    with open(in_fpath) as annotf, AnnotWriter(db_fpath) as writer:
+        writer.create_table(func_name)
+        
+        for annotation in parser.iparse(annotf, parse_func, sys.stderr):
+            writer.append_row(annotation)
 
-        #Saving IDs to text files
-        user_ids = parser.user_ids
-        item_ids = parser.item_ids
-        tag_ids = parser.tag_ids
-    
-        with KeyValStore(database_name) as keyval:
-            keyval.create_table(func_name + '_user_ids')
-            for user, uid in user_ids.items():
-                keyval.put(uid, user[1].strip(), no_check = True)
-    
-            keyval.create_table(func_name + '_item_ids')
-            for item, iid in item_ids.items():
-                keyval.put(iid, item[1].strip(), no_check = True)
-    
-            keyval.create_table(func_name + '_tag_ids')
-            for tag, tid in tag_ids.items():
-                keyval.put(tid, tag[1].strip(), no_check = True)
-    finally:
-        if table_file: 
-            table_file.close()
+    #Saving IDs to text files
+    user_ids = parser.user_ids
+    item_ids = parser.item_ids
+    tag_ids = parser.tag_ids
+
+    with open(os.path.join(ids_folder, func_name + '.user'), 'w') as userf:
+        for user in sorted(user_ids, key=user_ids.__getitem__):
+            print(user[1], user_ids[user], file=userf)
+
+    with open(os.path.join(ids_folder, func_name + '.items'), 'w') as itemsf:
+        for item in sorted(item_ids, key=item_ids.__getitem__):
+            print(item[1], item_ids[item], file=itemsf)
+
+    with open(os.path.join(ids_folder, func_name + '.tags'), 'w') as tagsf:
+        for tag in sorted(tag_ids, key=tag_ids.__getitem__):
+            print(tag[1], tag_ids[tag], file=tagsf)
 
 if __name__ == '__main__':
     sys.exit(main(sys.argv))
