@@ -11,16 +11,13 @@ Dependencies
 * numpy
 * scipy
 * cython
-* igraph (optional)
+* pytables (depends on cython, pyrex and numexpr)
 * networkx (optional for some graph experiments)
-* pytables (optional: depends on cython, pyrex and numexpr)
-* pymongo (optional)
+* pymongo (optional, alternative data storage to pytables)
 * nosetests (used to run unit tests)
 
 only numpy, scipy and cython are needed to use the probability estimators and value calculators.
-the other dependencies are mostly used by scripts, but I suggest installing pytables and networkx.
-
-pymongo and pytables are used to store tags in databases. You can ignore this and store them in files if you wish.
+the other dependencies are mostly used by scripts, but I suggest installing pytables.
 
 How to install dependencies (ubuntu)
 ====================================
@@ -139,3 +136,60 @@ $ python setup.py install
 * If you don't install pytables, networkx or pymongo (with mongodb) some tests will fail. I need to add ignore
   flags on them if the packages are not installed. These failures can be ignored, the affected packages are 
   tagassess.dao and tagassess.graph. *Other tests should not fail!!!*
+  
+How to create databases
+=======================
+
+* Use the ParseFile.py script in the src/scripts/ folder. We use the py_run.sh script, but if you installed
+  the package you can just run python.
+
+::
+
+$ ./py_run.sh src/scripts/ParseFile.py ~/LT/UI2.txt ~/db/db.h5 ~/db lt
+
+* The line above will parser the UI2.txt file (from the LibraryThing trace) and create a pytables database
+  on the ~/db folder. The last argument lt is just to indicate that this file is in LibraryThing format.
+
+* A database with the name lt will be created on the h5 file. Multiple databases can exist on the same file
+
+* You can run the script with no options to see other ways to parse data
+
+* The LibraryThing dataset is available here http://www.macle.nl/tud/LT/
+
+How to separate data in train, validation and test
+==================================================
+
+* Use the CreateTrainValTest.py script in the src/scripts/ folder. We use the py_run.sh script, but if you 
+  installed the package you can just run python.
+
+::
+
+$ ./py_run.sh src/scripts/CreateTrainValTest.py ~/db/db.h5 lt ~/db/lt-cv/
+
+* The first argument is the database file, the second is the database name and the last the output folder
+
+* This will create files needed to identify train, validation and test sets on the folder ~/db/lt-cv. The 
+  folder must exist and be empty
+  
+How to perform a grid search for best estimator parameters
+==========================================================
+
+* Use the GridSearch.py script to achieve this. We use the py_run.sh script, but if you installed
+  the package you can just run python.
+
+:: 
+
+$ ./py_run.sh src/scripts/GridSearch.py ~/db/db.h5 lt ~/db/lt-cv/ ~/db/lt-cv/smmoth/ -est-name smooth
+
+or 
+
+:: 
+
+$ ./py_run.sh src/scripts/GridSearch.py ~/db/db.h5 lt ~/db/lt-cv/ ~/db/lt-cv/lda/ -est-name lda
+
+* NOTE!! This script creates a lot of files as output. Make sure you have enough space. We are still
+  looking into changing them for better storage options
+
+* The script will compute probability values for different parameters of the estimator and save them
+  in a folder. For example, the first line will use the bayes smooth estimator and save output on the
+  ~/db/lt-cv/smmoth/ folder
