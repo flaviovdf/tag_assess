@@ -25,6 +25,7 @@ import multiprocessing
 import os
 import plac
 import sys
+import tables
 
 #Parameter values considered
 SMOOTH_PARAMS = [1e-2, 1e-1, 1, 1e1, 1e2, 1e3, 1e4, 1e5]
@@ -38,34 +39,36 @@ def run_exp(user_items_to_filter, user_validation_tags, user_test_tags,
     
     #Run experiment
     for user in user_items_to_filter:
+        
+        user_fpath = os.path.join(output_folder, 'user-%d.h5' % user)
+        user_h5file = tables.openFile(user_fpath, mode='w')
+        
         gamma_items = [item for item in xrange(num_items) 
                             if item not in user_to_item[item]]
-        gamma_items = np.asarray(gamma_items)
         
-        gamma_fpath = os.path.join(output_folder, 'gamma-user-%d.dat' % user)
-        np.savetxt(gamma_fpath, gamma_items)
+        gamma_items = np.asarray(gamma_items)
+        user_h5file.createArray(user_h5file.root, 'gamma', gamma_items)
         
         probs_i_given_u = est.prob_items_given_user(user, gamma_items)
-        piu_fpath = os.path.join(output_folder, 'piu-user-%d.dat' % user)
-        np.savetxt(piu_fpath, probs_i_given_u)
+        user_h5file.createArray(user_h5file.root, 'piu', probs_i_given_u)
 
-        tags_for_user = []
+        tags_for_user = set()
         for tag in random_tags:
-            tags_for_user.append(tag)
+            tags_for_user.add(tag)
         
         for tag in user_validation_tags[user]:
-            tags_for_user.append(tag)
+            tags_for_user.add(tag)
         
         for tag in user_test_tags[user]:
-            tags_for_user.append(tag)
+            tags_for_user.add(tag)
         
         for tag in tags_for_user:
             probs_i_given_u_t = est.prob_items_given_user_tag(user, tag, 
                 gamma_items)
-            pitu_fpath = os.path.join(output_folder, 
-                'pitu-user-%d-tag%d.dat' % (user, tag))
-            np.savetxt(pitu_fpath, probs_i_given_u_t)
-
+            user_h5file.createArray(user_h5file.root, 'pitu_tag_%d' % tag, 
+                    probs_i_given_u_t)
+            
+        user_h5file.close()
 
 def load_dict_from_file(fpath):
     '''Loads dictionary from file'''
@@ -78,9 +81,6 @@ def load_dict_from_file(fpath):
             value = set(int(x.strip()) for x in spl[1].split())
             
             return_val[key] = value
-            
-            if len(return_val[key]) == 2:
-                break
             
     return return_val
 
