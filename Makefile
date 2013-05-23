@@ -15,6 +15,7 @@ clean:
 	find . -name "*.pyc" | xargs rm -f
 	find . -name "*.c" | xargs rm -f
 	find . -name "*.so" | xargs rm -f
+	find . -name "*.h" | xargs rm -f
 
 test:
 	$(NOSETESTS)
