@@ -39,7 +39,7 @@ class TestLDAEstimator(unittest.TestCase):
     def test_initial_population(self):
         annots = self.create_annots(test.SMALL_DEL_FILE)
         #With zero GIBBs will not run
-        estimator = LDAEstimator(annots, 2, .5, .5, .5, 0, 0)
+        estimator = LDAEstimator(annots, 2, .5, .5, .5, 0, 0, 1, 0)
         
         user_cnt = estimator._get_user_counts()
         topic_cnt = estimator._get_topic_counts()
@@ -93,17 +93,17 @@ class TestLDAEstimator(unittest.TestCase):
         #Simply checks if probabilities come from valid space.
         
         annots = self.create_annots(test.DELICIOUS_FILE)
-        estimator = LDAEstimator(annots, 2, .5, .5, .5, 0, 0) 
+        estimator = LDAEstimator(annots, 2, .5, .5, .5, 0, 0, 1, 0) 
     
         for _ in xrange(1000):
-            self.assertTrue(estimator._sample_topic(0, 0, 0) in [0, 1])
+            self.assertTrue(estimator._sample_topic(0, 0, 0, 0) in [0, 1])
     
     def test_gibbs_update(self):
         
         #This test checks if topic assignment are decrased and re-increased
         
         annots = self.create_annots(test.DELICIOUS_FILE)
-        estimator = LDAEstimator(annots, 2, .5, .5, .5, 0, 0)
+        estimator = LDAEstimator(annots, 2, .5, .5, .5, 0, 0, 1, 0)
 
         for annot, old_topic in estimator._get_topic_assignments().items():
             user, document, term = annot
@@ -112,7 +112,8 @@ class TestLDAEstimator(unittest.TestCase):
             old_td = estimator._get_topic_document_counts()[old_topic, document]
             old_tr = estimator._get_topic_term_counts()[old_topic, term]
             
-            new_topic = estimator._gibbs_update(user, old_topic, document, term)
+            new_topic = estimator._gibbs_update(user, old_topic, document, 
+                                                term, 0)
             new_ut = estimator._get_user_topic_counts()[user, old_topic]
             new_td = estimator._get_topic_document_counts()[old_topic, document]
             new_tr = estimator._get_topic_term_counts()[old_topic, term]
@@ -134,7 +135,7 @@ class TestLDAEstimator(unittest.TestCase):
         #Runs everything on a large dataset
 
         annots = self.create_annots(test.DELICIOUS_FILE)
-        estimator = LDAEstimator(annots, 10, .5, .5, .5, 5, 2)
+        estimator = LDAEstimator(annots, 10, .5, .5, .5, 5, 2, 1, 0)
         
         ut = estimator._get_user_topic_prb()
         td = estimator._get_topic_document_prb()
@@ -152,6 +153,69 @@ class TestLDAEstimator(unittest.TestCase):
         self.assertTrue((td <= 1).all())
         self.assertTrue((tt <= 1).all())
 
+    def test_gibbs_sample_with_same_sample_seed(self):
+        annots = self.create_annots(test.DELICIOUS_FILE)
+        
+        #Last two parameters -> sample_every=1, seed=0
+        estimator_seed_one_a = LDAEstimator(annots, 10, .5, .5, .5, 5, 2, 1, 1)
+        estimator_seed_one_b = LDAEstimator(annots, 10, .5, .5, .5, 5, 2, 1, 1)
+        
+        ut_1a = estimator_seed_one_a._get_user_topic_prb()
+        td_1a = estimator_seed_one_a._get_topic_document_prb()
+        tt_1a = estimator_seed_one_a._get_topic_term_prb()
+
+        ut_1b = estimator_seed_one_b._get_user_topic_prb()
+        td_1b = estimator_seed_one_b._get_topic_document_prb()
+        tt_1b = estimator_seed_one_b._get_topic_term_prb()
+        
+        self.assertFalse((ut_1a - ut_1b).any())
+        self.assertFalse((td_1a - td_1b).any())
+        self.assertFalse((tt_1a - tt_1b).any())
+
+    def test_gibbs_sample_with_diff_sample_seed(self):
+        annots = self.create_annots(test.DELICIOUS_FILE)
+        
+        #Last two parameters -> sample_every=1, seed=1
+        estimator_seed_one_a = LDAEstimator(annots, 10, .5, .5, .5, 5, 2, 1, 1)
+        
+        #Last two parameters -> sample_every=1, seed=0 (time seed)
+        estimator_seed_one_b = LDAEstimator(annots, 10, .5, .5, .5, 5, 2, 1, 0)
+        
+        ut_1a = estimator_seed_one_a._get_user_topic_prb()
+        td_1a = estimator_seed_one_a._get_topic_document_prb()
+        tt_1a = estimator_seed_one_a._get_topic_term_prb()
+
+        ut_1b = estimator_seed_one_b._get_user_topic_prb()
+        td_1b = estimator_seed_one_b._get_topic_document_prb()
+        tt_1b = estimator_seed_one_b._get_topic_term_prb()
+        
+        #If sum is diff 0 at least one different cell in matrices
+        self.assertTrue(np.sum(ut_1a - ut_1b) != 0)
+        self.assertTrue(np.sum(td_1a - td_1b) != 0)
+        self.assertTrue(np.sum(tt_1a - tt_1b) != 0)
+        
+    def test_gibbs_sample_with_sample_user_every(self):
+        annots = self.create_annots(test.DELICIOUS_FILE)
+        
+        #Last two parameters -> sample_every=1, seed=1
+        estimator_seed_one_a = LDAEstimator(annots, 10, .5, .5, .5, 5, 2, 1, 1)
+        
+        #Last two parameters -> sample_every=3, seed=1
+        estimator_seed_one_b = LDAEstimator(annots, 10, .5, .5, .5, 5, 2, 3, 1)
+        
+        ut_1a = estimator_seed_one_a._get_user_topic_prb()
+        td_1a = estimator_seed_one_a._get_topic_document_prb()
+        tt_1a = estimator_seed_one_a._get_topic_term_prb()
+
+        ut_1b = estimator_seed_one_b._get_user_topic_prb()
+        td_1b = estimator_seed_one_b._get_topic_document_prb()
+        tt_1b = estimator_seed_one_b._get_topic_term_prb()
+        
+        #If sum is diff 0 at least one different cell in matrices
+        self.assertTrue(np.sum(ut_1a - ut_1b) != 0)
+        self.assertTrue(np.sum(td_1a - td_1b) != 0)
+        self.assertTrue(np.sum(tt_1a - tt_1b) != 0)
+
     def test_valid_probabilities(self):
 
         def isvalid(probs):
@@ -161,7 +225,7 @@ class TestLDAEstimator(unittest.TestCase):
 
         #4 runs, 2 for burn 1
         annots = self.create_annots(test.SMALL_DEL_FILE)
-        estimator = LDAEstimator(annots, 2, .1, .2, .3, 2, 0)
+        estimator = LDAEstimator(annots, 2, .1, .2, .3, 2, 0, 1, 0)
         
         gamma = np.arange(5)
         prob_items = estimator.prob_items(gamma)

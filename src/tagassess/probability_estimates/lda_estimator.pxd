@@ -21,6 +21,10 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
     cdef double beta
     cdef double gamma
     
+    #Indicates when are we going to sample from p(z|u) in gibbs routine.
+    #Mimicks the parameter $\pi_u$.
+    cdef int sample_user_dist_every
+    
     #Naming convention here is to follow p(a|b) -> b_a, or since b is given
     #comes first. These variables are cython memoryviews, think of them as 
     #matrices, you can do memview[a, b].
@@ -59,15 +63,16 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
     #Gibbs sample methods
     cdef void _gibbs_sample(self)
     cpdef int _gibbs_update(self, int user, int old_topic, int document, 
-                            int term)
+                            int term, int sample_user)
     cdef void _add_probabilities(self, 
-                                  int user, int topic, int document, int term)
+                                 int user, int topic, int document, int term)
     cdef void _average_probs(self, int num_runs)
-    cpdef int _sample_topic(self, int user, int document, int term)
+    cpdef int _sample_topic(self, int user, int document, int term, 
+                            int sample_user)
        
     #Probability estimation methods
     cdef double _est_prob_topic_given_user(self, int user, int topic)
     cdef double _est_prob_document_given_topic(self, int topic, int document)
     cdef double _est_prob_term_given_topic(self, int topic, int term)
     cdef double _est_posterior_prob(self, int user, int topic, int document,
-                                     int term)
+                                     int term, int sample_user)
