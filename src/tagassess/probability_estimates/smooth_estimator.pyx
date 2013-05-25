@@ -41,7 +41,7 @@ cdef class SmoothEstimator(base.ProbabilityEstimator):
     '''
 
     def __init__(self, smooth_method, lambda_, annotation_it, 
-                 user_profile_size = -1):
+                 user_profile_fract_size = 1):
         super(SmoothEstimator, self).__init__()
         
         smooths = {'JM':JM,
@@ -53,7 +53,7 @@ cdef class SmoothEstimator(base.ProbabilityEstimator):
         
         self.item_tag_freq = {}
         self.user_tags = {}
-        self.profile_size = user_profile_size
+        self.user_profile_fract_size = user_profile_fract_size
         
         self.__populate(annotation_it)
         
@@ -120,12 +120,15 @@ cdef class SmoothEstimator(base.ProbabilityEstimator):
         #User profile
         for user in user_tags_dict:
             tags = [(freq, tag) for tag, freq in user_tags_dict[user].items()]
-            if self.profile_size == -1 or self.profile_size > len(tags):
+            profile_size = np.ceil(self.user_profile_fract_size * len(tags))
+            if profile_size >= len(tags):
                 aux = tags
             else:
-                aux = heapq.nlargest(self.profile_size, tags)
+                #numpy returns a float, cast to int
+                aux = heapq.nlargest(int(profile_size), tags)
             
-            self.user_tags[user] = np.array([tag[1] for tag in aux])
+            self.user_tags[user] = np.array([tag[1] for tag in aux], 
+                    dtype=np.int)
     
     cpdef double prob_item(self, int item):
         '''Probability of seeing a given item. $P(i)$'''
@@ -179,10 +182,13 @@ cdef class SmoothEstimator(base.ProbabilityEstimator):
 
         if user < 0 or user >= self.n_users:
             return 0.0
-
+        
         cdef np.ndarray[np.int_t, ndim=1] utags = \
                 self.user_tags[user]
-                
+        
+        if (self.user_tags[user].shape[0] == 0): #user has no tags
+            return 0.0
+        
         cdef double return_val = 1.0
         cdef Py_ssize_t i
         for i in range(utags.shape[0]):

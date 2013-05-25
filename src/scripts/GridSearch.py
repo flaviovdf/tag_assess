@@ -28,8 +28,8 @@ import sys
 import tables
 
 #Parameter values considered
-SMOOTH_PARAMS = [1e-2, 1e-1, 1, 1e1, 1e2, 1e3, 1e4, 1e5]
-LDA_GAMMA_PARAMS = [5, 15, 25, 35, 45, 55, 65, 75]
+SMOOTH_PARAMS = 10 ** (-np.arange(2, 6.01, 5)) #values are -log10([2 .. 6])
+LDA_GAMMA_PARAMS = np.arange(5, 76, 5) #[5 .. 75]
 
 NUM_RANDOM_TAGS = 50
 

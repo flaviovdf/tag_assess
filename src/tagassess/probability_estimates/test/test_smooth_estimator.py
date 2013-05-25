@@ -64,17 +64,25 @@ class TestSmoothEstimator(unittest.TestCase):
         self.assertEquals(p.prob_tag_given_item(2, 0), prob_i2_t0)
         self.assertEquals(p.prob_tag_given_item(3, 0), prob_i3_t0)
         self.assertEquals(p.prob_tag_given_item(4, 0), prob_i4_t0)
-    
+
     def test_prob_user_given_item(self):
         self.__init_test(test.SMALL_DEL_FILE)
         smooth_func = 'JM'
         lamb = 0.5
-        p = SmoothEstimator(smooth_func, lamb, self.annots, user_profile_size=1)
+        p = SmoothEstimator(smooth_func, lamb, self.annots)
         
-        #User given item
         prob = p.prob_user_given_item(0, 0)
-        expected_prob_ugi = p.prob_tag_given_item(0, 0)
-        self.assertEquals(prob, expected_prob_ugi)
+        self.assertTrue(prob > 0)
+    
+    def test_prob_user_given_item_profsize(self):
+        self.__init_test(test.SMALL_DEL_FILE)
+        smooth_func = 'JM'
+        lamb = 0.5
+        p = SmoothEstimator(smooth_func, lamb, self.annots, 
+                user_profile_fract_size = 0)
+        
+        prob = p.prob_user_given_item(0, 0)
+        self.assertEquals(prob, 0.0)
         
     def test_bayes(self):
         self.__init_test(test.SMALL_DEL_FILE)

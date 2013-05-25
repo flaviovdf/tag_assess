@@ -43,7 +43,7 @@ def create_bayes_estimator(annotations, lambda_):
     Reinders Marcel J. T. , 
     Information Processing and Management, Volume 46, Issue 1, p.58-70, (2010)
     '''
-    user_profile_size = 10
+    user_profile_fract_size = .4
     smooth_estimator = SmoothEstimator('Bayes', lambda_, annotations,
-                                       user_profile_size)
+                                       user_profile_fract_size)
     return smooth_estimator
