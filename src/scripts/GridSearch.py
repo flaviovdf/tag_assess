@@ -28,7 +28,13 @@ import sys
 import tables
 
 #Parameter values considered
-SMOOTH_PARAMS = 10 ** (-np.arange(2, 6.01, 5)) #values are -log10([2 .. 6])
+#For the Bayes smooth, the paper plots -log10([2 .. 6]), thus values are
+#the x = -log10([2 .. 6]), which is 10 ** [2 .. 6]
+SMOOTH_PARAMS = 10 ** (-np.arange(2, 6.01, .5))
+
+#For LDA estimator only gamma varies, other parameters are based on dataset.
+#The paper does not show a range, but since they repport results for gamma=25
+#we decided to set our possible values around it.
 LDA_GAMMA_PARAMS = np.arange(5, 76, 5) #[5 .. 75]
 
 NUM_RANDOM_TAGS = 50
