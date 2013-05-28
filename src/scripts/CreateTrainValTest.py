@@ -99,13 +99,13 @@ def create_train_test_validation(reader):
         to_remove = []
         for item in val_test_items:
             #not a good candidate
-            if len(item_to_users[item]) < MIN_USERS_WITH_ITEM_OR_TAG:
+            if len(item_to_users[item]) <= MIN_USERS_WITH_ITEM_OR_TAG:
                 to_remove.append(item)
                 continue
             
             for tag in item_to_tags[item]:
                 #also not good, a tag may be removed from the trace
-                if len(tag_to_users[tag]) < MIN_USERS_WITH_ITEM_OR_TAG:
+                if len(tag_to_users[tag]) <= MIN_USERS_WITH_ITEM_OR_TAG:
                     to_remove.append(item)
                     break
 
@@ -116,7 +116,7 @@ def create_train_test_validation(reader):
         #Do we have at least 10 items? 5 for validation and for test? If not,
         #this user will not be in our evaluation
         num_val_test = len(val_test_items)
-        if num_val_test >= MIN_USERS_WITH_ITEM_OR_TAG:
+        if num_val_test > MIN_USERS_WITH_ITEM_OR_TAG:
             
             half = num_val_test // 2
             
