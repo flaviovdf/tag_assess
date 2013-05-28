@@ -179,7 +179,7 @@ How to perform a grid search for best estimator parameters
 
 :: 
 
-$ ./py_run.sh src/scripts/GridSearch.py ~/db/db.h5 lt ~/db/lt-cv/ ~/db/lt-cv/smmoth/ -est-name smooth
+$ ./py_run.sh src/scripts/GridSearch.py ~/db/db.h5 lt ~/db/lt-cv/ ~/db/lt-cv/smooth/ -est-name smooth
 
 or 
 
