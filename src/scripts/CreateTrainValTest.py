@@ -29,11 +29,14 @@ import sys
 PERC_ITEMS_TRAIN = .8
 PERC_ITEMS_VALIDATION_TEST = .1
 
+#At least 40 items for training
+MIN_ITEMS_VAL_TRAIN = 40
+
 #At least 10 users have to use an item or tag for it to be on the train set.
 #This guarantees that items filtered for test and validation set will still
 #exist on the train set. The value 10 is chosen because we want at least 5 items
 #on both validation and test sets.
-MIN_USERS_WITH_ITEM_OR_TAG = 10
+MIN_ITEMS_VAL_TEST = 10
 
 def generate_indexes(reader):
     '''
@@ -41,10 +44,8 @@ def generate_indexes(reader):
     tag will be completely removed from the train set.
     '''
     user_to_items = defaultdict(list) #a list is needed to maintain date order
-    tag_to_users = defaultdict(set)
-    item_to_users = defaultdict(set)
+    user_to_tags = defaultdict(set) 
     item_to_tags = defaultdict(set)
-    
     for annotation in reader.iterate():
         user = annotation['user']
         item = annotation['item']
@@ -53,11 +54,10 @@ def generate_indexes(reader):
         if item not in user_to_items[user]:
             user_to_items[user].append(item)
             
-        tag_to_users[tag].add(user)
-        item_to_users[item].add(user)
+        user_to_tags[user].add(tag)
         item_to_tags[item].add(tag)
 
-    return user_to_items, tag_to_users, item_to_users, item_to_tags
+    return user_to_items, user_to_tags, item_to_tags
 
 def create_train_test_validation(reader):
     '''
@@ -67,13 +67,15 @@ def create_train_test_validation(reader):
     10% for validation and for last 10% for test. The catch is that when 
     filtering items from users for the validation and test sets, some items may
     be removed from the trace completely. Thus, we only consider users which we
-    can filter items which will not be removed completely from the trace.
+    can filter items which will not be removed completely from the trace, that 
+    is, users which we can guarantee that their removed items exist in the 
+    train set.
     
     This code considers that annotations are already sorted by date for each
     user. This sort is from old to new (ascending date order). 
     '''
     
-    user_to_items, tag_to_users, item_to_users, item_to_tags = \
+    user_to_items, user_to_tags, item_to_tags = \
             generate_indexes(reader)
     
     #the next code will generated candidate pairs to be left out of train
@@ -82,8 +84,21 @@ def create_train_test_validation(reader):
     user_validation_tags = defaultdict(set)
     user_test_items = defaultdict(set)
     user_test_tags = defaultdict(set)
-     
+    
+    #Generate users which belong to training set and users which can be 
+    #considered for testing. The testing users are those with at least
+    #10 items (minimum of 5 for validation set and 5 for train set).
+    candidate_users = set()
+    train_users_items = set()
+    train_users_tags = set()
     for user in user_to_items:
+        if len(user_to_items[user]) < MIN_ITEMS_VAL_TRAIN + MIN_ITEMS_VAL_TEST:
+            train_users_items.update(user_to_items[user])
+            train_users_tags.update(user_to_tags[user])
+        else:
+            candidate_users.add(user)
+
+    for user in candidate_users:
 
         #num items to remove for this user
         num_item_val_test = 2 * \
@@ -91,33 +106,32 @@ def create_train_test_validation(reader):
         
         #Negative indexing begins backwards, thus we get the last items
         val_test_items = user_to_items[user][-num_item_val_test:]
+        assert len(val_test_items) >= MIN_ITEMS_VAL_TEST
         
         #For each validation and test item and also for each tag on those
-        #items, we have to guarantee that more than 10 users have user such
-        #items and tags. This will guarantee that no item and tag will be 
-        #removed from the train set
+        #items, we have to guarantee that such item and tag exists in the
+        #training set
         to_remove = []
         for item in val_test_items:
-            #not a good candidate
-            if len(item_to_users[item]) <= MIN_USERS_WITH_ITEM_OR_TAG:
+            #not a good candidate item
+            if item not in train_users_items:
                 to_remove.append(item)
                 continue
             
             for tag in item_to_tags[item]:
                 #also not good, a tag may be removed from the trace
-                if len(tag_to_users[tag]) <= MIN_USERS_WITH_ITEM_OR_TAG:
+                if tag not in train_users_tags:
                     to_remove.append(item)
                     break
 
         #Remove non good items from candidates
         for item in to_remove:
-            val_test_items.remove(item) 
+            val_test_items.remove(item)
                 
         #Do we have at least 10 items? 5 for validation and for test? If not,
         #this user will not be in our evaluation
         num_val_test = len(val_test_items)
-        if num_val_test > MIN_USERS_WITH_ITEM_OR_TAG:
-            
+        if num_val_test >= MIN_ITEMS_VAL_TEST:
             half = num_val_test // 2
             
             #Now we can populate the dictionaries with the test and validation
