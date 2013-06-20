@@ -46,6 +46,7 @@ def generate_indexes(reader):
     user_to_items = defaultdict(list) #a list is needed to maintain date order
     user_to_tags = defaultdict(set) 
     item_to_tags = defaultdict(set)
+    user_item_to_tags = defaultdict(set)
     for annotation in reader.iterate():
         user = annotation['user']
         item = annotation['item']
@@ -56,8 +57,9 @@ def generate_indexes(reader):
             
         user_to_tags[user].add(tag)
         item_to_tags[item].add(tag)
+        user_item_to_tags[(user, item)].add(tag)
 
-    return user_to_items, user_to_tags, item_to_tags
+    return user_to_items, user_to_tags, item_to_tags, user_item_to_tags
 
 def create_train_test_validation(reader):
     '''
@@ -75,7 +77,7 @@ def create_train_test_validation(reader):
     user. This sort is from old to new (ascending date order). 
     '''
     
-    user_to_items, user_to_tags, item_to_tags = \
+    user_to_items, user_to_tags, item_to_tags, user_item_to_tags = \
             generate_indexes(reader)
     
     #the next code will generated candidate pairs to be left out of train
@@ -148,7 +150,7 @@ def create_train_test_validation(reader):
                     tags_dict = user_test_tags
                 
                 item_dict[user].add(item)
-                for tag in item_to_tags[item]:
+                for tag in user_item_to_tags[(user, item)]:
                     tags_dict[user].add(tag)
         
     return user_items_to_filter, user_validation_items, user_validation_tags, \
