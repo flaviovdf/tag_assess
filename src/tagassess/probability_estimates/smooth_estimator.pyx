@@ -226,14 +226,14 @@ cdef class SmoothEstimator(base.ProbabilityEstimator):
         cdef np.ndarray[np.float_t, ndim=1] vp_iu = np.ndarray(n_items)
         cdef double sum_probs = 0
         
-        cdef Py_ssize_t item
-        for item from 0 <= item < n_items:
-            vp_iu[item] = self.prob_user_given_item(item, user) * \
-                          self.prob_item(item)
-            sum_probs += vp_iu[item]
+        cdef Py_ssize_t i
+        for i from 0 <= i < n_items:
+            vp_iu[i] = self.prob_user_given_item(gamma_items[i], user) * \
+                          self.prob_item(gamma_items[i])
+            sum_probs += vp_iu[i]
             
-        for item from 0 <= item < n_items:
-            vp_iu[item] = vp_iu[item] / sum_probs
+        for i from 0 <= i < n_items:
+            vp_iu[i] = vp_iu[i] / sum_probs
 
         return vp_iu
 
@@ -267,16 +267,16 @@ cdef class SmoothEstimator(base.ProbabilityEstimator):
         cdef np.ndarray[np.float_t, ndim=1] vp_itu = np.zeros(n_items)
         cdef double sum_probs = 0
         
-        cdef Py_ssize_t item
-        for item from 0 <= item < n_items:
-            vp_itu[item] = self.prob_user_given_item(item, user) * \
-                           self.prob_tag_given_item(item, tag) * \
-                           self.prob_item(item)
+        cdef Py_ssize_t i
+        for i from 0 <= i < n_items:
+            vp_itu[i] = self.prob_user_given_item(gamma_items[i], user) * \
+                           self.prob_tag_given_item(gamma_items[i], tag) * \
+                           self.prob_item(gamma_items[i])
             
-            sum_probs += vp_itu[item]
+            sum_probs += vp_itu[i]
 
-        for item from 0 <= item < n_items:
-            vp_itu[item] = vp_itu[item] / sum_probs
+        for i from 0 <= i < n_items:
+            vp_itu[i] = vp_itu[i] / sum_probs
 
         return vp_itu
     
@@ -309,14 +309,14 @@ cdef class SmoothEstimator(base.ProbabilityEstimator):
         cdef np.ndarray[np.float_t, ndim=1] vp_it = np.ndarray(n_items)
         cdef double sum_probs = 0
         
-        cdef int item
-        for item from 0 <= item < n_items:
-            vp_it[item] = self.prob_tag_given_item(item, tag) * \
-                          self.prob_item(item)
-            sum_probs += vp_it[item]
+        cdef int i
+        for i from 0 <= i < n_items:
+            vp_it[i] = self.prob_tag_given_item(gamma_items[i], tag) * \
+                          self.prob_item(gamma_items[i])
+            sum_probs += vp_it[i]
         
-        for item from 0 <= item < n_items:
-            vp_it[item] = vp_it[item] / sum_probs
+        for i from 0 <= i < n_items:
+            vp_it[i] = vp_it[i] / sum_probs
 
         return vp_it
     
@@ -346,13 +346,13 @@ cdef class SmoothEstimator(base.ProbabilityEstimator):
         cdef np.ndarray[np.float_t, ndim=1] vp_i = np.ndarray(n_items)
         cdef double sum_probs = 0
         
-        cdef Py_ssize_t item
-        for item from 0 <= item < n_items:
-            vp_i[item] = self.prob_item(item)
-            sum_probs += vp_i[item]
+        cdef Py_ssize_t i
+        for i from 0 <= i < n_items:
+            vp_i[i] = self.prob_item(gamma_items[i])
+            sum_probs += vp_i[i]
         
-        for item from 0 <= item < n_items:
-            vp_i[item] = vp_i[item] / sum_probs
+        for i from 0 <= i < n_items:
+            vp_i[i] = vp_i[i] / sum_probs
 
         return vp_i
     

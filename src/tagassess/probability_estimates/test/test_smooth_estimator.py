@@ -181,6 +181,22 @@ class TestSmoothEstimator(unittest.TestCase):
             self.assertAlmostEqual(1, 
                     sum(p.prob_items_given_tag(tag, gamma_items)))             
 
+    def test_gamma_items_prob_items(self):
+        self.__init_test(test.SMALL_DEL_FILE)
+        
+        lambda_ = 0.3
+        smooth_func = 'Bayes'
+        p = SmoothEstimator(smooth_func, lambda_, self.annots)
+        
+        gamma_items = np.array([1, 2])
+        
+        pi_1 = p.prob_item(1)
+        pi_2 = p.prob_item(2)
+        
+        gamma_pi = p.prob_items(gamma_items)
+        
+        self.assertEqual(gamma_pi[0], pi_1 / (pi_1 + pi_2))
+        self.assertEqual(gamma_pi[1], pi_2 / (pi_1 + pi_2))
 
 if __name__ == "__main__":
     unittest.main()

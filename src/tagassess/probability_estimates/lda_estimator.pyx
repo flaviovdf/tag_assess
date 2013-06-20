@@ -570,21 +570,21 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
         cdef Py_ssize_t num_items = gamma_items.shape[0]
         cdef np.ndarray[np.float_t, ndim=1] vp_iu = np.ndarray(num_items)
         
-        cdef Py_ssize_t item
+        cdef Py_ssize_t i
         cdef Py_ssize_t topic
         cdef double sum_probs = 0
         
-        for item in prange(num_items, nogil=True, schedule='static'):
-            vp_iu[item] = 0
+        for i in prange(num_items, nogil=True, schedule='static'):
+            vp_iu[i] = 0
             for topic from 0 <= topic < self.num_topics:
-                vp_iu[item] += self.user_topic_prb[user, topic] * \
-                             self.topic_document_prb[topic, item]
+                vp_iu[i] += self.user_topic_prb[user, topic] * \
+                             self.topic_document_prb[topic, gamma_items[i]]
                              
                  
-            sum_probs += vp_iu[item]
+            sum_probs += vp_iu[i]
         
-        for item in prange(num_items, nogil=True, schedule='static'):
-            vp_iu[item] /= sum_probs
+        for i in prange(num_items, nogil=True, schedule='static'):
+            vp_iu[i] /= sum_probs
             
         return vp_iu
     
@@ -614,24 +614,24 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
         '''
  
         cdef Py_ssize_t num_items = gamma_items.shape[0]
-        cdef Py_ssize_t item
+        cdef Py_ssize_t i
         cdef Py_ssize_t topic
         
         cdef np.ndarray[np.float_t, ndim=1] vpi_tu = np.ndarray(num_items)
         cdef double sum_probs = 0
 
-        for item in prange(num_items, nogil=True, schedule='static'):
-            vpi_tu[item] = 0
+        for i in prange(num_items, nogil=True, schedule='static'):
+            vpi_tu[i] = 0
 
             for topic from 0 <= topic < self.num_topics:
-                vpi_tu[item] += self.user_topic_prb[user, topic] * \
-                        self.topic_document_prb[topic, item] * \
+                vpi_tu[i] += self.user_topic_prb[user, topic] * \
+                        self.topic_document_prb[topic, gamma_items[i]] * \
                         self.topic_term_prb[topic, tag]
 
-            sum_probs += vpi_tu[item]
+            sum_probs += vpi_tu[i]
 
-        for item in prange(num_items, nogil=True, schedule='static'):
-            vpi_tu[item] /= sum_probs
+        for i in prange(num_items, nogil=True, schedule='static'):
+            vpi_tu[i] /= sum_probs
 
         return vpi_tu
 
@@ -664,21 +664,21 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
         cdef Py_ssize_t num_items = gamma_items.shape[0]
         cdef np.ndarray[np.float_t, ndim=1] vp_it = np.ndarray(num_items)
         
-        cdef Py_ssize_t item
+        cdef Py_ssize_t i
         cdef Py_ssize_t topic
         cdef double sum_probs = 0
         
-        for item in prange(num_items, nogil=True, schedule='static'):
-            vp_it[item] = 0
+        for i in prange(num_items, nogil=True, schedule='static'):
+            vp_it[i] = 0
             for topic from 0 <= topic < self.num_topics:
-                vp_it[item] += self.document_cnt[item] * \
-                             self.topic_document_prb[topic, item] * \
+                vp_it[i] += self.document_cnt[gamma_items[i]] * \
+                             self.topic_document_prb[topic, gamma_items[i]] * \
                              self.topic_term_prb[topic, tag]
                  
-            sum_probs += vp_it[item]
+            sum_probs += vp_it[i]
         
-        for item in prange(num_items, nogil=True, schedule='static'):
-            vp_it[item] /= sum_probs
+        for i in prange(num_items, nogil=True, schedule='static'):
+            vp_it[i] /= sum_probs
             
         return vp_it
     
@@ -709,13 +709,13 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
         cdef np.ndarray[np.float_t, ndim=1] vp_i = np.ndarray(num_items)
         cdef double sum_probs = 0
         
-        cdef Py_ssize_t item
-        for item in prange(num_items, nogil=True, schedule='static'):
-            vp_i[item] = self.document_cnt[item]
-            sum_probs += vp_i[item]
+        cdef Py_ssize_t i
+        for i in prange(num_items, nogil=True, schedule='static'):
+            vp_i[i] = self.document_cnt[gamma_items[i]]
+            sum_probs += vp_i[i]
         
-        for item in prange(num_items, nogil=True, schedule='static'):
-            vp_i[item] = vp_i[item] / sum_probs
+        for i in prange(num_items, nogil=True, schedule='static'):
+            vp_i[i] = vp_i[i] / sum_probs
 
         return vp_i
     
