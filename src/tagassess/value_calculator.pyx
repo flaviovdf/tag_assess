@@ -10,11 +10,12 @@ from __future__ import division, print_function
 from tagassess.index_creator import create_occurrence_index
 from tagassess.stats.topk import kendall_tau_distance as dktau
 
-import numpy as np
 
+from cpython cimport bool
 from tagassess cimport entropy
 from tagassess.probability_estimates.base cimport ProbabilityEstimator
 
+import numpy as np
 cimport cython
 cimport numpy as np
 
@@ -76,7 +77,8 @@ cdef class ValueCalculator(object):
 
     def tag_value_personalized(self, int user, 
             np.ndarray[np.int_t, ndim=1] gamma_items,
-            np.ndarray[np.int_t, ndim=1] tags):
+            np.ndarray[np.int_t, ndim=1] tags,
+            bool return_rho_dkl=False):
         '''
         Creates an array for the value of each tag to the given user.
         In details, this computes:
@@ -85,18 +87,26 @@ cdef class ValueCalculator(object):
         
         where D is the kullback-leiber divergence.
         
+        If `return_rho_dkl` of the tag value wil be returned, else
+        a matrix of size (len(tags), 3) will be returned. The first
+        column will be rho values, the second dkl values and third will be
+        the actual tag value rho * dkl.
+        
         See also
         --------
         tagassess.smooth
         tagassess.probability_estimates
         '''
-        cdef np.ndarray[np.float_t, ndim=1] return_val
-        return_val = np.ndarray(tags.shape[0], dtype='d')
+        if not return_rho_dkl:
+            return_val = np.ndarray(shape=(tags.shape[0],), dtype='d')
+        else:
+            return_val = np.ndarray(shape=(tags.shape[0], 3), dtype='d')
        
         cdef np.ndarray[np.float_t, ndim=1] vp_iu
         cdef np.ndarray[np.float_t, ndim=1] vp_itu
         cdef double tag_val
         cdef double rho 
+        cdef double dkl
         cdef Py_ssize_t i
         cdef int tag
         for i in range(tags.shape[0]):
@@ -104,13 +114,21 @@ cdef class ValueCalculator(object):
             vp_iu = self.est.prob_items_given_user(user, gamma_items)
             vp_itu = self.est.prob_items_given_user_tag(user, tag, gamma_items)
             rho = self.calc_rho(tag, vp_iu.argsort()[::-1])
-            tag_val = rho * entropy.kullback_leiber_divergence(vp_itu, vp_iu)
-            return_val[i] = tag_val
+            dkl = entropy.kullback_leiber_divergence(vp_itu, vp_iu)
+            tag_val = rho * dkl
+            
+            if not return_rho_dkl:
+                return_val[i] = tag_val
+            else:
+                return_val[i, 0] = rho
+                return_val[i, 1] = dkl
+                return_val[i, 2] = tag_val
         return return_val
     
     def tag_value_item_search(self, 
             np.ndarray[np.int_t, ndim=1] gamma_items,
-            np.ndarray[np.int_t, ndim=1] tags):
+            np.ndarray[np.int_t, ndim=1] tags,
+            bool return_rho_dkl=False):
         '''
         Creates an array for the value of each tag in a global context.
         
@@ -120,13 +138,21 @@ cdef class ValueCalculator(object):
         
         where D is the kullback-leiber divergence.
         
+        If `return_rho_dkl` of the tag value wil be returned, else
+        a matrix of size (len(tags), 3) will be returned. The first
+        column will be rho values, the second dkl values and third will be
+        the actual tag value rho * dkl.
+        
         See also
         --------
         tagassess.smooth
         tagassess.probability_estimates
         '''
-        cdef np.ndarray[np.float_t, ndim=1] return_val
-        return_val = np.ndarray(tags.shape[0], dtype='d')
+        cdef np.ndarray return_val
+        if not return_rho_dkl:
+            return_val = np.ndarray(shape=(tags.shape[0],), dtype='d')
+        else:
+            return_val = np.ndarray(shape=(tags.shape[0], 3), dtype='d')
         
         cdef np.ndarray[np.float_t, ndim=1] vp_i = \
                 self.est.prob_items(gamma_items)
@@ -134,12 +160,20 @@ cdef class ValueCalculator(object):
         cdef np.ndarray[np.float_t, ndim=1] vp_it
         cdef double tag_val
         cdef double rho
+        cdef double dkl
         cdef Py_ssize_t i
         cdef int tag
         for i in range(tags.shape[0]):
             tag = tags[i]
             vp_it = self.est.prob_items_given_tag(tag, gamma_items)
             rho = self.calc_rho(tag, vp_i.argsort()[::-1])
-            tag_val = rho * entropy.kullback_leiber_divergence(vp_it, vp_i)
-            return_val[i] = tag_val
+            dkl = entropy.kullback_leiber_divergence(vp_it, vp_i)
+            tag_val = rho * dkl
+            
+            if not return_rho_dkl:
+                return_val[i] = tag_val
+            else:
+                return_val[i, 0] = rho
+                return_val[i, 1] = dkl
+                return_val[i, 2] = tag_val
         return return_val
