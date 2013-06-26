@@ -41,7 +41,7 @@ cdef class SmoothEstimator(base.ProbabilityEstimator):
     '''
 
     def __init__(self, smooth_method, lambda_, annotation_it, 
-                 user_profile_fract_size = 1):
+                 user_profile_fract_size):
         super(SmoothEstimator, self).__init__()
         
         smooths = {'JM':JM,
@@ -54,7 +54,6 @@ cdef class SmoothEstimator(base.ProbabilityEstimator):
         self.item_tag_freq = {}
         self.user_tags = {}
         self.user_profile_fract_size = user_profile_fract_size
-        
         self.__populate(annotation_it)
         
     def __populate(self, annotation_it):
@@ -176,7 +175,7 @@ cdef class SmoothEstimator(base.ProbabilityEstimator):
     
     cpdef double prob_user_given_item(self, int item, int user):
         '''Probability of seeing an user given an item. $P(u|i)$'''
-
+        
         if item < 0 or item >= self.n_items:
             return 0.0
 
@@ -193,6 +192,7 @@ cdef class SmoothEstimator(base.ProbabilityEstimator):
         cdef Py_ssize_t i
         for i in range(utags.shape[0]):
             return_val *= self.prob_tag_given_item(item, utags[i])
+            
         return return_val
     
     cpdef np.ndarray[np.float_t, ndim=1] prob_items_given_user(self, int user, 
@@ -221,7 +221,6 @@ cdef class SmoothEstimator(base.ProbabilityEstimator):
         gamma_items:
             Items to consider. 
         '''
-        
         cdef Py_ssize_t n_items = gamma_items.shape[0]
         cdef np.ndarray[np.float_t, ndim=1] vp_iu = np.ndarray(n_items)
         cdef double sum_probs = 0

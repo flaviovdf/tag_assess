@@ -26,7 +26,7 @@ cdef class SmoothEstimator(base.ProbabilityEstimator):
     #Auxiliary dictionaries
     cdef dict item_tag_freq
     cdef dict user_tags 
-    cdef int user_profile_fract_size
+    cdef double user_profile_fract_size
  
     cpdef double prob_item(self, int item)
 
