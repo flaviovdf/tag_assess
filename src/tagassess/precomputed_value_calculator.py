@@ -34,6 +34,8 @@ class PrecompValueCalculator(object):
 
     def tag_value_personalized(self, user, tags, return_rho_dkl=False):
         
+        tags = np.asanyarray(tags)
+        
         if not return_rho_dkl:
             return_val = np.ndarray(shape=(tags.shape[0],), dtype='d')
         else:
