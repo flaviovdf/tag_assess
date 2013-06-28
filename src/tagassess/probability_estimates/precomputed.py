@@ -10,7 +10,6 @@ class PrecomputedEstimator():
     def __init__(self, probabilities_folder):
         user_files = os.path.join(probabilities_folder, 'user-*.h5')
         self.users_fpaths = glob.glob(user_files)
-        self.user_ids = set()
         self.user_to_piu = {} 
         self.user_to_pitu = {}
         self.user_to_tags = {}
@@ -20,8 +19,8 @@ class PrecomputedEstimator():
             
             h5file = tables.openFile(user_fpath, mode='r')
             
-            gamma = h5file.getNode(h5file.root, 'gamma').read()
-            self.user_to_piu[user_id].update(gamma)
+            piu = h5file.getNode(h5file.root, 'piu').read()
+            self.user_to_piu[user_id] = piu
             
             child_nodes = h5file.iterNodes(h5file.root)
             
@@ -32,8 +31,6 @@ class PrecomputedEstimator():
                     self.user_to_pitu[user_id, tag_id] = child_node.read()
                     self.user_to_tags[user_id].add(tag_id)
                         
-            self.user_to_piu[user_id].update(gamma)
-            
             h5file.close()
             
     def prob_items_given_user(self, user):
