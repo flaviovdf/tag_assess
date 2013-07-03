@@ -27,7 +27,8 @@ class TestSmoothEstimator(unittest.TestCase):
     def __init_test(self, fpath):
         parser = data_parser.Parser()
         with open(fpath) as in_f:
-            for annot in parser.iparse(in_f, data_parser.delicious_flickr_parser):
+            for annot in parser.iparse(in_f, 
+                                       data_parser.delicious_flickr_parser):
                 self.annots.append(annot)
                     
     def tearDown(self):
@@ -37,7 +38,7 @@ class TestSmoothEstimator(unittest.TestCase):
         self.__init_test(test.SMALL_DEL_FILE)
         smooth_func = 'JM'
         lamb = 0.5
-        p = SmoothEstimator(smooth_func, lamb, self.annots)
+        p = SmoothEstimator(smooth_func, lamb, self.annots, 1)
         
         #Item probabilities
         self.assertAlmostEquals(p.prob_item(0), 5 / 10)
@@ -50,7 +51,7 @@ class TestSmoothEstimator(unittest.TestCase):
         self.__init_test(test.SMALL_DEL_FILE)
         smooth_func = 'JM'
         lamb = 0.5
-        p = SmoothEstimator(smooth_func, lamb, self.annots)
+        p = SmoothEstimator(smooth_func, lamb, self.annots, 1)
             
         #Tag given item
         prob_i0_t0 = jelinek_mercer(2, 5, 3, 10, lamb)
@@ -69,7 +70,7 @@ class TestSmoothEstimator(unittest.TestCase):
         self.__init_test(test.SMALL_DEL_FILE)
         smooth_func = 'JM'
         lamb = 0.5
-        p = SmoothEstimator(smooth_func, lamb, self.annots)
+        p = SmoothEstimator(smooth_func, lamb, self.annots, 1)
         
         prob = p.prob_user_given_item(0, 0)
         self.assertTrue(prob > 0)
@@ -89,7 +90,7 @@ class TestSmoothEstimator(unittest.TestCase):
         
         smooth_func = 'Bayes'
         lamb = 0.3
-        p = SmoothEstimator(smooth_func, lamb, self.annots)
+        p = SmoothEstimator(smooth_func, lamb, self.annots, 1)
         
         prob_i0_t0 = bayes(2, 5, 3, 10, lamb)
         prob_i0_t1 = bayes(1, 5, 3, 10, lamb)
@@ -110,7 +111,7 @@ class TestSmoothEstimator(unittest.TestCase):
         
         lambda_ = 0.3
         smooth_func = 'Bayes'
-        p = SmoothEstimator(smooth_func, lambda_, self.annots)
+        p = SmoothEstimator(smooth_func, lambda_, self.annots, 1)
         
         for user in [0, 1, 2]:
             for tag in [0, 1, 2, 3, 4, 5]:
@@ -152,7 +153,7 @@ class TestSmoothEstimator(unittest.TestCase):
         
         lambda_ = 0.3
         smooth_func = 'Bayes'
-        p = SmoothEstimator(smooth_func, lambda_, self.annots)
+        p = SmoothEstimator(smooth_func, lambda_, self.annots, 1)
         
         for tag in [0, 1, 2, 3, 4, 5]:
             pis = []
@@ -186,7 +187,7 @@ class TestSmoothEstimator(unittest.TestCase):
         
         lambda_ = 0.3
         smooth_func = 'Bayes'
-        p = SmoothEstimator(smooth_func, lambda_, self.annots)
+        p = SmoothEstimator(smooth_func, lambda_, self.annots, 1)
         
         gamma_items = np.array([1, 2])
         

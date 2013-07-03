@@ -354,6 +354,3 @@ cdef class SmoothEstimator(base.ProbabilityEstimator):
             vp_i[i] = vp_i[i] / sum_probs
 
         return vp_i
-    
-    cpdef int num_tags(self):
-        return self.n_tags

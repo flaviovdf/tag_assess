@@ -34,7 +34,8 @@ cdef class ValueCalculator(object):
             create_occurrence_index(annotation_it, 'tag', 'item').items())
 
     cpdef calc_rho(self, int tag, 
-            np.ndarray[np.int_t, ndim=1] top_valued_items):
+            np.ndarray[np.float_t, ndim=1] item_relevance,
+            np.ndarray[np.int_t, ndim=1] gamma_items):
         '''
         Computes rho for a given user and tag. Rho is given by the generalized 
         kendall distance with penalty between the items retrieved by the tag 
@@ -49,16 +50,20 @@ cdef class ValueCalculator(object):
         ---------
         tag : int
             tag to compute rho
-        top_valued_items : int array
-            Item reverse sorted according to p(i|u)
+        item_relevance : float array
+            Values of relevance for each item (p(i|u) or p(i|t,u))
+        gamma_items : int array
+            IDs of gamma items
         
         See also
         --------
         tagassess.stats.topk
         '''
         
+        cdef np.ndarray[np.int_t, ndim=1] top_valued_items = \
+                gamma_items[item_relevance.argsort()[::-1]]
+        
         #Populates I^t with top valued items
-        cdef Py_ssize_t num_items_for_tag = len(self.items_with_tag[tag])
         cdef list top_valued_items_with_tag = []
         
         cdef Py_ssize_t i = 0
@@ -72,8 +77,8 @@ cdef class ValueCalculator(object):
         if k == 0:
             return 0
         else:
-            return 1 / (1 + dktau(top_valued_items, top_valued_items_with_tag, 
-                                  k, p=1))
+            return 1 - dktau(top_valued_items, top_valued_items_with_tag, k,
+                             p=1)
 
     def tag_value_personalized(self, int user, 
             np.ndarray[np.int_t, ndim=1] gamma_items,
@@ -113,7 +118,7 @@ cdef class ValueCalculator(object):
             tag = tags[i]
             vp_iu = self.est.prob_items_given_user(user, gamma_items)
             vp_itu = self.est.prob_items_given_user_tag(user, tag, gamma_items)
-            rho = self.calc_rho(tag, vp_iu.argsort()[::-1])
+            rho = self.calc_rho(tag, vp_iu, gamma_items)
             dkl = entropy.kullback_leiber_divergence(vp_itu, vp_iu)
             tag_val = rho * dkl
             
@@ -166,7 +171,7 @@ cdef class ValueCalculator(object):
         for i in range(tags.shape[0]):
             tag = tags[i]
             vp_it = self.est.prob_items_given_tag(tag, gamma_items)
-            rho = self.calc_rho(tag, vp_i.argsort()[::-1])
+            rho = self.calc_rho(tag, vp_i, gamma_items)
             dkl = entropy.kullback_leiber_divergence(vp_it, vp_i)
             tag_val = rho * dkl
             

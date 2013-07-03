@@ -26,7 +26,7 @@ class TestValueCaculator(unittest.TestCase):
         self.annots = None
         
     def build_value_calculator(self, annots, smooth_func, lambda_):
-        est = SmoothEstimator(smooth_func, lambda_, annots)
+        est = SmoothEstimator(smooth_func, lambda_, annots, 1)
         return est, value_calculator.ValueCalculator(est, annots)
     
     def __init_test(self, annot_file):
@@ -43,8 +43,8 @@ class TestValueCaculator(unittest.TestCase):
         lambda_ = 0.1
         _, vc = self.build_value_calculator(self.annots, smooth_func, lambda_)
         
-        rho = vc.calc_rho(0, np.array([0, 2]))
-        self.assertEqual(rho, 1 / (1 + dktau([0, 2], [0, 2], k=2, p=1)))
+        rho = vc.calc_rho(0, np.array([2.0, 0, 10]), np.array([0, 1, 2]))
+        self.assertEqual(rho, 1 - dktau([2, 0, 1], [2, 0], k=2, p=1))
     
     
     def test_rho_inverse(self):
@@ -54,8 +54,8 @@ class TestValueCaculator(unittest.TestCase):
         lambda_ = 0.1
         _, vc = self.build_value_calculator(self.annots, smooth_func, lambda_)
         
-        rho = vc.calc_rho(0, np.array([2, 0]))
-        self.assertEqual(rho, 1 / (1 + dktau([2, 0], [2, 0], k=2, p=1)))
+        rho = vc.calc_rho(0, np.array([10, 0, 2.0]), np.array([0, 1, 2]))
+        self.assertEqual(rho, 1 - dktau([0, 2, 1], [0, 2], k=2, p=1))
 
     def test_rho_one_more(self):
         self.__init_test(test.SMALL_DEL_FILE)
@@ -64,8 +64,8 @@ class TestValueCaculator(unittest.TestCase):
         lambda_ = 0.1
         _, vc = self.build_value_calculator(self.annots, smooth_func, lambda_)
         
-        rho = vc.calc_rho(0, np.array([1, 2, 0]))
-        self.assertEqual(rho, 1 / (1 + dktau([1, 2, 0], [2, 0], k=2, p=1)))
+        rho = vc.calc_rho(0, np.array([0, 20, 10.0]), np.array([0, 1, 2]))
+        self.assertEqual(rho, 1 - dktau([1, 2, 0], [2, 0], k=2, p=1))
     
     def test_rho_one_item(self):
         self.__init_test(test.SMALL_DEL_FILE)
@@ -74,8 +74,8 @@ class TestValueCaculator(unittest.TestCase):
         lambda_ = 0.1
         _, vc = self.build_value_calculator(self.annots, smooth_func, lambda_)
         
-        rho = vc.calc_rho(0, np.array([0]))
-        self.assertEqual(rho, 1 / (1 + dktau([0], [0], k=1, p=1)))
+        rho = vc.calc_rho(0, np.array([0.0]), np.array([0]))
+        self.assertEqual(rho, 1 - dktau([0], [0], k=1, p=1))
     
     def test_valid_values_personalized(self):
         self.__init_test(test.SMALL_DEL_FILE)

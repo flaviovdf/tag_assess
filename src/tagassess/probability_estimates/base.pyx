@@ -88,7 +88,3 @@ cdef class ProbabilityEstimator:
             Items to consider.
         '''
         pass
-
-    cpdef int num_tags(self):
-        '''Get's the total number of tags'''
-        return 0

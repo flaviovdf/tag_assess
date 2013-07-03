@@ -13,5 +13,3 @@ cdef class ProbabilityEstimator:
     
     cpdef np.ndarray[np.float_t, ndim=1] prob_items(self, 
            np.ndarray[np.int_t, ndim=1] gamma_items)
-    
-    cpdef int num_tags(self)

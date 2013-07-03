@@ -5,8 +5,9 @@ from __future__ import division, print_function
 from tagassess.dao.helpers import FilteredUserItemAnnotations
 from tagassess.dao.pytables.annotations import AnnotReader
 from tagassess.probability_estimates.precomputed import PrecomputedEstimator
-from tagassess.precomputed_value_calculator import PrecompValueCalculator
+from tagassess.value_calculator import ValueCalculator
 
+import numpy as np
 import os
 import plac
 import sys
@@ -17,12 +18,18 @@ def run_exp(user_validation_tags, user_test_tags, est, value_calc):
     for user in est.user_to_tags.keys():
         
         tags = est.tags_for_user(user)
+        gamma = est.gamma_for_user(user)
+        
+        #Remove validation tags. The script focuses on test tags
         tags_to_compute = []
         for tag in tags:
             if tag not in user_validation_tags[user]:
                 tags_to_compute.append(tag)
+                
+        tags_to_compute = np.asanyarray(tags_to_compute)
+        values = value_calc.tag_value_personalized(user, gamma, tags_to_compute, 
+                        True)
         
-        values = value_calc.tag_value_personalized(user, tags_to_compute, True)
         for tag_idx, tag in enumerate(tags_to_compute):
             hidden = tag in user_test_tags[user]
             print(user, tag, values[tag_idx, 0], values[tag_idx, 1], 
@@ -75,7 +82,7 @@ def main(db_fpath, db_name, cross_val_folder, probs_folder):
         annotations = annot_filter.annotations(reader.iterate())
         
         est = PrecomputedEstimator(probs_folder)
-        value_calc = PrecompValueCalculator(est, annotations)
+        value_calc = ValueCalculator(est, annotations)
         
         run_exp(user_validation_tags, user_test_tags, est, value_calc)
     
