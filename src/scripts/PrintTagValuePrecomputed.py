@@ -15,7 +15,7 @@ import sys
 def run_exp(user_validation_tags, user_test_tags, est, value_calc):
     
     print('#user', 'tag', 'rho', 'dkl', 'value', 'hidden_tag')
-    for user in est.user_to_tags.keys():
+    for user in est.get_valid_users():
         
         tags = est.tags_for_user(user)
         gamma = est.gamma_for_user(user)

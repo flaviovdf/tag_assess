@@ -52,6 +52,9 @@ cdef class PrecomputedEstimator(base.ProbabilityEstimator):
             np.ndarray[np.int_t, ndim=1] gamma_items):
         return None
     
+    def get_valid_users(self):
+        return self.user_to_tags.keys()
+    
     def tags_for_user(self, user):
         return self.user_to_tags[user]
     
