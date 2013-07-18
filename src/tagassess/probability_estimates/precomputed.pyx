@@ -25,6 +25,9 @@ cdef class PrecomputedEstimator(base.ProbabilityEstimator):
             piu = h5file.getNode(h5file.root, 'piu').read()
             self.user_to_piu[user_id] = piu
             
+            gamma = h5file.getNode(h5file.root, 'gamma').read()
+            self.user_to_gamma[user_id] = gamma
+            
             child_nodes = h5file.iterNodes(h5file.root)
             
             self.user_to_tags[user_id] = set()
