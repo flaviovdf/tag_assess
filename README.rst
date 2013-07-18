@@ -73,37 +73,6 @@ $ pip install Pyrex
 $ pip install numexpr
 $ pip install pytables
 
-How to install dependencies using Canopy
-========================================
-
-Another option is to use the very good Enthought Canopy python distribution (free for academics). 
-It is a pre-built python with numpy and scipy (plus lots of other goodies) out of the box. 
-
-* Download and install Canopy. See https://www.enthought.com/
-* After installing Canopy activate the virtualenv (at install time you can choose for it to be activated always)
-
-::
-
-$ source ~/Enthought/Canopy_64bit/System/bin/activate
-
-* PROTIP: The cython in Canopy package manager is old. I recommend using  easy_install or pip to install new versions.
-  Since pip does not play well with Canopy, use easy_install.
-
-* Install cython on Canopy
-
-::
-
-$ easy_install Cython
-
-* I also suggest having networkx and pytables. Now using enpkg which is how Canopy manages packages. You can also 
-  use the GUI. Or easy_install them for newest versions (not required)
-
-::
-
-$ enpkg networkx
-$ enpkg tables
-
-
 How to install the package
 ==========================
 
