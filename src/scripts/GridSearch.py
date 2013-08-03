@@ -12,6 +12,8 @@ from __future__ import division, print_function
 
 from collections import defaultdict
 
+from itertools import combinations
+
 from random import seed
 from random import shuffle
 
@@ -29,13 +31,17 @@ import tables
 
 #Parameter values considered
 #For the Bayes smooth, the paper plots -log10([2 .. 6]), thus values are
-#the x = -log10([2 .. 6]), which is 10 ** [2 .. 6]
-SMOOTH_PARAMS = 10 ** (-np.arange(2, 6.01, .5))
+#the x = -log10([2 .. 6]), which is 10 ** [2 .. 6].
+#We also vary the number of tags in the user profile
+SMOOTH_PARAMS = {'fract_tags':[.25, .50, .75, 1],
+                 'lambda':10 ** (-np.arange(2, 6.01, .5))}
 
 #For LDA estimator only gamma varies, other parameters are based on dataset.
 #The paper does not show a range, but since they repport results for gamma=25
-#we decided to set our possible values around it.
-LDA_GAMMA_PARAMS = np.arange(5, 76, 10) #[5 .. 75]
+#we decided to set our possible values around it. We also vary the number of
+#topics
+LDA_GAMMA_PARAMS = {'num_topics':[50, 100, 200, 300],
+                    'gamma':np.arange(5, 76, 10)} #[5 .. 75]
 
 NUM_RANDOM_TAGS = 50
 
@@ -129,8 +135,8 @@ def run_one(args):
     '''
     
     #unbox arguments
-    db_fpath, db_name, output_folder, cross_val_folder, est_name, param_value =\
-            args 
+    db_fpath, db_name, output_folder, cross_val_folder, est_name, \
+            param_one, value_one, param_two, value_two = args
     
     #get cross validation dicts
     user_items_to_filter, user_validation_tags, user_test_tags = \
@@ -177,14 +183,17 @@ def run_one(args):
         #Create estimator
         annotations = annot_filter.annotations(reader.iterate())
         if est_name == 'lda':
-            est = create_lda_estimator(annotations, param_value, 
-                num_items, num_tags)
+            est = create_lda_estimator(annotations, value_one, 
+                num_items, num_tags, value_two)
         else:
-            est = create_bayes_estimator(annotations, param_value)
+            est = create_bayes_estimator(annotations, value_one, value_two)
         
-        param_out_folder = os.path.join(output_folder, 'param-%f' % param_value)
+        param_out_folder = os.path.join(output_folder, \
+                'params-%s-%f_%s-%f' % \
+                (param_one, value_one, param_two, value_two))
+
         os.mkdir(param_out_folder)
-        run_exp(user_items_to_filter, user_validation_tags, user_test_tags, 
+        run_exp(user_items_to_filter, user_validation_tags, user_test_tags,
                 user_to_item, num_items, random_tags, est, param_out_folder)
                 
 @plac.annotations(
@@ -222,9 +231,17 @@ def main(db_fpath, db_name, cross_val_folder, output_folder, est_name,
     
     def params_generator():
         '''Generates arguments for each core to use'''
-        for value in params:
-            yield db_fpath, db_name, output_folder, cross_val_folder, \
-                    est_name, value
+        for param_one, param_two in combinations(params.keys(), 2):
+            values_one = params[param_one]
+            values_two = params[param_two]
+            
+            for i in range(len(values_one)):
+                for j in range(len(values_two)):
+                    val_one = values_one[i]
+                    val_two = values_two[j]
+
+                    yield db_fpath, db_name, output_folder, cross_val_folder, \
+                        est_name, param_one, val_one, param_two, val_two
     
     pool.map(run_one, params_generator()) #Run in parallel, go go cores!
     pool.close()

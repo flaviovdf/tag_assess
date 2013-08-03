@@ -8,7 +8,8 @@ from __future__ import division, print_function
 from tagassess.probability_estimates.lda_estimator import LDAEstimator
 from tagassess.probability_estimates.smooth_estimator import SmoothEstimator
 
-def create_lda_estimator(annotations_it, gamma, num_items, num_tags):
+def create_lda_estimator(annotations_it, gamma, num_items, num_tags, 
+        num_topics=200):
     '''
     Creates the lda estimator with the parameters described in [1]_. Alpha and
     Beta are defined as a function of the number of items and tags, thus only
@@ -23,7 +24,6 @@ def create_lda_estimator(annotations_it, gamma, num_items, num_tags):
     data mining - WSDM  ’11. doi:10.1145/1935826.1935898
     '''
     
-    num_topics = 200
     alpha = 0.1 * num_items
     beta = 0.1 * num_tags
     iterations = 300
@@ -34,7 +34,7 @@ def create_lda_estimator(annotations_it, gamma, num_items, num_tags):
             gamma, iterations, burn_in, sample_every, seed)
     return lda_estimator
 
-def create_bayes_estimator(annotations, lambda_):
+def create_bayes_estimator(annotations, lambda_, user_profile_fract_size=.4):
     '''
     Creates smooth estimator with the best Bayes parameter described in [1]_
     
@@ -45,7 +45,6 @@ def create_bayes_estimator(annotations, lambda_):
     Reinders Marcel J. T. , 
     Information Processing and Management, Volume 46, Issue 1, p.58-70, (2010)
     '''
-    user_profile_fract_size = .4
     smooth_estimator = SmoothEstimator('Bayes', lambda_, annotations,
                                        user_profile_fract_size)
     return smooth_estimator
