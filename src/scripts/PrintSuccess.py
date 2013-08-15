@@ -127,6 +127,8 @@ def succ_at_k(gamma, probs, relevant, k=10):
 
 def main(cv_folder, param_folder, estimator):
 
+    np.seterr(all='raise') #raise exception for any warning
+
     assert estimator in ['lda', 'smooth']
 
     user_items_to_filter, user_validation_items, user_validation_tags, \
