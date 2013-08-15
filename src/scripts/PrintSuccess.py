@@ -156,26 +156,23 @@ def main(cv_folder, param_folder, estimator):
                 if tag_id in user_validation_tags[user_id]:
                     pitus[tag_id] = child_node.read()
         
-        #Estimate query value.
+        #Estimate query value (we use log(prb + 1) to avoid underflows). Not a problem
+        #since this is just for ranking
         piqus = []
         if estimator == 'smooth': #For smooth it is just the product
             for item_id in user_validation_items[user_id]:
-                piqu = 1
+                piqu = 0
                 for tag_id in user_item_to_tag_val[(user_id, item_id)]:
-                    piqu *= pitus[tag_id]
+                    piqu += np.log(pitus[tag_id] + 1)
                 
                 piqus.append(piqu)
         else: #For lda we have to consider the model
             for item_id in user_validation_items[user_id]:
-                piqu = 1
+                piqu = 0
                 for tag_id in user_item_to_tag_val[(user_id, item_id)]:
-                    #Mask to avoid division by zero
-                    aux_tag = np.ma.array(pitus[tag_id], mask=(piu == 0))
-                    aux_item = np.ma.array(piu, mask=(piu == 0))
-
-                    piqu *= (aux_tag / aux_item)
+                    piqu += np.log(pitus[tag_id] + 1) - np.log(piu + 1)
             
-                piqu *= piu
+                piqu += np.log(piu + 1)
                 piqus.append(piqu)
 
         relevant = user_validation_items[user_id]
