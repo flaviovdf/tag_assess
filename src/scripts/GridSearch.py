@@ -37,11 +37,8 @@ SMOOTH_PARAMS = {'fract_tags':[.25, .50, .75, 1],
                  'lambda':10 ** (-np.arange(2, 6.01, .5))}
 
 #For LDA estimator only gamma varies, other parameters are based on dataset.
-#The paper does not show a range, but since they repport results for gamma=25
-#we decided to set our possible values around it. We also vary the number of
-#topics
-LDA_GAMMA_PARAMS = {'num_topics':[50, 100, 200, 300],
-                    'gamma':np.arange(5, 76, 10)} #[5 .. 75]
+LDA_GAMMA_PARAMS = {'num_topics':[200],
+                    'gamma':np.arange(.1, 1, .2)} #[.1 .. 1]
 
 NUM_RANDOM_TAGS = 50
 
