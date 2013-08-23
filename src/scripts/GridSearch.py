@@ -33,12 +33,12 @@ import tables
 #For the Bayes smooth, the paper plots -log10([2 .. 6]), thus values are
 #the x = -log10([2 .. 6]), which is 10 ** [2 .. 6].
 #We also vary the number of tags in the user profile
-SMOOTH_PARAMS = {'fract_tags':[.25, .50, .75, 1],
-                 'lambda':10 ** (-np.arange(2, 6.01, .5))}
+SMOOTH_PARAMS = {'p1_lambda':10 ** (-np.arange(2, 6.01, .5)),
+                 'p2_fract_tags':[.25, .50, .75, 1]}
 
 #For LDA estimator only gamma varies, other parameters are based on dataset.
-LDA_GAMMA_PARAMS = {'num_topics':[200],
-                    'gamma':np.arange(.1, 1, .2)} #[.1 .. 1]
+LDA_GAMMA_PARAMS = {'p1_gamma':np.arange(.1, 1, .2),
+                    'p2_num_topics':[200]} #[.1 .. 1]
 
 NUM_RANDOM_TAGS = 50
 
@@ -228,7 +228,7 @@ def main(db_fpath, db_name, cross_val_folder, output_folder, est_name,
     
     def params_generator():
         '''Generates arguments for each core to use'''
-        for param_one, param_two in combinations(params.keys(), 2):
+        for param_one, param_two in combinations(sorted(params.keys()), 2):
             values_one = params[param_one]
             values_two = params[param_two]
             
