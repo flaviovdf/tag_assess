@@ -24,8 +24,8 @@ def create_lda_estimator(annotations_it, gamma, num_items, num_tags,
     data mining - WSDM  ’11. doi:10.1145/1935826.1935898
     '''
     
-    alpha = 0.1 * num_items
-    beta = 0.1 * num_tags
+    alpha = 50 / num_topics
+    beta = 0.1
     iterations = 300
     burn_in = 200
     sample_every = 5 #based on the author thesis
