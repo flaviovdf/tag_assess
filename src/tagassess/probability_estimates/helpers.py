@@ -30,9 +30,8 @@ def create_lda_estimator(annotations_it, gamma, num_items, num_tags,
     burn_in = 200
     sample_every = 5 #based on the author thesis
     seed = 0 #time based seed
-    debug = 1
     lda_estimator = LDAEstimator(annotations_it, num_topics, alpha, beta, 
-            gamma, iterations, burn_in, sample_every, seed, debug)
+            gamma, iterations, burn_in, sample_every, seed)
     return lda_estimator
 
 def create_bayes_estimator(annotations, lambda_, user_profile_fract_size=.4):
