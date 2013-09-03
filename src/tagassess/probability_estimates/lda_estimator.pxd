@@ -47,12 +47,6 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
     cdef double[:, ::1] topic_document_prb
     cdef double[:, ::1] topic_term_prb
     
-    #The following arrays are used to verify the convergence of the Gibbs
-    #sampler
-    cdef double[:] user_topic_probs_chain
-    cdef double[:] topic_document_probs_chain
-    cdef double[:] topic_term_probs_chain
-    
     #Annotations represented as four arrays (user, topic, document, term)
     cdef int num_annotations
     cdef int[:] annot_user
@@ -71,16 +65,16 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
     #Gibbs sample methods
     cdef void _gibbs_sample(self)
     cpdef int _gibbs_update(self, int user, int old_topic, int document, 
-                            int term, int sample_user, int store_chain)
+                            int term, int sample_user)
     cdef void _add_probabilities(self, 
                                  int user, int topic, int document, int term)
     cdef void _average_probs(self, int num_runs)
     cpdef int _sample_topic(self, int user, int document, int term, 
-                            int sample_user, int store_chain)
+                            int sample_user)
        
     #Probability estimation methods
     cdef double _est_prob_topic_given_user(self, int user, int topic)
     cdef double _est_prob_document_given_topic(self, int topic, int document)
     cdef double _est_prob_term_given_topic(self, int topic, int term)
     cdef double _est_posterior_prob(self, int user, int topic, int document,
-                                     int term, int sample_user, int store_chain)
+                                     int term, int sample_user)
