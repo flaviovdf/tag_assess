@@ -96,7 +96,7 @@ class TestLDAEstimator(unittest.TestCase):
         estimator = LDAEstimator(annots, 2, .5, .5, .5, 0, 0, 1, 0) 
     
         for _ in xrange(1000):
-            self.assertTrue(estimator._sample_topic(0, 0, 0, 0) in [0, 1])
+            self.assertTrue(estimator._sample_topic(0, 0, 0, 0, 0) in [0, 1])
     
     def test_gibbs_update(self):
         
@@ -113,7 +113,7 @@ class TestLDAEstimator(unittest.TestCase):
             old_tr = estimator._get_topic_term_counts()[old_topic, term]
             
             new_topic = estimator._gibbs_update(user, old_topic, document, 
-                                                term, 0)
+                                                term, 0, 0)
             new_ut = estimator._get_user_topic_counts()[user, old_topic]
             new_td = estimator._get_topic_document_counts()[old_topic, document]
             new_tr = estimator._get_topic_term_counts()[old_topic, term]
@@ -137,6 +137,8 @@ class TestLDAEstimator(unittest.TestCase):
         annots = self.create_annots(test.DELICIOUS_FILE)
         estimator = LDAEstimator(annots, 10, .5, .5, .5, 5, 2, 1, 0)
         
+        self.assertEqual(estimator.get_iter(), 5)
+        
         ut = estimator._get_user_topic_prb()
         td = estimator._get_topic_document_prb()
         tt = estimator._get_topic_term_prb()
@@ -152,6 +154,18 @@ class TestLDAEstimator(unittest.TestCase):
         self.assertTrue((ut <= 1).all())
         self.assertTrue((td <= 1).all())
         self.assertTrue((tt <= 1).all())
+        
+        self.assertEqual(estimator.get_topic_given_user_chain().shape[0], 5)
+        self.assertEqual(estimator.get_document_given_topic_chain().shape[0], 5)
+        self.assertEqual(estimator.get_term_given_topic_chain().shape[0], 5)
+        
+        self.assertTrue((estimator.get_topic_given_user_chain() > 0).all())
+        self.assertTrue((estimator.get_document_given_topic_chain() > 0).all())
+        self.assertTrue((estimator.get_term_given_topic_chain() > 0).all())
+
+        self.assertTrue((estimator.get_topic_given_user_chain() <= 1).all())
+        self.assertTrue((estimator.get_document_given_topic_chain() <= 1).all())
+        self.assertTrue((estimator.get_term_given_topic_chain() <= 1).all())
 
     def test_gibbs_sample_with_same_sample_seed(self):
         annots = self.create_annots(test.DELICIOUS_FILE)

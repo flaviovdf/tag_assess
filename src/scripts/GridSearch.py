@@ -38,7 +38,7 @@ SMOOTH_PARAMS = {'p1_lambda':10 ** (-np.arange(2, 6.01, .5)),
 
 #For LDA estimator only gamma varies, other parameters are based on dataset.
 LDA_GAMMA_PARAMS = {'p1_gamma':[25],
-                    'p2_num_topics':[150, 200, 250, 300]}
+                    'p2_num_topics':[150]}
 
 NUM_RANDOM_TAGS = 50
 

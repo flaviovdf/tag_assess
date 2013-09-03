@@ -193,11 +193,18 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
                                        dtype='i')
 
         self.user_topic_prb = np.zeros((self.num_users, self.num_topics),
-                                       dtype='f')
+                                       dtype='d')
         self.topic_document_prb = np.zeros((self.num_topics,self.num_documents),
-                                           dtype='f')
+                                           dtype='d')
         self.topic_term_prb = np.zeros((self.num_topics, self.num_terms),
-                                       dtype='f')
+                                       dtype='d')
+
+        self.user_topic_probs_chain = np.zeros(self.num_iterations, 
+                                               dtype='d')
+        self.topic_document_probs_chain = np.zeros(self.num_iterations, 
+                                                   dtype='d')
+        self.topic_term_probs_chain = np.zeros(self.num_iterations, 
+                                               dtype='d')
 
         self.user_cnt = np.zeros(self.num_users, dtype='i')
         self.document_cnt = np.zeros(self.num_documents, dtype='i')
@@ -290,21 +297,14 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
         cdef int new_topic = 0
         cdef int useful_steps = 0
 
-        self.user_topic_prb = np.zeros((self.num_users, self.num_topics),
-                                       dtype='f')
-        self.topic_document_prb = np.zeros((self.num_topics,self.num_documents),
-                                           dtype='f')
-        self.topic_term_prb = np.zeros((self.num_topics, self.num_terms),
-                                       dtype='f')
-
-        cdef Py_ssize_t iter        
+        cdef Py_ssize_t i
         cdef Py_ssize_t annot
         
         cdef int sample_user = 1
         
-        for iter from 0 <= iter < self.num_iterations:
-            
-            if ((iter + 1) % self.sample_user_dist_every) == 0:
+        for i from 0 <= i < self.num_iterations:
+            self.iter = i
+            if ((i + 1) % self.sample_user_dist_every) == 0:
                 sample_user = 1
             else:
                 sample_user = 0 
@@ -317,14 +317,15 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
                 
                 #Update count matrices
                 new_topic = self._gibbs_update(user, old_topic, document, term,
-                                               sample_user)
+                                               sample_user, 1)
                 self.annot_topic[annot] = new_topic
                 
                 #After burn in we can begin considering probabilities
-                if iter >= self.num_burn_in:
+                if i >= self.num_burn_in:
                     self._add_probabilities(user, new_topic, document, term)
                     useful_steps += 1
-            
+        self.iter = i
+        
         #Average out the sums which were considered
         self._average_probs(useful_steps)
         return
@@ -366,7 +367,8 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
         return
         
     cpdef int _gibbs_update(self, int user, int old_topic, 
-                            int document, int term, int sample_user):
+                            int document, int term, int sample_user, 
+                            int store_chain):
         '''
         Performs the gibbs update step. Here if a topic exists for
         (user, tag, term) it will be removed and a new topic will be sampled.
@@ -381,7 +383,8 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
         self.topic_cnt[old_topic] -= 1
             
         #sample a new topic
-        new_topic = self._sample_topic(user, document, term, sample_user)
+        new_topic = self._sample_topic(user, document, term, sample_user, 
+                                       store_chain)
         
         #update counts
         self.user_topic_cnt[user, new_topic] += 1
@@ -392,7 +395,7 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
         return new_topic
     
     cpdef int _sample_topic(self, int user, int document, int term,
-                            int sample_user):
+                            int sample_user, int store_chain):
         '''
         Draws a random topic based on current count matrices. The topic
         is for a user, tagging a document with the given term. This sampling
@@ -407,7 +410,8 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
         cdef int topic
         for topic from 0 <= topic < self.num_topics:
             probs[topic] = self._est_posterior_prob(user, topic, document, 
-                                                    term, sample_user)
+                                                    term, sample_user, 
+                                                    store_chain)
             sum_probs += probs[topic]
         
         #Scaling probabilities to add up to one
@@ -441,7 +445,8 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
                      self.beta)
 
     cdef double _est_posterior_prob(self, int user, int topic, int document,
-                                     int term, int sample_user):
+                                     int term, int sample_user, 
+                                     int store_chain):
         '''Estimates the posterior probability based on topic count matrices'''
         
         cdef double p_topic_gv_user
@@ -452,6 +457,12 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
         p_document_gv_topic = self._est_prob_document_given_topic(topic, 
                                                                   document)
         p_term_gv_topic = self._est_prob_term_given_topic(topic, term)
+        
+        if (store_chain == 1):
+            if (self.iter < self.user_topic_probs_chain.shape[0]):
+                self.user_topic_probs_chain[self.iter] = p_topic_gv_user
+                self.topic_document_probs_chain[self.iter] = p_document_gv_topic
+                self.topic_term_probs_chain[self.iter] = p_term_gv_topic
         
         if sample_user == 1:
             return p_topic_gv_user * p_document_gv_topic * p_term_gv_topic
@@ -504,6 +515,18 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
         return self.prob_topic_given_user(user, topic) * \
                 self.prob_document_given_topic(topic, document) * \
                 self.prob_term_given_topic(topic, term)
+
+    def get_iter(self):
+        return self.iter
+
+    def get_topic_given_user_chain(self):
+        return np.asarray(self.user_topic_probs_chain)
+
+    def get_document_given_topic_chain(self):
+        return np.asarray(self.topic_document_probs_chain)
+
+    def get_term_given_topic_chain(self):
+        return np.asarray(self.topic_term_probs_chain)
 
     def _get_topic_counts(self):
         return np.asarray(self.topic_cnt)
