@@ -17,6 +17,11 @@ np.import_array()
 
 cdef double NAN = float('nan')
 
+#Log from C99
+cdef extern from "math.h":
+    double log(double)
+    double exp(double)
+
 cpdef double prior(int joint_count, int global_count, int num_occurences, 
                    double parameter):
     '''
@@ -42,8 +47,8 @@ cpdef double prior(int joint_count, int global_count, int num_occurences,
     if (global_count + parameter) == 0 or num_occurences == 0:
         return NAN
 
-    cdef double numerator = (parameter / num_occurences) + joint_count
-    cdef double denominator = global_count + parameter
+    cdef double numerator = parameter + joint_count
+    cdef double denominator = global_count + (parameter * num_occurences)
     
     return numerator / denominator
 
@@ -294,6 +299,7 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
 
         cdef Py_ssize_t i
         cdef Py_ssize_t annot
+        cdef double log_likelyhood = 0
         
         cdef int sample_user = 1
         
@@ -304,6 +310,7 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
             else:
                 sample_user = 0 
             
+            log_likelyhood = 0
             for annot from 0 <= annot < self.num_annotations:
                 user = self.annot_user[annot]
                 old_topic = self.annot_topic[annot]
@@ -315,10 +322,19 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
                                                sample_user)
                 self.annot_topic[annot] = new_topic
                 
+                log_likelyhood += log(self._est_posterior_prob(user, 
+                                        new_topic, document, term, sample_user))
+                
                 #After burn in we can begin considering probabilities
                 if i >= self.num_burn_in:
                     self._add_probabilities(user, new_topic, document, term)
                     useful_steps += 1
+                    
+            if i >= self.num_burn_in:
+                print(i, '(AfterBurnIn) Likelyhood = ', log_likelyhood)
+            else:
+                print(i, '(AtBurnIn) Likelyhood = ', log_likelyhood)
+                
         self.iter = i
         
         #Average out the sums which were considered
@@ -406,12 +422,18 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
                                                     term, sample_user)
             sum_probs += probs[topic]
         
-        #Scaling probabilities to add up to one
-        for topic from 0 <= topic < self.num_topics:
-            probs[topic] = probs[topic] / sum_probs
+        #cumulate multinomial parameters
+        for topic from 1 <= topic < self.num_topics:
+            probs[topic] += probs[topic - 1]
         
-        #Draw topic from a multinomial
-        return np.random.multinomial(1, probs).argmax()
+        #Sample via cumulative method
+        cdef double u = np.random.random() * probs[self.num_topics - 1]
+        cdef Py_ssize_t new_topic
+        for new_topic from 0 <= new_topic < self.num_topics:
+            if (u < probs[new_topic]):
+                break
+        
+        return new_topic
 
     cdef double _est_prob_topic_given_user(self, int user, int topic):
         '''Estimates p(topic z|user u) based on the topic count matrices'''
@@ -448,11 +470,18 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
         p_document_gv_topic = self._est_prob_document_given_topic(topic, 
                                                                   document)
         p_term_gv_topic = self._est_prob_term_given_topic(topic, term)
-                
+        cdef double rv = 0
         if sample_user == 1:
-            return p_topic_gv_user * p_document_gv_topic * p_term_gv_topic
+            rv = p_topic_gv_user * p_document_gv_topic * p_term_gv_topic
+            if (p_topic_gv_user != 0 and p_document_gv_topic != 0 and \
+                p_term_gv_topic != 0 and rv == 0):
+                print('Warn! Underflow at iter', self.iter)
+            return rv
         else:
-            return p_document_gv_topic * p_term_gv_topic
+            rv = p_document_gv_topic * p_term_gv_topic
+            if (p_document_gv_topic != 0 and p_term_gv_topic != 0 and rv == 0):
+                print('Warn! Underflow at iter', self.iter)
+            return rv
 
     #Methods to be used after sampling
     def prob_topic_given_user(self, int user, int topic):

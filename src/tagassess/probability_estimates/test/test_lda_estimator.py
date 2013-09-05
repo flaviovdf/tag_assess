@@ -34,7 +34,7 @@ class TestLDAEstimator(unittest.TestCase):
     def test_prior_computation(self):
         self.assertTrue(isnan(prior(1, 1, 0, 1)))
         self.assertTrue(isnan(prior(1, 0, 1, 0)))
-        self.assertEqual(.631578947368421, prior(2, 3, 2, 0.8))
+        self.assertEqual(.6086956521739131, prior(2, 3, 2, 0.8))
 
     def test_initial_population(self):
         annots = self.create_annots(test.SMALL_DEL_FILE)
