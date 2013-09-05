@@ -411,8 +411,8 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
         is based on the posterior.
         '''
         
-        cdef np.ndarray[dtype=np.float_t, ndim=1] probs = \
-                np.ndarray(self.num_topics) 
+        cdef np.ndarray[dtype=np.double_t, ndim=1] probs = \
+                np.ndarray(self.num_topics, dtype='d') 
         cdef double sum_probs = 0
         
         #The probs array will have values proportional to the probabilities.
@@ -571,7 +571,7 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
         return return_val
 
     #Methods used by the value calculator
-    cpdef np.ndarray[np.float_t, ndim=1] prob_items_given_user(self, int user, 
+    cpdef np.ndarray[np.double_t, ndim=1] prob_items_given_user(self, int user, 
              np.ndarray[np.int_t, ndim=1] gamma_items):
             
         '''
@@ -616,7 +616,7 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
             
         return vp_iu
     
-    cpdef np.ndarray[np.float_t, ndim=1] prob_items_given_user_tag(self,
+    cpdef np.ndarray[np.double_t, ndim=1] prob_items_given_user_tag(self,
             int user, int tag, np.ndarray[np.int_t, ndim=1] gamma_items):
         '''
         Computes P(I|t, u), i.e., returns an array with the probability of each
@@ -645,7 +645,8 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
         cdef Py_ssize_t item_idx
         cdef Py_ssize_t topic
         
-        cdef np.ndarray[np.float_t, ndim=1] vpi_tu = np.ndarray(num_items)
+        cdef np.ndarray[np.double_t, ndim=1] vpi_tu = np.ndarray(num_items,
+                                                                 dtype='d')
         cdef double sum_probs = 0
 
         for item_idx in prange(num_items, nogil=True, schedule='static'):
@@ -663,7 +664,7 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
 
         return vpi_tu
 
-    cpdef np.ndarray[np.float_t, ndim=1] prob_items_given_tag(self, 
+    cpdef np.ndarray[np.double_t, ndim=1] prob_items_given_tag(self, 
             int tag, np.ndarray[np.int_t, ndim=1] gamma_items):
         '''
         Computes P(I|t), i.e., returns an array with the probability of each
@@ -690,7 +691,8 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
         '''
         
         cdef Py_ssize_t num_items = gamma_items.shape[0]
-        cdef np.ndarray[np.float_t, ndim=1] vp_it = np.ndarray(num_items)
+        cdef np.ndarray[np.double_t, ndim=1] vp_it = np.ndarray(num_items, 
+                                                                dtype='d')
         
         cdef Py_ssize_t item_idx
         cdef Py_ssize_t topic
@@ -711,7 +713,7 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
             
         return vp_it
     
-    cpdef np.ndarray[np.float_t, ndim=1] prob_items(self, 
+    cpdef np.ndarray[np.double_t, ndim=1] prob_items(self, 
            np.ndarray[np.int_t, ndim=1] gamma_items):
         
         '''
@@ -735,7 +737,8 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
         '''
         
         cdef Py_ssize_t num_items = gamma_items.shape[0]
-        cdef np.ndarray[np.float_t, ndim=1] vp_i = np.ndarray(num_items)
+        cdef np.ndarray[np.double_t, ndim=1] vp_i = np.ndarray(num_items, 
+                                                               dtype='d')
         cdef double sum_probs = 0
         
         cdef Py_ssize_t item_idx

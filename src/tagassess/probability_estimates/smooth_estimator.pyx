@@ -195,7 +195,7 @@ cdef class SmoothEstimator(base.ProbabilityEstimator):
             
         return return_val
     
-    cpdef np.ndarray[np.float_t, ndim=1] prob_items_given_user(self, int user, 
+    cpdef np.ndarray[np.double_t, ndim=1] prob_items_given_user(self, int user, 
             np.ndarray[np.int_t, ndim=1] gamma_items):
         '''
         Computes P(I|u), i.e., returns an array with the probability of each
@@ -222,7 +222,8 @@ cdef class SmoothEstimator(base.ProbabilityEstimator):
             Items to consider. 
         '''
         cdef Py_ssize_t n_items = gamma_items.shape[0]
-        cdef np.ndarray[np.float_t, ndim=1] vp_iu = np.ndarray(n_items)
+        cdef np.ndarray[np.double_t, ndim=1] vp_iu = np.ndarray(n_items, 
+                                                                dtype='d')
         cdef double sum_probs = 0
         
         cdef Py_ssize_t item_idx
@@ -237,7 +238,7 @@ cdef class SmoothEstimator(base.ProbabilityEstimator):
 
         return vp_iu
 
-    cpdef np.ndarray[np.float_t, ndim=1] prob_items_given_user_tag(self,
+    cpdef np.ndarray[np.double_t, ndim=1] prob_items_given_user_tag(self,
             int user, int tag, np.ndarray[np.int_t, ndim=1] gamma_items):
         '''
         Computes P(I|u,t), i.e., returns an array with the probability of each
@@ -264,7 +265,8 @@ cdef class SmoothEstimator(base.ProbabilityEstimator):
             Items to consider. 
         '''
         cdef Py_ssize_t n_items = gamma_items.shape[0]
-        cdef np.ndarray[np.float_t, ndim=1] vp_itu = np.zeros(n_items)
+        cdef np.ndarray[np.double_t, ndim=1] vp_itu = np.zeros(n_items, 
+                                                               dtype='d')
         cdef double sum_probs = 0
         
         cdef Py_ssize_t item_idx
@@ -281,7 +283,7 @@ cdef class SmoothEstimator(base.ProbabilityEstimator):
 
         return vp_itu
     
-    cpdef np.ndarray[np.float_t, ndim=1] prob_items_given_tag(self, 
+    cpdef np.ndarray[np.double_t, ndim=1] prob_items_given_tag(self, 
             int tag, np.ndarray[np.int_t, ndim=1] gamma_items):
         '''
         Computes P(I|t), i.e., returns an array with the probability of each
@@ -307,7 +309,8 @@ cdef class SmoothEstimator(base.ProbabilityEstimator):
             Items to consider. 
         '''
         cdef Py_ssize_t n_items = gamma_items.shape[0]
-        cdef np.ndarray[np.float_t, ndim=1] vp_it = np.ndarray(n_items)
+        cdef np.ndarray[np.double_t, ndim=1] vp_it = np.ndarray(n_items, 
+                                                                dtype='d')
         cdef double sum_probs = 0
         
         cdef Py_ssize_t item_idx
@@ -323,7 +326,7 @@ cdef class SmoothEstimator(base.ProbabilityEstimator):
 
         return vp_it
     
-    cpdef np.ndarray[np.float_t, ndim=1] prob_items(self, 
+    cpdef np.ndarray[np.double_t, ndim=1] prob_items(self, 
            np.ndarray[np.int_t, ndim=1] gamma_items):
         '''
         Computes P(I), i.e., returns an array with the probability of each
@@ -346,7 +349,8 @@ cdef class SmoothEstimator(base.ProbabilityEstimator):
         '''
         
         cdef Py_ssize_t n_items = gamma_items.shape[0]
-        cdef np.ndarray[np.float_t, ndim=1] vp_i = np.ndarray(n_items)
+        cdef np.ndarray[np.double_t, ndim=1] vp_i = np.ndarray(n_items, 
+                                                               dtype='d')
         cdef double sum_probs = 0
         
         cdef Py_ssize_t item_idx
