@@ -88,3 +88,10 @@ cdef class ProbabilityEstimator:
             Items to consider.
         '''
         pass
+    
+    cpdef double log_likelihood(self):
+        '''
+        Return the log likelihood of the model generating the annotations
+        used to train the same model.
+        '''
+        pass

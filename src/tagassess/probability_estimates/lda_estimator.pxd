@@ -22,6 +22,8 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
     cdef double gamma
     
     cdef Py_ssize_t iter
+    cdef double[:] log_likelihoods_train
+    cdef double final_log_likelihood
     
     #Indicates when are we going to sample from p(z|u) in gibbs routine.
     #Mimicks the parameter $\pi_u$.
@@ -66,8 +68,8 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
     cdef void _gibbs_sample(self)
     cpdef int _gibbs_update(self, int user, int old_topic, int document, 
                             int term, int sample_user)
-    cdef void _add_probabilities(self, 
-                                 int user, int topic, int document, int term)
+    cdef double _get_likelihood(self)
+    cdef void _accumulate(self)
     cdef void _average_probs(self, int num_runs)
     cpdef int _sample_topic(self, int user, int document, int term, 
                             int sample_user)

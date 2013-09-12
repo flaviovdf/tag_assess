@@ -31,7 +31,7 @@ cpdef double prior(int joint_count, int global_count, int num_occurences,
     
     For simplicity we shall discuss in terms of p(x | y). The final equation is:
     
-    .. math :: p(x | y) = (N_{x,y} + \alpha / X) / (N_y + \alpha)
+    .. math :: p(x | y) = (N_{x,y} + \parameter) / (N_y + \parameter * X)
     
     Arguments
     ---------
@@ -99,7 +99,8 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
         self.num_burn_in = num_burn_in
         
         self.iter = 0
-        
+        self.log_likelihoods_train = np.zeros(self.num_iterations, dtype='d')
+        self.final_log_likelihood = 0
         self.sample_user_dist_every = sample_user_dist_every
         
         self._gibbs_populate(annotation_it)
@@ -211,7 +212,8 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
         self.topic_cnt = np.zeros(self.num_topics, dtype='i')
 
         for topic from 0 <= topic < self.num_topics:
-            self.topic_cnt[topic] = topic_cnt[topic]
+            if topic in topic_cnt:
+                self.topic_cnt[topic] = topic_cnt[topic]
             
             for user from 0 <= user < self.num_users:
                 if (user, topic) in user_topic:
@@ -297,9 +299,9 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
         cdef int new_topic = 0
         cdef int useful_steps = 0
 
-        cdef Py_ssize_t i
-        cdef Py_ssize_t annot
-        cdef double log_likelyhood = 0
+        cdef Py_ssize_t i = 0
+        cdef Py_ssize_t annot = 0
+        cdef double log_likelihood = 0
         
         cdef int sample_user = 1
         
@@ -310,7 +312,7 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
             else:
                 sample_user = 0 
             
-            log_likelyhood = 0
+            log_likelihood = 0
             for annot from 0 <= annot < self.num_annotations:
                 user = self.annot_user[annot]
                 old_topic = self.annot_topic[annot]
@@ -322,39 +324,81 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
                                                sample_user)
                 self.annot_topic[annot] = new_topic
                 
-                log_likelyhood += log(self._est_posterior_prob(user, 
-                                        new_topic, document, term, sample_user))
-                
-                #After burn in we can begin considering probabilities
-                if i >= self.num_burn_in:
-                    self._add_probabilities(user, new_topic, document, term)
-                    useful_steps += 1
-                    
+            if i < self.num_burn_in:
+                log_likelihood = self._get_likelihood()
             if i >= self.num_burn_in:
-                print(i, '(AfterBurnIn) Likelyhood = ', log_likelyhood)
-            else:
-                print(i, '(AtBurnIn) Likelyhood = ', log_likelyhood)
+                log_likelihood = self._get_likelihood()
+                self._accumulate()
+                self.final_log_likelihood += log_likelihood
+                useful_steps += 1
+                    
+            self.log_likelihoods_train[i] = log_likelihood
                 
         self.iter = i
         
         #Average out the sums which were considered
+        self.final_log_likelihood /= useful_steps
         self._average_probs(useful_steps)
         return
 
-    cdef void _add_probabilities(self, 
-                                 int user, int topic, int document, int term):
-        '''Increments the probability matrices, these will be averaged out
-        when Gibbs sampling ends'''
-    
-        self.user_topic_prb[user, topic] += \
-                self._est_prob_topic_given_user(user, topic)
+    cdef double _get_likelihood(self):
+        '''
+        Computes likelihood.
+        '''
+        cdef int user = 0
+        cdef int document = 0
+        cdef int term = 0
+        cdef int topic = 0
+        
+        cdef double p_topic_gv_user
+        cdef double p_document_gv_topic
+        cdef double p_term_gv_topic
+        cdef double log_likelihood = 0
+
+        cdef Py_ssize_t annot
+        for annot from 0 <= annot < self.num_annotations:
+            user = self.annot_user[annot]
+            topic = self.annot_topic[annot]
+            document = self.annot_document[annot]
+            term = self.annot_term[annot]
+
+            p_topic_gv_user = self._est_prob_topic_given_user(user, topic)
+            p_document_gv_topic = self._est_prob_document_given_topic(topic, 
+                                                                  document)
+            p_term_gv_topic = self._est_prob_term_given_topic(topic, term)
             
-        self.topic_document_prb[topic, document] += \
-                self._est_prob_document_given_topic(topic, document)
+            log_likelihood += log(p_topic_gv_user) + log(p_document_gv_topic) +\
+                    log(p_term_gv_topic)
+
                 
-        self.topic_term_prb[topic, term] += \
-                self._est_prob_term_given_topic(topic, term)
-                
+        return log_likelihood
+
+    cdef void _accumulate(self):
+        '''Accumulates probability matrices'''
+        
+        cdef int user = 0 
+        cdef int document = 0
+        cdef int term = 0
+        cdef int topic = 0
+
+        cdef double p_topic_gv_user
+        cdef double p_document_gv_topic
+        cdef double p_term_gv_topic
+ 
+        for topic from 0 <= topic < self.num_topics:
+            for user from 0 <= user < self.num_users:
+                p_topic_gv_user = self._est_prob_topic_given_user(user, topic)
+                self.user_topic_prb[user, topic] += p_topic_gv_user
+            
+            for document from 0 <= document < self.num_documents:
+                p_document_gv_topic = self._est_prob_document_given_topic(topic,
+                        document)
+                self.topic_document_prb[topic, document] += p_document_gv_topic
+            
+            for term from 0 <= term < self.num_terms:
+                p_term_gv_topic = self._est_prob_term_given_topic(topic, term)
+                self.topic_term_prb[topic, term] += p_term_gv_topic
+
         return
 
     cdef void _average_probs(self, int num_runs):
@@ -601,7 +645,7 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
         cdef Py_ssize_t item_idx
         cdef Py_ssize_t topic
         cdef double sum_probs = 0
-        
+        cdef int num_unders = 0
         for item_idx in prange(num_items, nogil=True, schedule='static'):
             vp_iu[item_idx] = 0
             for topic from 0 <= topic < self.num_topics:
@@ -750,3 +794,9 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
             vp_i[item_idx] = vp_i[item_idx] / sum_probs
 
         return vp_i
+
+    def chain_likelihood(self):
+        return np.asarray(self.log_likelihoods_train)
+    
+    cpdef double log_likelihood(self):
+        return self.final_log_likelihood

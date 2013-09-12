@@ -13,3 +13,5 @@ cdef class ProbabilityEstimator:
     
     cpdef np.ndarray[np.double_t, ndim=1] prob_items(self, 
            np.ndarray[np.int_t, ndim=1] gamma_items)
+           
+    cpdef double log_likelihood(self)

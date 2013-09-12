@@ -104,7 +104,7 @@ class TestLDAEstimator(unittest.TestCase):
         
         annots = self.create_annots(test.DELICIOUS_FILE)
         estimator = LDAEstimator(annots, 2, .5, .5, .5, 0, 0, 1, 0)
-
+        changed = False
         for annot, old_topic in estimator._get_topic_assignments().items():
             user, document, term = annot
             
@@ -119,6 +119,7 @@ class TestLDAEstimator(unittest.TestCase):
             new_tr = estimator._get_topic_term_counts()[old_topic, term]
             
             if old_topic != new_topic:
+                changed = True
                 self.assertEqual(new_ut, old_ut - 1)
                 self.assertEqual(new_td, old_td - 1)
                 self.assertEqual(new_tr, old_tr - 1)
@@ -127,6 +128,7 @@ class TestLDAEstimator(unittest.TestCase):
                 self.assertEqual(new_td, old_td)
                 self.assertEqual(new_tr, old_tr)                
 
+        self.assertTrue(changed)
         self.assertEqual(len(estimator._get_topic_assignments()), 
                          estimator._get_topic_counts().sum())
 
@@ -222,10 +224,9 @@ class TestLDAEstimator(unittest.TestCase):
 
         def isvalid(probs):
             return probs.sum() <= 1.00001 and probs.sum() >= 0.99999 and \
-                (probs >= 0).all() and \
-                (probs <= 1).all()
+                (probs > 0).all() and \
+                (probs < 1).all()
 
-        #4 runs, 2 for burn 1
         annots = self.create_annots(test.SMALL_DEL_FILE)
         estimator = LDAEstimator(annots, 2, .1, .2, .3, 2, 0, 1, 0)
         
@@ -239,6 +240,41 @@ class TestLDAEstimator(unittest.TestCase):
         self.assertTrue(isvalid(prob_items_tag))
         self.assertTrue(isvalid(prob_items_user))
         self.assertTrue(isvalid(prob_items_user_tag))
+        
+    def test_valid_run(self):
+
+        def isvalid(probs):
+            return probs.sum() <= 1.00001 and probs.sum() >= 0.99999 and \
+                (probs > 0).all() and \
+                (probs < 1).all()
+
+        annots = self.create_annots(test.SMALL_DEL_FILE)
+        estimator = LDAEstimator(annots, 200, .001, .002, .003, 100, 50, 5, 0)
+        
+        gamma = np.arange(5)
+        prob_items = estimator.prob_items(gamma)
+        prob_items_tag = estimator.prob_items_given_tag(0, gamma)
+        prob_items_user = estimator.prob_items_given_user(0, gamma)
+        prob_items_user_tag = estimator.prob_items_given_user_tag(0, 0, gamma)
+        
+        self.assertTrue(isvalid(prob_items))
+        self.assertTrue(isvalid(prob_items_tag))
+        self.assertTrue(isvalid(prob_items_user))
+        self.assertTrue(isvalid(prob_items_user_tag))
+        
+        self.assertTrue(estimator.chain_likelihood().all())
+        
+        self.assertTrue((estimator._get_user_topic_prb() >= 0).all())
+        self.assertTrue((estimator._get_topic_document_prb() >= 0).all())
+        self.assertTrue((estimator._get_topic_term_prb() >= 0).all())
+        
+        self.assertTrue((estimator._get_user_topic_prb() <= 1).all())
+        self.assertTrue((estimator._get_topic_document_prb() <= 1).all())
+        self.assertTrue((estimator._get_topic_term_prb() <= 1).all())
+        
+        self.assertTrue((estimator._get_user_topic_prb()).any())
+        self.assertTrue((estimator._get_topic_document_prb()).any())
+        self.assertTrue((estimator._get_topic_term_prb()).any())
 
 if __name__ == "__main__":
     unittest.main()
