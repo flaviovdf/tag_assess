@@ -52,7 +52,7 @@ def run_exp(user_items_to_filter, user_validation_tags, user_test_tags,
         log_likelihood = est.log_likelihood()
         
         train_fpath = os.path.join(output_folder, 'train-data.h5')
-        train_h5file = tables.openFile(user_fpath, mode='w')
+        train_h5file = tables.openFile(train_fpath, mode='w')
         
         train_h5file.createArray(train_h5file.root, 'chain', chain)
         train_h5file.createArray(train_h5file.root, 'likelihood',
