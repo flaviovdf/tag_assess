@@ -43,9 +43,23 @@ LDA_GAMMA_PARAMS = {'p1_gamma':[0.25, 0.5, 0.001, 0.01, 0.1, 25, 50],
 NUM_RANDOM_TAGS = 50
 
 def run_exp(user_items_to_filter, user_validation_tags, user_test_tags, 
-        user_to_item, num_items, random_tags, est, output_folder):
+        user_to_item, num_items, random_tags, est, output_folder, save_lhood):
     '''Computes probabilities for one user and saves results to files'''
     
+    #Save train data if necessary
+    if save_lhood:
+        chain = est.chain_likelihood()
+        log_likelihood = est.log_likelihood()
+        
+        train_fpath = os.path.join(output_folder, 'train-data.h5')
+        train_h5file = tables.openFile(user_fpath, mode='w')
+        
+        train_h5file.createArray(train_h5file.root, 'chain', chain)
+        train_h5file.createArray(train_h5file.root, 'likelihood',
+                np.array([log_likelihood]))
+
+        train_h5file.close()
+
     #Run experiment
     for user in user_items_to_filter:
         
@@ -179,9 +193,11 @@ def run_one(args):
         
         #Create estimator
         annotations = annot_filter.annotations(reader.iterate())
+        save_lhood = False
         if est_name == 'lda':
             est = create_lda_estimator(annotations, value_one, 
                 num_items, num_tags, value_two)
+            save_lhood = True
         else:
             est = create_bayes_estimator(annotations, value_one, value_two)
         
@@ -191,7 +207,8 @@ def run_one(args):
 
         os.mkdir(param_out_folder)
         run_exp(user_items_to_filter, user_validation_tags, user_test_tags,
-                user_to_item, num_items, random_tags, est, param_out_folder)
+                user_to_item, num_items, random_tags, est, param_out_folder,
+                save_lhood)
                 
 @plac.annotations(
     db_fpath = plac.Annotation('H5 database file', type=str),
