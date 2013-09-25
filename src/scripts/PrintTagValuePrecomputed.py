@@ -14,7 +14,8 @@ import sys
 
 def run_exp(user_validation_tags, user_test_tags, est, value_calc):
     
-    print('#user', 'tag', 'rho', 'dkl', 'value', 'hidden_tag')
+    print('#user', 'tag', 'rho', 'dkl', 'value', 'naive_diff', 'naive_mean',
+          'naive_val', 'hidden_tag')
     for user in est.get_valid_users():
         
         tags = est.tags_for_user(user)
@@ -29,11 +30,12 @@ def run_exp(user_validation_tags, user_test_tags, est, value_calc):
         tags_to_compute = np.asanyarray(tags_to_compute)
         values = value_calc.tag_value_personalized(user, gamma, tags_to_compute, 
                         True)
-        
+        naive = value_calc.tag_value_naive(user, tags_to_compute, True)
         for tag_idx, tag in enumerate(tags_to_compute):
             hidden = tag in user_test_tags[user]
             print(user, tag, values[tag_idx, 0], values[tag_idx, 1], 
-                  values[tag_idx, 2], hidden)
+                  values[tag_idx, 2], naive[tag_idx, 0], naive[tag_idx, 1], 
+                  naive[tag_idx, 2], hidden)
 
 def load_dict_from_file(fpath):
     '''Loads dictionary from file'''

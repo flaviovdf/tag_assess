@@ -76,7 +76,18 @@ class TestValueCaculator(unittest.TestCase):
         
         rho = vc.calc_rho(0, np.array([0.0]), np.array([0]))
         self.assertEqual(rho, 1 - dktau([0], [0], k=1, p=1))
-    
+        
+    def test_naive(self):
+        self.__init_test(test.SMALL_DEL_FILE)
+        smooth_func = 'Bayes'
+        lambda_ = 0.1
+        _, vc = self.build_value_calculator(self.annots, smooth_func, lambda_)
+        
+        tags = np.arange(5)
+        
+        for val in vc.tag_value_naive(0, tags, True):
+            self.assertTrue((val >= 0).all())
+        
     def test_valid_values_personalized(self):
         self.__init_test(test.SMALL_DEL_FILE)
         
@@ -87,8 +98,8 @@ class TestValueCaculator(unittest.TestCase):
         lambda_ = 0.1
         _, vc = self.build_value_calculator(self.annots, smooth_func, lambda_)
         
-        for val in vc.tag_value_personalized(0, items, tags):
-            self.assertTrue(val >= 0)
+        for val in vc.tag_value_personalized(0, items, tags, True):
+            self.assertTrue((val >= 0).all())
 
     def test_valid_values_item_search(self):
         self.__init_test(test.SMALL_DEL_FILE)
@@ -100,5 +111,5 @@ class TestValueCaculator(unittest.TestCase):
         items = np.arange(5)
         tags = np.arange(5)
         
-        for val in vc.tag_value_item_search(items, tags):
-            self.assertTrue(val >= 0)
+        for val in vc.tag_value_item_search(items, tags, True):
+            self.assertTrue((val >= 0).all())

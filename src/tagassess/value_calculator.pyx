@@ -27,11 +27,17 @@ cdef class ValueCalculator(object):
     
     cdef dict items_with_tag
     cdef ProbabilityEstimator est
+    cdef int num_items
     
     def __init__(self, ProbabilityEstimator estimator, object annotation_it):
         self.est = estimator
-        self.items_with_tag = dict((k, v) for k, v in 
-            create_occurrence_index(annotation_it, 'tag', 'item').items())
+        self.items_with_tag = {}
+        self.num_items = 0
+        
+        index = create_occurrence_index(annotation_it, 'tag', 'item').items()
+        for k, v in index:
+            self.num_items = max(self.num_items, max(v))
+            self.items_with_tag[k] = v
 
     cpdef calc_rho(self, int tag, 
             np.ndarray[np.float_t, ndim=1] item_relevance,
@@ -80,6 +86,44 @@ cdef class ValueCalculator(object):
             return 1 - dktau(top_valued_items, top_valued_items_with_tag, k,
                              p=1)
 
+    def tag_value_naive(self, int user, 
+            np.ndarray[np.int_t, ndim=1] tags,
+            bool return_rho_dkl=False):
+        
+        if not return_rho_dkl:
+            return_val = np.ndarray(shape=(tags.shape[0],), dtype='d')
+        else:
+            return_val = np.ndarray(shape=(tags.shape[0], 3), dtype='d')
+            
+        cdef np.ndarray[np.float_t, ndim=1] vp_iu
+        vp_iu = self.est.prob_items_given_user(user, np.arange(self.num_items))
+        
+        cdef double reduction = 0
+        cdef double relevance = 0
+        cdef int num_retrieved = 0
+        
+        cdef int item
+        cdef int tag
+        cdef Py_ssize_t i
+        for i in range(tags.shape[0]):
+            tag = tags[i]
+            reduction = 0
+            relevance = 0
+            num_retrieved = 0
+            for item in self.items_with_tag[tag]:
+                relevance += vp_iu[item]
+                num_retrieved += 1
+            
+            reduction = self.num_items - num_retrieved
+            relevance /= num_retrieved
+            if not return_rho_dkl:
+                return_val[i] = reduction * relevance
+            else:
+                return_val[i, 0] = reduction
+                return_val[i, 1] = relevance
+                return_val[i, 2] = reduction * relevance
+        return return_val
+                
     def tag_value_personalized(self, int user, 
             np.ndarray[np.int_t, ndim=1] gamma_items,
             np.ndarray[np.int_t, ndim=1] tags,
