@@ -43,6 +43,9 @@ def get_baselines(annot_filter, reader, user_to_tags):
         if tag not in user_to_tags[user] and item in user_to_item[user]:
             overlap[user, tag] += 1
     
+    for tag in idf.keys():
+        idf[tag] = 1.0 / idf[tag] 
+    
     return idf, user_freq, overlap
 
 def run_exp(user_validation_tags, user_test_tags, est, annot_filter, reader):
