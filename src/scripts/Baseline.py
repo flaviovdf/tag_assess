@@ -4,7 +4,7 @@ from __future__ import division, print_function
 
 from tagassess.dao.helpers import FilteredUserItemAnnotations
 from tagassess.dao.pytables.annotations import AnnotReader
-from tagassess.index_creator import create_metrics_index
+from tagassess.index_creator import create_occurrence_index
 from tagassess.probability_estimates.precomputed import PrecomputedEstimator
 
 import os
@@ -14,10 +14,10 @@ import sys
 def get_baselines(annot_filter, reader, user_to_tags):
     
     annotations = annot_filter.annotations(reader.iterate())
-    user_to_item = create_metrics_index(annotations, 'user', 'item')
+    user_to_item = create_occurrence_index(annotations, 'user', 'item')
     
     annotations = annot_filter.annotations(reader.iterate())
-    item_to_tags = create_metrics_index(annotations, 'item', 'tags')
+    item_to_tags = create_occurrence_index(annotations, 'item', 'tag')
     
     overlap = {}
     for user in user_to_tags:
