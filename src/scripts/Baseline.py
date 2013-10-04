@@ -7,46 +7,41 @@ from tagassess.dao.pytables.annotations import AnnotReader
 from tagassess.index_creator import create_metrics_index
 from tagassess.probability_estimates.precomputed import PrecomputedEstimator
 
-import numpy as np
 import os
 import plac
 import sys
 
 def get_baselines(annot_filter, reader, user_to_tags):
+    
     annotations = annot_filter.annotations(reader.iterate())
     user_to_item = create_metrics_index(annotations, 'user', 'item')
-    idf = {}
-    user_freq = {}
+    
+    annotations = annot_filter.annotations(reader.iterate())
+    item_to_tags = create_metrics_index(annotations, 'item', 'tags')
+    
     overlap = {}
+    for user in user_to_tags:
+        for item in user_to_item:
+            for tag in item_to_tags[item]:
+                if (user, tag) not in overlap:
+                    overlap[user, tag] = 0
+                    
+                if tag not in user_to_tags[user]:
+                    overlap[user, tag] += 1
+    
+    idf = {}
     annotations = annot_filter.annotations(reader.iterate())
     for annot in annotations:
-        user = annot['user']
         tag = annot['tag']
-        item = annot['item']
-        
-        if user not in user_to_tags[user]:
-            continue
-        
         if tag not in idf:
             idf[tag] = 0
             
         idf[tag] += 1
-        
-        if (user, tag) not in user_freq:
-            user_freq[user, tag] = 0
-            
-        user_freq[user, tag] += 1
-        
-        if (user, tag) not in overlap:
-            overlap[user, tag] = 0
-        
-        if tag not in user_to_tags[user] and item in user_to_item[user]:
-            overlap[user, tag] += 1
     
     for tag in idf.keys():
         idf[tag] = 1.0 / idf[tag] 
     
-    return idf, user_freq, overlap
+    return idf, overlap
 
 def run_exp(user_validation_tags, user_test_tags, est, annot_filter, reader):
     
@@ -61,17 +56,17 @@ def run_exp(user_validation_tags, user_test_tags, est, annot_filter, reader):
                 
         user_to_tags[user] = tags_to_compute
     
-    idf, user_freq, overlap = get_baselines(annot_filter, reader, user_to_tags)
+    idf, overlap = get_baselines(annot_filter, reader, user_to_tags)
 
-    print('#user', 'tag', 'pop(1/idf)', 'idf', 'uf', 'uf*idf', 'overlap',
-          'hidden_tag')
+    print('#user', 'tag', 'pop(1/idf)', 'idf', 'overlap', 
+          'overlap*idf', 'hidden_tag')
     for user in est.get_valid_users():
         tags = user_to_tags[user]
         
         for tag in tags:
             hidden = tag in user_test_tags[user]
-            print(user, tag, 1.0 / idf[tag], idf[tag], user_freq[user, tag], 
-                  user_freq[user, tag] * idf[tag], overlap[user, tag], hidden)
+            print(user, tag, 1.0 / idf[tag], idf[tag], overlap[user, tag],
+                  overlap[user, tag] * idf[tag], hidden)
 
 def load_dict_from_file(fpath):
     '''Loads dictionary from file'''
