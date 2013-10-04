@@ -67,7 +67,7 @@ def run_exp(user_validation_tags, user_test_tags, est, annot_filter, reader):
             hidden = tag in user_test_tags[user]
             
             if (user, tag) not in overlap:
-                    overlap[user, tag] = 0
+                overlap[user, tag] = 0
                     
             print(user, tag, 1.0 / idf[tag], idf[tag], overlap[user, tag],
                   overlap[user, tag] * idf[tag], hidden)
