@@ -58,13 +58,17 @@ def run_exp(user_validation_tags, user_test_tags, est, annot_filter, reader):
     
     idf, overlap = get_baselines(annot_filter, reader, user_to_tags)
 
-    print('#user', 'tag', 'pop(1/idf)', 'idf', 'overlap', 
-          'overlap*idf', 'hidden_tag')
+    print('#user', 'tag', 'pop', 'idf', 'overlap', 
+          'overlap_idf', 'hidden_tag')
     for user in est.get_valid_users():
         tags = user_to_tags[user]
         
         for tag in tags:
             hidden = tag in user_test_tags[user]
+            
+            if (user, tag) not in overlap:
+                    overlap[user, tag] = 0
+                    
             print(user, tag, 1.0 / idf[tag], idf[tag], overlap[user, tag],
                   overlap[user, tag] * idf[tag], hidden)
 
