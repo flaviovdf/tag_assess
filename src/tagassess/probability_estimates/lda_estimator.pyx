@@ -745,7 +745,7 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
         for item_idx in prange(num_items, nogil=True, schedule='static'):
             vp_it[item_idx] = 0
             for topic from 0 <= topic < self.num_topics:
-                vp_it[item_idx] += self.document_cnt[gamma_items[item_idx]] * \
+                vp_it[item_idx] += self.topic_cnt[topic] * \
                              self.topic_document_prb[topic, 
                                                      gamma_items[item_idx]] * \
                              self.topic_term_prb[topic, tag]
