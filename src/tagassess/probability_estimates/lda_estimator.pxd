@@ -1,3 +1,5 @@
+#-*- coding: utf8
+from __future__ import division, print_function
 cimport base
 
 import numpy as np
@@ -5,7 +7,7 @@ cimport numpy as np
 
 #TODO: This next line is a workaround due to a cython bug. Remove when cython 
 #      .19 comes out
-cdef public api double __PYX_NAN = float('nan')
+#cdef public api double __PYX_NAN = float('nan')
 
 cdef class LDAEstimator(base.ProbabilityEstimator):
     
@@ -21,7 +23,7 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
     cdef double beta
     cdef double gamma
     
-    cdef Py_ssize_t iter
+    cdef Py_ssize_t curr_iter
     cdef double[:] log_likelihoods_train
     cdef double final_log_likelihood
     
@@ -62,7 +64,7 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
                                        dict document_cnt, dict term_cnt,
                                        dict topic_term, dict topic_document,
                                        dict user_topic)
-    cdef void _populate_annotations(self, list annotations_list) 
+    cdef void _populate_annotations(self, list annotations_list)
    
     #Gibbs sample methods
     cdef void _gibbs_sample(self)

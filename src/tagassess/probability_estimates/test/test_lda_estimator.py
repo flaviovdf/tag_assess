@@ -139,7 +139,7 @@ class TestLDAEstimator(unittest.TestCase):
         annots = self.create_annots(test.DELICIOUS_FILE)
         estimator = LDAEstimator(annots, 10, .5, .5, .5, 5, 2, 1, 0)
         
-        self.assertEqual(estimator.get_iter(), 5)
+        self.assertEqual(estimator.get_iter(), 4)
         
         ut = estimator._get_user_topic_prb()
         td = estimator._get_topic_document_prb()

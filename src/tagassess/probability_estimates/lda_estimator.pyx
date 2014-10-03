@@ -2,9 +2,7 @@
 # cython: cdivision = True
 # cython: boundscheck = False
 # cython: wraparound = False
-
 '''Probability based on lda methods'''
-
 from __future__ import division, print_function
 
 from cython.parallel import prange
@@ -15,12 +13,9 @@ import numpy as np
 cimport numpy as np
 np.import_array()
 
-cdef double NAN = float('nan')
-
 #Log from C99
 cdef extern from "math.h":
     double log(double)
-    double exp(double)
 
 cpdef double prior(int joint_count, int global_count, int num_occurences, 
                    double parameter):
@@ -44,12 +39,12 @@ cpdef double prior(int joint_count, int global_count, int num_occurences,
     parameter: double
         the scaling parameter, commonly denoted by alpha, theta or gamma.
     '''
-    if (global_count + parameter) == 0 or num_occurences == 0:
-        return NAN
-
     cdef double numerator = parameter + joint_count
     cdef double denominator = global_count + (parameter * num_occurences)
     
+    if denominator == 0:
+        return 0
+
     return numerator / denominator
 
 cdef class LDAEstimator(base.ProbabilityEstimator):
@@ -98,7 +93,7 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
         self.num_iterations = num_iterations
         self.num_burn_in = num_burn_in
         
-        self.iter = 0
+        self.curr_iter = 0
         self.log_likelihoods_train = np.zeros(self.num_iterations, dtype='d')
         self.final_log_likelihood = 0
         self.sample_user_dist_every = sample_user_dist_every
@@ -306,7 +301,7 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
         cdef int sample_user = 1
         
         for i from 0 <= i < self.num_iterations:
-            self.iter = i
+            self.curr_iter = i
             if ((i + 1) % self.sample_user_dist_every) == 0:
                 sample_user = 1
             else:
@@ -323,7 +318,7 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
                 new_topic = self._gibbs_update(user, old_topic, document, term,
                                                sample_user)
                 self.annot_topic[annot] = new_topic
-                
+            
             if i < self.num_burn_in:
                 log_likelihood = self._get_likelihood()
             if i >= self.num_burn_in:
@@ -331,11 +326,9 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
                 self._accumulate()
                 self.final_log_likelihood += log_likelihood
                 useful_steps += 1
-                    
+            
             self.log_likelihoods_train[i] = log_likelihood
                 
-        self.iter = i
-        
         #Average out the sums which were considered
         self.final_log_likelihood /= useful_steps
         self._average_probs(useful_steps)
@@ -435,6 +428,7 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
         self.topic_document_cnt[old_topic, document] -= 1
         self.topic_term_cnt[old_topic, term] -= 1
         self.topic_cnt[old_topic] -= 1
+        self.user_cnt[user] -= 1
             
         #sample a new topic
         new_topic = self._sample_topic(user, document, term, sample_user)
@@ -444,6 +438,7 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
         self.topic_document_cnt[new_topic, document] += 1
         self.topic_term_cnt[new_topic, term] += 1
         self.topic_cnt[new_topic] += 1
+        self.user_cnt[user] += 1
     
         return new_topic
     
@@ -457,14 +452,12 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
         
         cdef np.ndarray[dtype=np.double_t, ndim=1] probs = \
                 np.ndarray(self.num_topics, dtype='d') 
-        cdef double sum_probs = 0
         
         #The probs array will have values proportional to the probabilities.
         cdef int topic
         for topic from 0 <= topic < self.num_topics:
             probs[topic] = self._est_posterior_prob(user, topic, document, 
                                                     term, sample_user)
-            sum_probs += probs[topic]
         
         #cumulate multinomial parameters
         for topic from 1 <= topic < self.num_topics:
@@ -519,12 +512,12 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
             rv = p_topic_gv_user * p_document_gv_topic * p_term_gv_topic
             if (p_topic_gv_user != 0 and p_document_gv_topic != 0 and \
                 p_term_gv_topic != 0 and rv == 0):
-                print('Warn! Underflow at iter', self.iter)
+                print('Warn! Underflow at iter', self.curr_iter)
             return rv
         else:
             rv = p_document_gv_topic * p_term_gv_topic
             if (p_document_gv_topic != 0 and p_term_gv_topic != 0 and rv == 0):
-                print('Warn! Underflow at iter', self.iter)
+                print('Warn! Underflow at iter', self.curr_iter)
             return rv
 
     #Methods to be used after sampling
@@ -575,7 +568,7 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
                 self.prob_term_given_topic(topic, term)
 
     def get_iter(self):
-        return self.iter
+        return self.curr_iter
 
     def _get_topic_counts(self):
         return np.asarray(self.topic_cnt)
