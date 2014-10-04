@@ -128,12 +128,25 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
         cdef dict user_topic = {}
         cdef list annotations_list = []
 
+        cdef int max_user = 0
+        cdef int max_doc = 1
+        cdef int max_term = 1
+
         self.num_annotations = 0
         for annotation in annotation_it:
             user = <int> annotation['user']
             document = <int> annotation['item']
             term = <int> annotation['tag']
             
+            if user > max_user:
+                max_user = user
+
+            if document > max_doc:
+                max_doc = document
+
+            if term > max_term:
+                max_term = term
+
             #initial assignment is random
             topic = np.random.randint(0, high=self.num_topics)
             
@@ -170,9 +183,9 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
             
             self.num_annotations += 1
         
-        self.num_users = len(user_cnt) 
-        self.num_terms = len(term_cnt) 
-        self.num_documents = len(document_cnt)
+        self.num_users = max_user + 1
+        self.num_terms = max_term + 1
+        self.num_documents = max_doc + 1
         
         #Populates count matrices
         self._populate_count_matrices(user_cnt, topic_cnt, document_cnt, 
@@ -214,7 +227,7 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
                 if (user, topic) in user_topic:
                     self.user_topic_cnt[user, topic] = user_topic[user, topic]
                 
-                if topic == 0:
+                if topic == 0 and user in user_cnt:
                     self.user_cnt[user] = user_cnt[user]
             
             for document from 0 <= document < self.num_documents:
@@ -222,7 +235,7 @@ cdef class LDAEstimator(base.ProbabilityEstimator):
                     self.topic_document_cnt[topic, document] = \
                             topic_document[topic, document]
 
-                if topic == 0:
+                if topic == 0 and document in document_cnt:
                     self.document_cnt[document] = document_cnt[document]
             
             for term from 0 <= term < self.num_terms:
